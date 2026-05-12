@@ -7,9 +7,34 @@
 要在 **你自己的浏览器** 里打开 new-api，需要下面之一：
 
 - 在 **你本机**（或你能 SSH 的服务器）上跑 Docker，再用 **内网穿透 / 隧道** 生成公网 HTTPS 地址；或  
-- 把服务部署到 **有公网 IP 或域名** 的云主机 / PaaS。
+- 把服务部署到 **有公网 IP 或域名** 的云主机 / PaaS；或  
+- **无 Docker**：在能跑 Go + Node 的环境用 SQLite 起 new-api，再在同一台机器上对 `127.0.0.1:3000` 跑 **cloudflared Quick Tunnel**（见下文「无 Docker」）。
 
-**AI 无法在对话里替你生成一个长期有效、且指向你环境的真实公网 URL**；公网地址必须由你这边启动隧道或部署后产生。
+**稳定域名 / 长期公网入口** 需要你自己配置（Named Tunnel、云主机等）；**临时 trycloudflare 链接** 一般在每次启动隧道时生成，适合开发联调。
+
+---
+
+## 无 Docker：源码 + SQLite + Quick Tunnel（适合 Agent 容器 / 本机）
+
+环境要求：**Go**（建议与 `backend/go.mod` 一致）、**Node/npm**。
+
+1. 拉子模块后在仓库根目录执行：
+
+   ```bash
+   ./scripts/dev-newapi-sqlite.sh
+   ```
+
+   首次会构建 `backend/web/default` 前端；若未单独构建 classic，脚本会用 **default 的 `dist` 复制到 classic** 以满足 Go `embed`（仅开发验证；与官方完整构建不等价）。
+
+2. 另开终端，安装或下载 **cloudflared** 后执行：
+
+   ```bash
+   cloudflared tunnel --url http://127.0.0.1:3000
+   ```
+
+   日志里会出现 `https://xxxx.trycloudflare.com`，用浏览器打开即可访问该环境上的 new-api。
+
+3. 说明：部分沙箱 **无法解析** `*.trycloudflare.com` 的 DNS，但 **你本机浏览器** 通常可以；若仍打不开，在你自己电脑上重复上述步骤即可。
 
 ---
 

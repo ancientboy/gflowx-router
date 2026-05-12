@@ -83,6 +83,8 @@ docker compose -f docker-compose.yml -f docker-compose.tunnel.yml --profile tunn
 docker compose -f docker-compose.yml -f docker-compose.tunnel.yml logs cloudflared
 ```
 
+**没有 Docker 时**（例如部分云端 Agent 容器）：先 `./scripts/dev-newapi-sqlite.sh` 用 SQLite 起 new-api，再在同一环境执行 `cloudflared tunnel --url http://127.0.0.1:3000`，从日志复制 `https://xxxx.trycloudflare.com`（步骤见 [`docs/EXTERNAL_ACCESS.md`](docs/EXTERNAL_ACCESS.md)）。
+
 日志中会出现 `https://xxxx.trycloudflare.com`，用浏览器打开即可。**每次重启隧道 URL 会变**；仅适合开发演示，详见 [`docs/EXTERNAL_ACCESS.md`](docs/EXTERNAL_ACCESS.md)。
 
 ## 📄 License
