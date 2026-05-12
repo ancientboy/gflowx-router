@@ -1,52 +1,11 @@
-# GFlowX Router — Docker Compose
+# GFlowX Router — 从仓库根目录启动官方 new-api 底座（子模块内编排）
+# 需要 Docker Compose v2.20+（支持 include）。
+# 若 `docker compose up` 报错，可改用：./scripts/up-official.sh 或 cd backend && docker compose up -d
+#
+# 启动后访问：http://localhost:3000
+# 默认连接 PostgreSQL + Redis，密码见 backend/docker-compose.yml（生产环境务必修改）。
 
-version: '3.8'
+name: gflowx-router
 
-services:
-  gflowx:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: gflowx-router
-    restart: always
-    ports:
-      - "${PORT:-3000}:3000"
-    environment:
-      - TZ=Asia/Shanghai
-      - SQL_DSN=root:${DB_PASSWORD:-gflowx2026}@tcp(mysql:3306)/gflowx?charset=utf8mb4&parseTime=True&loc=Local
-      - REDIS_CONN_STRING=redis://redis:6379
-      - SESSION_SECRET=${SESSION_SECRET:-gflowx-secret-key}
-      - GFLOWX_DEFAULT_PACK=${GFLOWX_DEFAULT_PACK:-developer}
-      - GFLOWX_HEALTH_CHECK=${GFLOWX_HEALTH_CHECK:-true}
-      - GFLOWX_FALLBACK_ENABLED=${GFLOWX_FALLBACK_ENABLED:-true}
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    volumes:
-      - ./data/uploads:/data/uploads
-
-  mysql:
-    image: mysql:8.0
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-gflowx2026}
-      MYSQL_DATABASE: gflowx
-      MYSQL_CHARSET: utf8mb4
-      MYSQL_COLLATION: utf8mb4_unicode_ci
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    volumes:
-      - ./data/mysql:/var/lib/mysql
-    command: --default-authentication-plugin=mysql_native_password
-
-  redis:
-    image: redis:7-alpine
-    restart: always
-    volumes:
-      - ./data/redis:/data
-    command: redis-server --appendonly yes
+include:
+  - path: backend/docker-compose.yml
