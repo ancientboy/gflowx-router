@@ -61,6 +61,7 @@ GFlowX Router 是一个 **场景化 AI API 智能路由网关**。
   - 或：`./scripts/up-official.sh`
   - 或：`cd backend && docker compose up -d`
 - **验证**：浏览器打开 `http://localhost:3000`；健康检查见子模块 compose 中 `new-api` 的 `healthcheck`。
+- **外网 / Cursor Web**：云端 Agent 给出的 `localhost` 无法在你本机浏览器打开；请在可执行 Docker 的环境使用 Quick Tunnel 等，见 [`docs/EXTERNAL_ACCESS.md`](EXTERNAL_ACCESS.md)。
 - **`frontend/`**：后续 GFlowX 全新管理端（当前阶段可不创建）；与官方 Web 并行开发，待 P0 后再切换默认入口。
 
 ---

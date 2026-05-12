@@ -32,6 +32,7 @@ GFlowX Router 是一个基于分类推荐的 AI API 智能中转站。用户无�
 - [API 文档](docs/API.md) — GFlowX 接口规范（产品向）
 - [路由设计](docs/ROUTER.md) — 智能路由引擎设计
 - [前端设计](docs/FRONTEND.md) — UI/UX 设计规范
+- [外网访问](docs/EXTERNAL_ACCESS.md) — Cursor Web 无法访问 localhost 时的隧道与部署方案
 
 ## 🚀 快速开始（第一阶段：官方 new-api 跑通）
 
@@ -63,6 +64,26 @@ cd backend && docker compose up -d
 > 默认数据库与 Redis 密码写在 `backend/docker-compose.yml` 中，**仅适用于本地/内网验证**；上生产前请全部更换，并阅读 new-api 官方环境变量说明。
 
 本环境若未安装 Docker，无法在 CI 容器内替你完成拉镜像验证；请在本地或装有 Docker 的机器上执行上述命令。
+
+## 🌐 外网访问（Cursor Web / 手机 / 分享给他人）
+
+在 **Cursor Web Agent** 里，对话中的 `http://localhost:3000` **不是**你电脑上的地址，浏览器打不开是正常现象。
+
+请在你 **自己能跑 Docker 的机器**（本机或云主机）上按仓库根目录命令启动，然后任选其一拿到 **HTTPS 公网链接**：
+
+```bash
+./scripts/up-with-tunnel.sh
+./scripts/show-tunnel-url.sh
+```
+
+或手动：
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.tunnel.yml --profile tunnel up -d
+docker compose -f docker-compose.yml -f docker-compose.tunnel.yml logs cloudflared
+```
+
+日志中会出现 `https://xxxx.trycloudflare.com`，用浏览器打开即可。**每次重启隧道 URL 会变**；仅适合开发演示，详见 [`docs/EXTERNAL_ACCESS.md`](docs/EXTERNAL_ACCESS.md)。
 
 ## 📄 License
 
