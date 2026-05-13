@@ -20,6 +20,8 @@
 ./scripts/apply-gflowx-backend-patch.sh
 ```
 
+若你曾应用过 **仅含 Go 的旧版** `0001` 补丁（有 `gflowxscene/` 但 **无** `web/default/.../gflowx-scenes/`），请先 **`cd backend && git checkout 3856b9d2 && git clean -fd`**（或重新 `submodule update` 到 pin），再执行上述脚本，以便一次性应用 **Go + default Web** 的完整补丁。
+
 这会在 `backend/` 内生成 `gflowxscene/`、改写 `controller/relay.go`，并在 **default 控制台**（`web/default`）增加路由 **`/gflowx-scenes`**（侧栏「场景路由」）用于展示场景标签与角色/分组说明。
 
 升级子模块后请更新上表中的提交哈希与说明；若上游变更导致补丁失效，需重新导出补丁（见下）。
