@@ -104,8 +104,8 @@ Redis 缓存层：
 
 2. **模型池（文件配置）**  
    - 环境变量 `GFLOWX_SCENE_POOLS_FILE` 指向 JSON。  
-   - **当前实现（v1）**：平面 `{ "code": ["gpt-4o","deepseek-chat"], ... }`（示例 `config/gflowx_scene_pools.example.json`）。  
-   - **按用户分组分池（v2，设计稿）**：单文件嵌套 `poolsByGroup` 等，与订阅档位 `upgrade_group` 对齐；详见 **`docs/GFLOWX_POOL_BY_GROUP_DESIGN.md`** 与示例 **`config/gflowx_scene_pools_by_group.example.json`**（落地以 `gflowxscene` 补丁为准）。  
+   - **v1（平面）**：`{ "code": ["gpt-4o","deepseek-chat"], ... }`（示例 `config/gflowx_scene_pools.example.json`）。  
+   - **v2（按分组）**：根级 `poolsByGroup` + 可选 `defaultGroup`；按请求上下文 **用户分组 / 令牌分组** 选择池，再按场景 tag 取列表（示例 `config/gflowx_scene_pools_by_group.example.json`，设计见 **`docs/GFLOWX_POOL_BY_GROUP_DESIGN.md`**）。  
    - 单标签 **环境变量覆盖**（如 `GFLOWX_SCENE_CODE`）仍为最高优先级；设置后忽略该标签的池文件。  
    - 池内顺序表示 **优先级**；首个通过「健康检查」的模型作为当前请求模型。
 

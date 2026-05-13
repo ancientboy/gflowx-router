@@ -1,26 +1,33 @@
-From 15e0c967efbb7f333a6fb265f3eab7c869d43dea Mon Sep 17 00:00:00 2001
+From 10b2a3779fc2c74a1d3e7521866bc8df150b7cd3 Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursor-agent@local>
 Date: Wed, 13 May 2026 12:25:05 +0000
-Subject: [PATCH] feat(gflowx): scene routing v1 + default web scene page
+Subject: [PATCH] feat(gflowx): scene pools by group (v2 JSON), API + console
+ preview
 
-Backend: gflowxscene (pools, health, aliases), relay integration.
-Web (default): /gflowx-scenes route, sidebar entry, i18n en/zh.
+- gflowxscene: poolsByGroup/defaultGroup JSON, v1 flat compat; sceneCandidateModels uses Gin user/token group
+- GET /api/gflowx/scene-pools (UserAuth) for current tier pool snapshot
+- default Web /gflowx-scenes: TanStack Query pool preview table; i18n en/zh
+- Go tests for v2 group + defaultGroup fallback
 ---
+ controller/gflowx_scene_pools.go              |  15 ++
  controller/relay.go                           |  25 ++-
- gflowxscene/alias.go                          |  93 +++++++++++
- gflowxscene/apply.go                          | 145 ++++++++++++++++++
- gflowxscene/health.go                         |  63 ++++++++
- gflowxscene/pool.go                           |  65 ++++++++
- gflowxscene/resolve.go                        | 105 +++++++++++++
- gflowxscene/resolve_test.go                   | 142 +++++++++++++++++
- .../gflowx-scenes/gflowx-scenes-page.tsx      | 131 ++++++++++++++++
- .../src/features/gflowx-scenes/index.ts       |  19 +++
+ gflowxscene/alias.go                          |  93 ++++++++
+ gflowxscene/apply.go                          | 145 ++++++++++++
+ gflowxscene/health.go                         |  63 ++++++
+ gflowxscene/pool.go                           | 201 +++++++++++++++++
+ gflowxscene/resolve.go                        | 162 ++++++++++++++
+ gflowxscene/resolve_test.go                   | 192 ++++++++++++++++
+ router/api-router.go                          |   1 +
+ .../gflowx-scenes/gflowx-scenes-page.tsx      | 211 ++++++++++++++++++
+ .../src/features/gflowx-scenes/index.ts       |  19 ++
  web/default/src/hooks/use-sidebar-data.ts     |   6 +
- web/default/src/i18n/locales/en.json          |   8 +
- web/default/src/i18n/locales/zh.json          |   8 +
- web/default/src/routeTree.gen.ts              |  22 +++
- .../_authenticated/gflowx-scenes/index.tsx    |  24 +++
- 14 files changed, 854 insertions(+), 2 deletions(-)
+ web/default/src/i18n/locales/en.json          |  11 +
+ web/default/src/i18n/locales/zh.json          |  11 +
+ web/default/src/lib/api.ts                    |  16 ++
+ web/default/src/routeTree.gen.ts              |  22 ++
+ .../_authenticated/gflowx-scenes/index.tsx    |  24 ++
+ 17 files changed, 1215 insertions(+), 2 deletions(-)
+ create mode 100644 controller/gflowx_scene_pools.go
  create mode 100644 gflowxscene/alias.go
  create mode 100644 gflowxscene/apply.go
  create mode 100644 gflowxscene/health.go
@@ -31,6 +38,27 @@ Web (default): /gflowx-scenes route, sidebar entry, i18n en/zh.
  create mode 100644 web/default/src/features/gflowx-scenes/index.ts
  create mode 100644 web/default/src/routes/_authenticated/gflowx-scenes/index.tsx
 
+diff --git a/controller/gflowx_scene_pools.go b/controller/gflowx_scene_pools.go
+new file mode 100644
+index 00000000..75cd863d
+--- /dev/null
++++ b/controller/gflowx_scene_pools.go
+@@ -0,0 +1,15 @@
++package controller
++
++import (
++	"github.com/QuantumNous/new-api/common"
++	"github.com/QuantumNous/new-api/gflowxscene"
++
++	"github.com/gin-gonic/gin"
++)
++
++// GetGflowxScenePools returns scene-tag → upstream model candidates for the current session (user or token group).
++// GET /api/gflowx/scene-pools — see docs/GFLOWX_POOL_BY_GROUP_DESIGN.md.
++func GetGflowxScenePools(c *gin.Context) {
++	data := gflowxscene.ScenePoolsViewForContext(c)
++	common.ApiSuccess(c, data)
++}
 diff --git a/controller/relay.go b/controller/relay.go
 index 5e2db44c..15c312e8 100644
 --- a/controller/relay.go
@@ -194,7 +222,7 @@ index 00000000..6ec8a4d7
 +}
 diff --git a/gflowxscene/apply.go b/gflowxscene/apply.go
 new file mode 100644
-index 00000000..24bcbc9f
+index 00000000..ce703b40
 --- /dev/null
 +++ b/gflowxscene/apply.go
 @@ -0,0 +1,145 @@
@@ -297,7 +325,7 @@ index 00000000..24bcbc9f
 +	if _, is := sceneTags[tag]; !is {
 +		return "", "", false
 +	}
-+	models := sceneCandidateModels(tag)
++	models := sceneCandidateModels(c, tag)
 +	resolved := firstHealthyModel(models)
 +	if resolved == "" {
 +		return "", "", false
@@ -414,10 +442,10 @@ index 00000000..33757135
 +}
 diff --git a/gflowxscene/pool.go b/gflowxscene/pool.go
 new file mode 100644
-index 00000000..a487782f
+index 00000000..47c2b06e
 --- /dev/null
 +++ b/gflowxscene/pool.go
-@@ -0,0 +1,65 @@
+@@ -0,0 +1,201 @@
 +package gflowxscene
 +
 +import (
@@ -426,22 +454,178 @@ index 00000000..a487782f
 +	"strings"
 +	"sync"
 +	"time"
++
++	"github.com/QuantumNous/new-api/common"
++	"github.com/QuantumNous/new-api/constant"
++
++	"github.com/gin-gonic/gin"
 +)
 +
 +const envPoolsFile = "GFLOWX_SCENE_POOLS_FILE"
 +
++// poolsPayload holds parsed scene pool configuration (v1 flat JSON or v2 poolsByGroup).
++// See docs/GFLOWX_POOL_BY_GROUP_DESIGN.md.
++type poolsPayload struct {
++	v1           map[string][]string
++	v2           map[string]map[string][]string
++	defaultGroup string
++}
++
 +type poolsFile struct {
-+	mu    sync.Mutex
-+	path  string
-+	mtime time.Time
-+	data  map[string][]string
++	mu      sync.Mutex
++	path    string
++	mtime   time.Time
++	payload *poolsPayload
 +}
 +
 +var poolsCache poolsFile
 +
-+func loadScenePools() map[string][]string {
++func userGroupForPools(c *gin.Context) string {
++	if c == nil {
++		return "default"
++	}
++	g := strings.TrimSpace(common.GetContextKeyString(c, constant.ContextKeyUserGroup))
++	if g == "" {
++		g = strings.TrimSpace(common.GetContextKeyString(c, constant.ContextKeyTokenGroup))
++	}
++	if g == "" {
++		return "default"
++	}
++	return g
++}
++
++func copyStringList(in []string) []string {
++	if len(in) == 0 {
++		return nil
++	}
++	out := make([]string, 0, len(in))
++	for _, s := range in {
++		s = strings.TrimSpace(s)
++		if s != "" {
++			out = append(out, s)
++		}
++	}
++	if len(out) == 0 {
++		return nil
++	}
++	return out
++}
++
++func normalizeV1Flat(m map[string][]string) map[string][]string {
++	out := make(map[string][]string, len(m))
++	for k, v := range m {
++		tag := strings.ToLower(strings.TrimSpace(k))
++		if tag == "" || tag == "poolsbygroup" || tag == "defaultgroup" {
++			continue
++		}
++		if list := copyStringList(v); len(list) > 0 {
++			out[tag] = list
++		}
++	}
++	return out
++}
++
++func normalizeV2(byGroup map[string]map[string][]string) map[string]map[string][]string {
++	out := make(map[string]map[string][]string, len(byGroup))
++	for gk, tm := range byGroup {
++		g := strings.TrimSpace(gk)
++		if g == "" {
++			continue
++		}
++		inner := make(map[string][]string, len(tm))
++		for tk, models := range tm {
++			tag := strings.ToLower(strings.TrimSpace(tk))
++			if tag == "" {
++				continue
++			}
++			if list := copyStringList(models); len(list) > 0 {
++				inner[tag] = list
++			}
++		}
++		if len(inner) > 0 {
++			out[strings.ToLower(g)] = inner
++		}
++	}
++	if len(out) == 0 {
++		return nil
++	}
++	return out
++}
++
++func parsePoolsJSON(raw []byte) *poolsPayload {
++	var root map[string]json.RawMessage
++	if err := json.Unmarshal(raw, &root); err != nil || len(root) == 0 {
++		return nil
++	}
++	if rb, ok := root["poolsByGroup"]; ok {
++		var byGroup map[string]map[string][]string
++		if err := json.Unmarshal(rb, &byGroup); err != nil {
++			return nil
++		}
++		v2 := normalizeV2(byGroup)
++		if v2 == nil {
++			return nil
++		}
++		dg := ""
++		if dr, ok := root["defaultGroup"]; ok {
++			_ = json.Unmarshal(dr, &dg)
++			dg = strings.ToLower(strings.TrimSpace(dg))
++		}
++		return &poolsPayload{v2: v2, defaultGroup: dg}
++	}
++	var flat map[string][]string
++	if err := json.Unmarshal(raw, &flat); err != nil {
++		return nil
++	}
++	n := normalizeV1Flat(flat)
++	if len(n) == 0 {
++		return nil
++	}
++	return &poolsPayload{v1: n}
++}
++
++func (p *poolsPayload) lookupV2(tag, group string) []string {
++	if p == nil || p.v2 == nil {
++		return nil
++	}
++	group = strings.ToLower(strings.TrimSpace(group))
++	try := func(g string) []string {
++		if g == "" {
++			return nil
++		}
++		tm, ok := p.v2[g]
++		if !ok {
++			return nil
++		}
++		return append([]string(nil), copyStringList(tm[tag])...)
++	}
++	out := try(group)
++	if len(out) > 0 {
++		return out
++	}
++	if p.defaultGroup != "" && p.defaultGroup != group {
++		out = try(p.defaultGroup)
++		if len(out) > 0 {
++			return out
++		}
++	}
++	if group != "default" {
++		out = try("default")
++		if len(out) > 0 {
++			return out
++		}
++	}
++	return nil
++}
++
++func loadPoolsPayload() *poolsPayload {
 +	path := strings.TrimSpace(os.Getenv(envPoolsFile))
 +	if path == "" {
++		poolsCache.mu.Lock()
++		poolsCache.path = ""
++		poolsCache.mtime = time.Time{}
++		poolsCache.payload = nil
++		poolsCache.mu.Unlock()
 +		return nil
 +	}
 +	st, err := os.Stat(path)
@@ -450,45 +634,25 @@ index 00000000..a487782f
 +	}
 +	poolsCache.mu.Lock()
 +	defer poolsCache.mu.Unlock()
-+	if poolsCache.path == path && !st.ModTime().After(poolsCache.mtime) && poolsCache.data != nil {
-+		return poolsCache.data
++	if poolsCache.path == path && !st.ModTime().After(poolsCache.mtime) && poolsCache.payload != nil {
++		return poolsCache.payload
 +	}
 +	raw, err := os.ReadFile(path)
 +	if err != nil {
 +		return nil
 +	}
-+	var m map[string][]string
-+	if err := json.Unmarshal(raw, &m); err != nil {
-+		return nil
-+	}
-+	out := make(map[string][]string, len(m))
-+	for k, v := range m {
-+		tag := strings.ToLower(strings.TrimSpace(k))
-+		if tag == "" {
-+			continue
-+		}
-+		var list []string
-+		for _, item := range v {
-+			s := strings.TrimSpace(item)
-+			if s != "" {
-+				list = append(list, s)
-+			}
-+		}
-+		if len(list) > 0 {
-+			out[tag] = list
-+		}
-+	}
++	pl := parsePoolsJSON(raw)
 +	poolsCache.path = path
 +	poolsCache.mtime = st.ModTime()
-+	poolsCache.data = out
-+	return out
++	poolsCache.payload = pl
++	return pl
 +}
 diff --git a/gflowxscene/resolve.go b/gflowxscene/resolve.go
 new file mode 100644
-index 00000000..1b707b8b
+index 00000000..0e141903
 --- /dev/null
 +++ b/gflowxscene/resolve.go
-@@ -0,0 +1,105 @@
+@@ -0,0 +1,162 @@
 +// Package gflowxscene maps GFlowX scene tags (docs/API.md) to concrete upstream model names
 +// before new-api channel selection and relay.
 +package gflowxscene
@@ -496,6 +660,8 @@ index 00000000..1b707b8b
 +import (
 +	"os"
 +	"strings"
++
++	"github.com/gin-gonic/gin"
 +)
 +
 +const envEnabled = "GFLOWX_SCENES_ENABLED"
@@ -550,12 +716,22 @@ index 00000000..1b707b8b
 +	return ok
 +}
 +
-+func sceneCandidateModels(tagLower string) []string {
++func sceneCandidateModels(c *gin.Context, tagLower string) []string {
 +	if v := envSceneModel(tagLower); v != "" {
 +		return []string{v}
 +	}
-+	if m := loadScenePools(); m != nil {
-+		if list, ok := m[tagLower]; ok && len(list) > 0 {
++	p := loadPoolsPayload()
++	if p == nil {
++		return []string{builtinDefault(tagLower)}
++	}
++	g := userGroupForPools(c)
++	if p.v2 != nil {
++		if xs := p.lookupV2(tagLower, g); len(xs) > 0 {
++			return xs
++		}
++	}
++	if p.v1 != nil {
++		if list, ok := p.v1[tagLower]; ok && len(list) > 0 {
 +			return append([]string(nil), list...)
 +		}
 +	}
@@ -587,19 +763,64 @@ index 00000000..1b707b8b
 +	if _, is := sceneTags[tag]; !is {
 +		return "", false
 +	}
-+	models := sceneCandidateModels(tag)
++	models := sceneCandidateModels(nil, tag)
 +	out := firstHealthyModel(models)
 +	if out == "" {
 +		return "", false
 +	}
 +	return out, true
 +}
++
++// PoolsPayloadSource returns a short label for API responses: disabled, none, v1, v2.
++func PoolsPayloadSource() string {
++	if !Enabled() {
++		return "disabled"
++	}
++	if strings.TrimSpace(os.Getenv(envPoolsFile)) == "" {
++		return "none"
++	}
++	p := loadPoolsPayload()
++	if p == nil {
++		return "none"
++	}
++	if p.v2 != nil {
++		return "v2"
++	}
++	return "v1"
++}
++
++// ScenePoolsView is returned by GET /api/gflowx/scene-pools for the current user / token group.
++type ScenePoolsView struct {
++	Group  string              `json:"group"`
++	Source string              `json:"source"`
++	Scenes map[string][]string `json:"scenes"`
++}
++
++// ScenePoolsViewForContext builds tag → candidate models for the authenticated context.
++func ScenePoolsViewForContext(c *gin.Context) ScenePoolsView {
++	g := userGroupForPools(c)
++	if !Enabled() {
++		return ScenePoolsView{Group: g, Source: "disabled", Scenes: map[string][]string{}}
++	}
++	out := make(map[string][]string)
++	for tag := range sceneTags {
++		models := sceneCandidateModels(c, tag)
++		if len(models) > 0 {
++			out[tag] = append([]string(nil), models...)
++		}
++	}
++	return ScenePoolsView{
++		Group:  g,
++		Source: PoolsPayloadSource(),
++		Scenes: out,
++	}
++}
 diff --git a/gflowxscene/resolve_test.go b/gflowxscene/resolve_test.go
 new file mode 100644
-index 00000000..6dc7cc9e
+index 00000000..2fa0b721
 --- /dev/null
 +++ b/gflowxscene/resolve_test.go
-@@ -0,0 +1,142 @@
+@@ -0,0 +1,192 @@
 +package gflowxscene
 +
 +import (
@@ -608,6 +829,7 @@ index 00000000..6dc7cc9e
 +	"path/filepath"
 +	"testing"
 +
++	"github.com/QuantumNous/new-api/constant"
 +	"github.com/QuantumNous/new-api/dto"
 +	relaycommon "github.com/QuantumNous/new-api/relay/common"
 +
@@ -716,6 +938,55 @@ index 00000000..6dc7cc9e
 +	}
 +}
 +
++func TestResolve_V2PoolByUserGroup(t *testing.T) {
++	t.Setenv(envEnabled, "true")
++	_ = os.Unsetenv("GFLOWX_SCENE_CODE")
++	dir := t.TempDir()
++	p := filepath.Join(dir, "pools.json")
++	raw := `{
++	  "defaultGroup": "pro",
++	  "poolsByGroup": {
++	    "free": {"code": ["free-only-model"]},
++	    "pro": {"code": ["pro-first", "pro-second"]}
++	  }
++	}`
++	if err := os.WriteFile(p, []byte(raw), 0o600); err != nil {
++		t.Fatal(err)
++	}
++	t.Setenv(envPoolsFile, p)
++
++	w := httptest.NewRecorder()
++	cFree, _ := gin.CreateTestContext(w)
++	cFree.Set(string(constant.ContextKeyUserGroup), "free")
++	got, ok := Resolve("code")
++	if !ok || got != "pro-first" {
++		t.Fatalf("Resolve(nil) with defaultGroup should resolve via defaultGroup tier, got %q ok=%v", got, ok)
++	}
++	req := &dto.GeneralOpenAIRequest{Model: "code"}
++	_, resolvedFree, changed := ApplyToRequest(cFree, req)
++	if !changed || resolvedFree != "free-only-model" {
++		t.Fatalf("free group: resolved=%q changed=%v", resolvedFree, changed)
++	}
++
++	w2 := httptest.NewRecorder()
++	cPro, _ := gin.CreateTestContext(w2)
++	cPro.Set(string(constant.ContextKeyUserGroup), "pro")
++	req2 := &dto.GeneralOpenAIRequest{Model: "code"}
++	_, resolvedPro, changed2 := ApplyToRequest(cPro, req2)
++	if !changed2 || resolvedPro != "pro-first" {
++		t.Fatalf("pro group: resolved=%q changed=%v", resolvedPro, changed2)
++	}
++
++	w3 := httptest.NewRecorder()
++	cUnknown, _ := gin.CreateTestContext(w3)
++	cUnknown.Set(string(constant.ContextKeyUserGroup), "vip")
++	req3 := &dto.GeneralOpenAIRequest{Model: "code"}
++	_, resolvedFallback, changed3 := ApplyToRequest(cUnknown, req3)
++	if !changed3 || resolvedFallback != "pro-first" {
++		t.Fatalf("unknown group should use defaultGroup pro, got %q changed=%v", resolvedFallback, changed3)
++	}
++}
++
 +func TestTryAdvancePool(t *testing.T) {
 +	t.Setenv(envEnabled, "true")
 +	_ = os.Unsetenv("GFLOWX_SCENE_CODE")
@@ -742,12 +1013,24 @@ index 00000000..6dc7cc9e
 +		t.Fatal("expected no third model")
 +	}
 +}
+diff --git a/router/api-router.go b/router/api-router.go
+index 72b55856..ad61f72e 100644
+--- a/router/api-router.go
++++ b/router/api-router.go
+@@ -21,6 +21,7 @@ func SetApiRouter(router *gin.Engine) {
+ 		apiRouter.GET("/setup", controller.GetSetup)
+ 		apiRouter.POST("/setup", controller.PostSetup)
+ 		apiRouter.GET("/status", controller.GetStatus)
++		apiRouter.GET("/gflowx/scene-pools", middleware.UserAuth(), controller.GetGflowxScenePools)
+ 		apiRouter.GET("/uptime/status", controller.GetUptimeKumaStatus)
+ 		apiRouter.GET("/models", middleware.UserAuth(), controller.DashboardListModels)
+ 		apiRouter.GET("/status/test", middleware.AdminAuth(), controller.TestStatus)
 diff --git a/web/default/src/features/gflowx-scenes/gflowx-scenes-page.tsx b/web/default/src/features/gflowx-scenes/gflowx-scenes-page.tsx
 new file mode 100644
-index 00000000..586fcacd
+index 00000000..0993bce6
 --- /dev/null
 +++ b/web/default/src/features/gflowx-scenes/gflowx-scenes-page.tsx
-@@ -0,0 +1,131 @@
+@@ -0,0 +1,211 @@
 +/*
 +Copyright (C) 2023-2026 QuantumNous
 +
@@ -766,6 +1049,8 @@ index 00000000..586fcacd
 +
 +For commercial licensing, please contact support@quantumnous.com
 +*/
++import { useQuery } from '@tanstack/react-query'
++import { useMemo } from 'react'
 +import { useTranslation } from 'react-i18next'
 +import { Main } from '@/components/layout'
 +import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -779,6 +1064,8 @@ index 00000000..586fcacd
 +  TableRow,
 +} from '@/components/ui/table'
 +import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
++import { Spinner } from '@/components/ui/spinner'
++import { getGflowxScenePools } from '@/lib/api'
 +
 +const SCENE_ROWS: { tag: string; hint: string }[] = [
 +  { tag: 'code', hint: 'Engineering / refactor / review' },
@@ -794,6 +1081,34 @@ index 00000000..586fcacd
 +export function GflowxScenesPage() {
 +  const { t } = useTranslation()
 +  const user = useAuthStore((s) => s.auth.user)
++
++  const poolQuery = useQuery({
++    queryKey: ['gflowx', 'scene-pools'],
++    queryFn: async () => {
++      const r = await getGflowxScenePools()
++      if (!r.success || !r.data) {
++        throw new Error(r.message || 'scene-pools')
++      }
++      return r.data
++    },
++  })
++
++  const sceneEntries = useMemo(() => {
++    const s = poolQuery.data?.scenes
++    if (!s) return []
++    const order = SCENE_ROWS.map((r) => r.tag)
++    const out: { tag: string; models: string[] }[] = []
++    for (const tag of order) {
++      const m = s[tag]
++      if (m?.length) out.push({ tag, models: m })
++    }
++    for (const tag of Object.keys(s).sort()) {
++      if (order.includes(tag)) continue
++      const m = s[tag]
++      if (m?.length) out.push({ tag, models: m })
++    }
++    return out
++  }, [poolQuery.data])
 +
 +  return (
 +    <Main>
@@ -822,6 +1137,54 @@ index 00000000..586fcacd
 +                {user?.group ?? '—'}
 +              </p>
 +              <p className='pt-2'>{t('Scene routing role hint')}</p>
++            </CardContent>
++          </Card>
++
++          <Card>
++            <CardHeader>
++              <CardTitle>{t('Scene pool preview')}</CardTitle>
++            </CardHeader>
++            <CardContent>
++              <p className='text-muted-foreground mb-4 text-sm'>{t('Scene pool preview hint')}</p>
++              {poolQuery.isLoading ? (
++                <div className='text-muted-foreground flex items-center gap-2 text-sm'>
++                  <Spinner className='size-4' />
++                  …
++                </div>
++              ) : null}
++              {poolQuery.isError ? (
++                <p className='text-destructive text-sm'>{t('Scene pool preview error')}</p>
++              ) : null}
++              {poolQuery.isSuccess && poolQuery.data ? (
++                <p className='text-muted-foreground mb-3 text-xs'>
++                  {t('Group')}: <span className='text-foreground font-mono'>{poolQuery.data.group}</span>
++                  {' · '}
++                  <span className='text-foreground font-mono'>source={poolQuery.data.source}</span>
++                </p>
++              ) : null}
++              {poolQuery.isSuccess && sceneEntries.length > 0 ? (
++                <Table>
++                  <TableHeader>
++                    <TableRow>
++                      <TableHead>{t('model')}</TableHead>
++                      <TableHead>{t('Models')}</TableHead>
++                    </TableRow>
++                  </TableHeader>
++                  <TableBody>
++                    {sceneEntries.map((row) => (
++                      <TableRow key={row.tag}>
++                        <TableCell className='font-mono text-sm'>{row.tag}</TableCell>
++                        <TableCell className='text-muted-foreground font-mono text-xs'>
++                          {row.models.join(' → ')}
++                        </TableCell>
++                      </TableRow>
++                    ))}
++                  </TableBody>
++                </Table>
++              ) : null}
++              {poolQuery.isSuccess && sceneEntries.length === 0 ? (
++                <p className='text-muted-foreground text-sm'>—</p>
++              ) : null}
 +            </CardContent>
 +          </Card>
 +
@@ -929,10 +1292,10 @@ index f5c9a978..1c634c3e 100644
              title: t('Usage Logs'),
              url: '/usage-logs/common',
 diff --git a/web/default/src/i18n/locales/en.json b/web/default/src/i18n/locales/en.json
-index 29897900..3fb89143 100644
+index 29897900..7d53a20f 100644
 --- a/web/default/src/i18n/locales/en.json
 +++ b/web/default/src/i18n/locales/en.json
-@@ -3417,6 +3417,14 @@
+@@ -3417,6 +3417,17 @@
      "Scan the QR code with WeChat to bind your account": "Scan the QR code with WeChat to bind your account",
      "Scan this QR code with your authenticator app (Google Authenticator, Microsoft Authenticator, etc.)": "Scan this QR code with your authenticator app (Google Authenticator, Microsoft Authenticator, etc.)",
      "Scenario Templates": "Scenario Templates",
@@ -940,6 +1303,9 @@ index 29897900..3fb89143 100644
 +    "Scene routing gateway hint": "Model pools (JSON), aliases, and health TTL are configured on the gateway host (environment variables and files), not in this page. Operators should refer to deployment docs (e.g. GFLOWX_SCENE_POOLS_FILE, GFLOWX_ALIASES_FILE).",
 +    "Scene routing intro": "Use OpenAI-compatible clients with Base URL pointing to this gateway. Set the JSON field model to a scene tag (for example code or smart); the gateway resolves it to an upstream model before relay. Advanced mode still allows concrete model names.",
 +    "Scene routing role hint": "Your role and group in this console control quota and which models you may use. Scene resolution is applied at relay time according to gflowx-router gateway settings.",
++    "Scene pool preview": "Model pool preview (this account)",
++    "Scene pool preview hint": "From GET /api/gflowx/scene-pools for your current group. Order is pool priority; health skip may change the first pick at runtime.",
++    "Scene pool preview error": "Could not load pool preview.",
 +    "Scene tags": "Scene tags",
 +    "Scene tags table hint": "Use these values as model in POST /v1/chat/completions. See your deployment documentation for the full tag list and built-in aliases.",
 +    "Example chat request": "Example request",
@@ -948,10 +1314,10 @@ index 29897900..3fb89143 100644
      "scheduling controls": "scheduling controls",
      "Science": "Science",
 diff --git a/web/default/src/i18n/locales/zh.json b/web/default/src/i18n/locales/zh.json
-index 53e912c2..8106fa86 100644
+index 53e912c2..0ca2ff20 100644
 --- a/web/default/src/i18n/locales/zh.json
 +++ b/web/default/src/i18n/locales/zh.json
-@@ -3417,6 +3417,14 @@
+@@ -3417,6 +3417,17 @@
      "Scan the QR code with WeChat to bind your account": "使用微信扫描二维码绑定您的账户",
      "Scan this QR code with your authenticator app (Google Authenticator, Microsoft Authenticator, etc.)": "使用您的身份验证器应用（Google Authenticator、Microsoft Authenticator 等）扫描此二维码",
      "Scenario Templates": "场景模板",
@@ -959,6 +1325,9 @@ index 53e912c2..8106fa86 100644
 +    "Scene routing gateway hint": "模型池（JSON）、别名与健康 TTL 在网关进程所在主机通过环境变量与文件配置，本页不可编辑。运维请参见部署说明（如 GFLOWX_SCENE_POOLS_FILE、GFLOWX_ALIASES_FILE）。",
 +    "Scene routing intro": "使用兼容 OpenAI 的客户端，将 Base URL 指向本网关；在请求 JSON 中将 model 设为场景标签（如 code、smart），网关在转发前解析为上游模型。高级模式仍可填写具体模型名。",
 +    "Scene routing role hint": "你在本控制台中的角色与分组仍决定额度与可用模型范围；场景解析在转发阶段按 gflowx-router 网关策略生效。",
++    "Scene pool preview": "模型池预览（当前账号）",
++    "Scene pool preview hint": "来自 GET /api/gflowx/scene-pools，按当前分组解析。列表顺序为池内优先级；运行时健康跳过可能改变首个选用模型。",
++    "Scene pool preview error": "无法加载模型池预览。",
 +    "Scene tags": "场景标签",
 +    "Scene tags table hint": "以下取值可作为 POST /v1/chat/completions 的 model 字段。完整标签与内置别名以部署方文档为准。",
 +    "Example chat request": "请求示例",
@@ -966,6 +1335,33 @@ index 53e912c2..8106fa86 100644
      "Scheduled channel tests": "定期渠道测试",
      "scheduling controls": "调度控制能力",
      "Science": "科研",
+diff --git a/web/default/src/lib/api.ts b/web/default/src/lib/api.ts
+index b3bf17eb..de09e6ff 100644
+--- a/web/default/src/lib/api.ts
++++ b/web/default/src/lib/api.ts
+@@ -199,6 +199,22 @@ export async function getUserGroups(): Promise<{
+   return res.data
+ }
+ 
++export type GflowxScenePoolsPayload = {
++  group: string
++  source: string
++  scenes: Record<string, string[]>
++}
++
++/** Scene tag → upstream model candidates for the current session (see /api/gflowx/scene-pools). */
++export async function getGflowxScenePools(): Promise<{
++  success: boolean
++  message?: string
++  data?: GflowxScenePoolsPayload
++}> {
++  const res = await api.get('/api/gflowx/scene-pools')
++  return res.data
++}
++
+ // ----------------------------------------------------------------------------
+ // System APIs
+ // ----------------------------------------------------------------------------
 diff --git a/web/default/src/routeTree.gen.ts b/web/default/src/routeTree.gen.ts
 index 8202cdc2..f0af8c55 100644
 --- a/web/default/src/routeTree.gen.ts

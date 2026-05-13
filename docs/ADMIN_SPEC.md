@@ -94,6 +94,7 @@
 | 当前用户 | GET | `/api/user/self` | User | ✅ `auth.ts` / Dashboard |
 | 更新资料 | PUT | `/api/user/self` | User | 🔲 |
 | 注册 | POST | `/api/user/register` | 无 | 🔲 |
+| 场景池只读快照 | GET | `/api/gflowx/scene-pools` | User | ✅ `gflowxscene` + `controller/gflowx_scene_pools.go` |
 | 公开状态 | GET | `/api/status` | 无 | ✅ 落地页 |
 | 用户分组（公开列表） | GET | `/api/user/groups` | 无 | 🔲 |
 | 登录用户分组 | GET | `/api/user/self/groups` | User | 🔲 |

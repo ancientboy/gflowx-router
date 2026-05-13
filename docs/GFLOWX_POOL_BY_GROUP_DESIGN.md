@@ -2,17 +2,21 @@
 
 > 与产品档位的对应关系见 **[`SUBSCRIPTION_DESIGN.md`](SUBSCRIPTION_DESIGN.md)**（`free` / `pro` / `team` 与 `upgrade_group`）。  
 > 本文约定：**订阅周期仍只跟档位走**；此处只解决 **「同一 `model=code`，不同分组解析到不同模型池」** 的配置与解析顺序。  
-> **实施状态**：仓库内 **`gflowxscene` 当前仅实现 v1 平面 JSON**；下文的 **v2 嵌套格式与 API 为设计稿**，合入以未来补丁为准。
+> **实施状态（补丁）**：**v2 `poolsByGroup` + `defaultGroup`、v1 平面 JSON 兼容、`GET /api/gflowx/scene-pools`、default 控制台池预览** 已合入 `patches/0001-...`；以下为设计原文与运维说明。
 
-## 1. 现状（补丁内已实现）
+## 1. 现状（补丁前 / 文档历史）
 
 - 环境变量 **`GFLOWX_SCENE_POOLS_FILE`** 指向 **单个 JSON 文件**。  
-- 解析格式为 **平面** `map[string][]string`：`"code" → ["m1","m2",…]`。  
-- **不区分用户分组**；所有已鉴权请求共用同一套池（若文件存在）。
+- **v1**：平面 `map[string][]string`，不区分用户分组。  
+
+## 1.1 补丁后行为（当前）
+
+- 支持 **v2**：根级 `poolsByGroup` + 可选 `defaultGroup`；按 **Gin Context 用户分组 / 令牌分组** 选池（见 `gflowxscene/pool.go`、`resolve.go`）。  
+- **v1 平面 JSON** 仍支持；无 `poolsByGroup` 键时按原语义全局共用。  
+- **`GET /api/gflowx/scene-pools`**：返回当前会话下的 `group`、`source`、`scenes` 映射。  
+- **default 控制台** `/gflowx-scenes` 页拉取上述接口展示池预览。
 
 ---
-
-## 2. 目标行为
 
 | 输入 | 期望 |
 |------|------|
@@ -21,8 +25,6 @@
 | 未识别分组、缺配置 | **安全回退**（见 §4），避免解析失败导致 500。 |
 
 **仅 API Key 鉴权**时：若 Context 中仅有 **令牌分组**（`ContextKeyTokenGroup`），设计为 **与 `UserGroup` 同一套键名解析**：优先 `UserGroup`，为空则用 `TokenGroup`（与 `relay/common/relay_info.go` 里分组来源顺序对齐，实施时在代码里写死优先级并单测）。
-
----
 
 ## 3. 配置文件形态（推荐：单文件、按分组分块）
 

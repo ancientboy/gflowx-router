@@ -83,6 +83,19 @@ POST /v1/chat/completions
 
 > 注意：返回的 `model` 字段为实际路由到的模型名
 
+### 2.5 场景池只读查询（控制台会话）
+
+应用补丁且场景路由开启时，管理端可调用：
+
+```
+GET /api/gflowx/scene-pools
+```
+
+- **鉴权**：`UserAuth`（与 new-api 控制台 Cookie 会话一致）。  
+- **响应** `data`：`{ "group": "<当前分组>", "source": "v2|v1|none|disabled", "scenes": { "code": ["模型A","模型B"], ... } }`  
+  - `scenes`：各场景标签对应的 **候选模型有序列表**（与 `GFLOWX_SCENE_POOLS_FILE` 及 per-tag 环境变量覆盖一致）。  
+- **配置**：v2 嵌套 JSON 见 `config/gflowx_scene_pools_by_group.example.json` 与 **`docs/GFLOWX_POOL_BY_GROUP_DESIGN.md`**。
+
 ## 3. 图片生成
 
 ```
