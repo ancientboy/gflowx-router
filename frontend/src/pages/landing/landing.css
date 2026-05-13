@@ -1,0 +1,132 @@
+.landing-page {
+  background: var(--bg-secondary);
+}
+
+.landing-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding-inline: 24px;
+}
+
+@media (max-width: 768px) {
+  .landing-inner {
+    padding-inline: 16px;
+  }
+}
+
+.landing-hero {
+  padding: 56px 0 48px;
+  background: linear-gradient(165deg, rgba(79, 70, 229, 0.08) 0%, transparent 45%),
+    var(--bg-primary);
+  border-bottom: 1px solid var(--border);
+}
+
+[data-theme='dark'] .landing-hero {
+  background: linear-gradient(165deg, rgba(129, 140, 248, 0.12) 0%, transparent 50%),
+    var(--bg-primary);
+}
+
+.landing-hero-title {
+  font-size: clamp(1.75rem, 4vw, 2.5rem) !important;
+  letter-spacing: -0.03em;
+  margin-bottom: 16px !important;
+}
+
+.landing-accent {
+  color: var(--accent);
+}
+
+.landing-hero-lead {
+  font-size: 1.1rem;
+  max-width: 720px;
+  color: var(--text-secondary);
+}
+
+.landing-hero-cta {
+  margin-top: 24px;
+}
+
+.landing-hero-note {
+  margin-top: 16px !important;
+  margin-bottom: 0 !important;
+}
+
+.landing-section {
+  scroll-margin-top: 72px;
+  padding: 48px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.landing-section-title {
+  margin-bottom: 8px !important;
+}
+
+.landing-section-lead {
+  max-width: 720px;
+  color: var(--text-secondary);
+  margin-bottom: 24px !important;
+}
+
+.landing-compare-card--accent {
+  border-color: rgba(79, 70, 229, 0.45) !important;
+}
+
+[data-theme='dark'] .landing-compare-card--accent {
+  border-color: rgba(129, 140, 248, 0.5) !important;
+}
+
+.landing-scene-card .ant-card-head-title {
+  font-family: var(--mono, ui-monospace, monospace);
+}
+
+.landing-code-block {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 13px;
+  line-height: 1.45;
+  overflow: auto;
+  text-align: left;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.landing-code-block--small {
+  max-height: 240px;
+}
+
+.landing-faq .ant-collapse-item {
+  border-radius: 8px !important;
+  margin-bottom: 8px;
+  border: 1px solid var(--border) !important;
+  background: var(--bg-card);
+}
+
+.landing-faq-answer {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.landing-footer {
+  padding: 32px 0 48px;
+  background: var(--bg-primary);
+}
+
+.landing-footer-copy {
+  margin-top: 24px !important;
+  margin-bottom: 0 !important;
+  font-weight: 400 !important;
+}
+
+.landing-status-collapse {
+  margin-top: 16px;
+}
+
+.gflow-content--landing {
+  padding: 0 !important;
+  background: var(--bg-secondary);
+}

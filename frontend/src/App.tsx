@@ -28,33 +28,53 @@ function Shell() {
   const loc = useLocation()
   const nav = useNavigate()
   const user = useAuthStore((s) => s.user)
+  const ready = useAuthStore((s) => s.ready)
   const logout = useAuthStore((s) => s.logout)
   const mode = useThemeStore((s) => s.mode)
   const setMode = useThemeStore((s) => s.setMode)
 
   const isDark = mode === 'dark'
+  const isLanding = loc.pathname === '/'
 
   useEffect(() => {
     document.documentElement.dataset.theme = mode
   }, [mode])
 
+  const menuItems = isLanding
+    ? [
+        { key: '/', label: <Link to="/">首页</Link> },
+        { key: 'scenes', label: <a href="#landing-scenes">场景与能力</a> },
+        { key: 'how', label: <a href="#landing-how">如何使用</a> },
+        { key: 'faq', label: <a href="#landing-faq">常见问题</a> },
+        ...(ready && user
+          ? [
+              { key: '/dashboard', label: <Link to="/dashboard">控制台</Link> },
+              { key: '/keys', label: <Link to="/keys">密钥</Link> },
+            ]
+          : []),
+        ...(ready && user ? [] : [{ key: '/login', label: <Link to="/login">登录</Link> }]),
+      ]
+    : [
+        { key: '/', label: <Link to="/">首页</Link> },
+        { key: '/dashboard', label: <Link to="/dashboard">仪表盘</Link> },
+        { key: '/keys', label: <Link to="/keys">密钥</Link> },
+        { key: '/login', label: <Link to="/login">登录</Link> },
+      ]
+
   return (
     <Layout className="gflow-shell" style={{ minHeight: '100vh' }}>
       <Header className="gflow-header">
         <Typography.Text strong className="gflow-brand" style={{ fontFamily: 'var(--mono, monospace)' }}>
-          {BRAND_NAME}
+          <Link to="/" style={{ color: 'inherit' }}>
+            {BRAND_NAME}
+          </Link>
         </Typography.Text>
         <Menu
           theme={isDark ? 'dark' : 'light'}
           mode="horizontal"
-          selectedKeys={[loc.pathname === '/' ? '/' : loc.pathname]}
+          selectedKeys={[loc.pathname]}
           className="gflow-nav"
-          items={[
-            { key: '/', label: <Link to="/">首页</Link> },
-            { key: '/dashboard', label: <Link to="/dashboard">仪表盘</Link> },
-            { key: '/keys', label: <Link to="/keys">密钥</Link> },
-            { key: '/login', label: <Link to="/login">登录</Link> },
-          ]}
+          items={menuItems}
         />
         <Space size="middle" className="gflow-header-actions">
           <Segmented<ThemeMode>
@@ -83,7 +103,7 @@ function Shell() {
           ) : null}
         </Space>
       </Header>
-      <Content className="gflow-content">
+      <Content className={isLanding ? 'gflow-content gflow-content--landing' : 'gflow-content'}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />

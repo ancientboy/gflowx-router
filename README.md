@@ -32,6 +32,7 @@
 - [API 文档](docs/API.md) — gflowx-router 接口约定（产品向）
 - [路由设计](docs/ROUTER.md) — 智能路由与场景解析
 - [前端设计](docs/FRONTEND.md) — UI/UX 规范与 **管理端已实现清单（§6）**
+- [产品落地页规划](docs/LANDING_PAGE.md) — `/` 落地信息架构与分阶段任务（阶段 E）
 - [外网访问](docs/EXTERNAL_ACCESS.md) — 隧道与无 Docker 本地跑法
 - [工作清单](docs/WORK_PLAN.md) — 任务与完成状态
 

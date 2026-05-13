@@ -21,7 +21,7 @@
 
 | 路由 | 页面 | 说明 |
 |------|------|------|
-| `/` | 首页 | 公开 `GET /api/status`、产品说明、登录态提示（**尚未**实现设计稿中的「选身份→套餐→注册」落地页） |
+| `/` | 产品落地页 | Hero、对比、场景卡+示例 Modal、三步接入、FAQ、页脚与折叠状态（**尚未**：选身份→套餐→注册 营销闭环，见 `docs/LANDING_PAGE.md`） |
 | `/login` | 登录 | `POST /api/user/login`，Cookie 会话 |
 | `/dashboard` | 仪表盘 | `GET /api/user/self`：用户名、分组、额度等 |
 | `/keys` | 密钥列表 | `GET /api/token/` 分页表格 |
@@ -130,9 +130,10 @@ hover 时轻微阴影
 | **HTTP** | Axios 实例 `withCredentials: true`；`VITE_API_BASE_URL`；Vite 开发代理 `/api`、`/v1` → new-api |
 | **主题** | 浅色 / 深色切换（`themeStore` + `ConfigProvider` algorithm）；CSS 变量对齐 §3 配色与圆角；Ant Design `token`（主色 `#4F46E5`、圆角等） |
 | **组件** | 首页 / 登录 / 仪表盘 / 密钥页使用统一 **`gflow-card`** 卡片样式（§4 卡片规范的部分落地） |
-| **数据** | 首页公开状态 JSON；仪表盘 `Descriptions`；密钥 `Table` 分页 |
+| **数据** | 落地页页脚折叠 `GET /api/status`；仪表盘 `Descriptions`；密钥 `Table` 分页 |
+| **落地页** | 见 `docs/LANDING_PAGE.md` 与 `frontend/src/pages/landing/*`（阶段 E 首版） |
 
-**尚未实现（相对 §2 / §4）**：落地页身份与套餐流程、密钥「新建」表单、`/docs` 路由、Recharts 图表、Tailwind 原子类工程化、完整营销文案与插图 Logo 资源。
+**尚未实现（相对 §2 / §4）**：选身份→套餐→注册 完整闭环、密钥「新建」表单、`/docs` 路由、Recharts 图表、Tailwind 原子类工程化、独立 Logo 资产与 E10 打磨项。
 
 ---
 
