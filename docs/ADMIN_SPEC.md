@@ -3,6 +3,8 @@
 > **原则**：**底座与 API 继续复用 new-api**（`backend/` 子模块）；`frontend/` 按 **gflowx-router 产品体验** 重新设计信息架构与页面，与官方 Web **并存**：深度运维可暂时走官方界面，新后台逐步吸收高频路径。  
 > **路由来源**：以下 `/api/...` 均摘自当前子模块 `backend/router/api-router.go`（随上游版本可能增减，对接前以实际响应为准）。
 
+**订阅档位与场景如何对齐**（周期、分组、池策略）：见 **[`SUBSCRIPTION_DESIGN.md`](SUBSCRIPTION_DESIGN.md)**。
+
 ---
 
 ## 1. 角色与边界

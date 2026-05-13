@@ -65,7 +65,7 @@
 |---|------|------|
 | F0 | [x] | 写入 `docs/ADMIN_SPEC.md`：角色边界、功能模块、与 `api-router.go` 对齐的接口映射表、F1–F5 分期 |
 | F1 | [ ] | 用户闭环：Token 新建/编辑/删除/复制；`PUT /api/user/self` 或只读资料；站内 API 文档入口（`/docs` 或外链） |
-| F2 | [ ] | 套餐与模型心智：仪表盘聚合 `subscription/*`（若部署开启）、`GET /api/user/models`、分组/订阅说明文案 |
+| F2 | [ ] | 套餐与模型心智：仪表盘聚合 `subscription/*`（若部署开启）、`GET /api/user/models`、分组/订阅说明文案；**档位与场景对齐**见 `docs/SUBSCRIPTION_DESIGN.md` |
 | F3 | [ ] | 用量与日志：`GET /api/data/self`、`GET /api/log/self`（+ 简单筛选） |
 | F4 | [ ] | Admin 分区（可选）：用户/渠道/模型 高频接口 + 顶栏「经典管理后台」外链 |
 | F5 | [ ] | gflowx 场景池配置面：只读 API 或运维文档链（与 `ROUTER.md` 一致） |
