@@ -32,7 +32,8 @@ GFlowX Router 是一个基于分类推荐的 AI API 智能中转站。用户无�
 - [API 文档](docs/API.md) — GFlowX 接口规范（产品向）
 - [路由设计](docs/ROUTER.md) — 智能路由引擎设计
 - [前端设计](docs/FRONTEND.md) — UI/UX 设计规范
-- [外网访问](docs/EXTERNAL_ACCESS.md) — Cursor Web 无法访问 localhost 时的隧道与部署方案
+- [外网访问](docs/EXTERNAL_ACCESS.md) — 隧道与无 Docker 本地跑法
+- [工作清单](docs/WORK_PLAN.md) — 按顺序执行的任务与完成状态
 
 ## 🚀 快速开始（第一阶段：官方 new-api 跑通）
 
