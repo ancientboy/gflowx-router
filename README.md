@@ -41,6 +41,7 @@ GFlowX Router 是一个基于分类推荐的 AI API 智能中转站。用户无�
 ```bash
 git clone --recurse-submodules https://github.com/ancientboy/gflowx-router.git
 cd gflowx-router
+./scripts/apply-gflowx-backend-patch.sh
 docker compose up -d
 ```
 
@@ -48,6 +49,7 @@ docker compose up -d
 
 ```bash
 git submodule update --init --recursive
+./scripts/apply-gflowx-backend-patch.sh
 docker compose up -d
 ```
 

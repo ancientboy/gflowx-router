@@ -56,13 +56,17 @@ GFlowX Router 是一个 **场景化 AI API 智能路由网关**。
   ```bash
   git submodule update --init --recursive
   ```
+- **应用 GFlowX 后端补丁**（场景路由 `gflowxscene`；子模块指针仍指向官方 pin，补丁见 `patches/`）：
+  ```bash
+  ./scripts/apply-gflowx-backend-patch.sh
+  ```
 - **启动官方栈**（PostgreSQL + Redis + `calciumion/new-api` 镜像）任选其一：
   - 仓库根目录：`docker compose up -d`（需 Compose **v2.20+**，根目录 `docker-compose.yml` 通过 `include` 引用 `backend/docker-compose.yml`）
   - 或：`./scripts/up-official.sh`
   - 或：`cd backend && docker compose up -d`
 - **验证**：浏览器打开 `http://localhost:3000`；健康检查见子模块 compose 中 `new-api` 的 `healthcheck`。
 - **外网 / Cursor Web**：云端 Agent 给出的 `localhost` 无法在你本机浏览器打开；请在可执行 Docker 的环境使用 Quick Tunnel 等，见 [`docs/EXTERNAL_ACCESS.md`](EXTERNAL_ACCESS.md)。
-- **`frontend/`**：后续 GFlowX 全新管理端（当前阶段可不创建）；与官方 Web 并行开发，待 P0 后再切换默认入口。
+- **`frontend/`**：GFlowX 全新管理端脚手架（`frontend/`）；与官方 Web 并行开发，待 P0 后再切换默认入口。
 
 ---
 

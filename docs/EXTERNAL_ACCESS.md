@@ -18,9 +18,11 @@
 
 环境要求：**Go**（建议与 `backend/go.mod` 一致）、**Node/npm**。
 
-1. 拉子模块后在仓库根目录执行：
+1. 拉子模块并应用 GFlowX 后端补丁，然后在仓库根目录执行：
 
    ```bash
+   git submodule update --init --recursive
+   ./scripts/apply-gflowx-backend-patch.sh
    ./scripts/dev-newapi-sqlite.sh
    ```
 

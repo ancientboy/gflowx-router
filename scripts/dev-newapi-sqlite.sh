@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # 不依赖 Docker，在本机用 SQLite + 内置前端 dist 跑 new-api（开发验证）
 # 用法：在仓库根目录执行  ./scripts/dev-newapi-sqlite.sh
+# 需已执行 ./scripts/apply-gflowx-backend-patch.sh（生成 gflowxscene）。
 # 默认端口 3000；另开终端可执行：/tmp/cloudflared tunnel --url http://127.0.0.1:3000
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
