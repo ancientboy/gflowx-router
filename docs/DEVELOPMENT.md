@@ -143,15 +143,12 @@ gflowx-router/
 │   ├── middleware/           # 🔧 中间件（复用 + 新增）
 │   └── main.go              # 入口
 │
-├── frontend/                # 前端（同仓全新工程；样式与 new-api 官方 UI 无关）
+├── frontend/                # GFlowX 全新管理端（Vite + React + Ant Design 脚手架）
 │   ├── src/
-│   │   ├── pages/
-│   │   │   ├── Landing/     #    落地页（选身份 → 推荐套餐）
-│   │   │   ├── Dashboard/   #    仪表盘（用量/费用/统计）
-│   │   │   └── Keys/        #    Key 管理（创建/额度）
-│   │   ├── components/      #    通用组件
-│   │   ├── store/           #    状态管理
-│   │   └── api/             #    对接后端（与 new-api 管理 API 对齐，见功能清单）
+│   │   ├── pages/           #    Home / Dashboard / Keys 占位路由
+│   │   ├── App.tsx
+│   │   └── ...
+│   ├── vite.config.ts       #    开发代理 /api、/v1 → new-api :3000
 │   └── package.json
 │
 ├── docs/                    # 文档

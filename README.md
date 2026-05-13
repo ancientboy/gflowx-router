@@ -21,7 +21,7 @@ GFlowX Router 是一个基于分类推荐的 AI API 智能中转站。用户无�
 ## 🏗️ 技术架构
 
 - **后端底座**：`backend/` 为官方 [QuantumNous/new-api](https://github.com/QuantumNous/new-api) 的 **Git 子模块**（Go；二开与场景路由将在此之上演进）
-- **前端**：React + Vite 等（同仓全新工程，与 New-API 默认管理端脱钩；见 `docs/FRONTEND.md`）
+- **前端**：`frontend/` 为 **Vite + React + Ant Design** 脚手架（与 new-api 自带 Web 分离）；设计见 `docs/FRONTEND.md`。本地开发：`cd frontend && npm install && npm run dev`（默认将 `/api`、`/v1` 代理到 `127.0.0.1:3000`）。
 - **数据库（当前官方 compose）**：PostgreSQL + Redis（见 `backend/docker-compose.yml`）
 - **部署**：Docker Compose；根目录编排通过 `include` 引用子模块内官方 compose
 
@@ -64,6 +64,16 @@ cd backend && docker compose up -d
 > 默认数据库与 Redis 密码写在 `backend/docker-compose.yml` 中，**仅适用于本地/内网验证**；上生产前请全部更换，并阅读 new-api 官方环境变量说明。
 
 本环境若未安装 Docker，无法在 CI 容器内替你完成拉镜像验证；请在本地或装有 Docker 的机器上执行上述命令。
+
+### 全新管理端（`frontend/`）
+
+与 new-api 自带 Web 并行开发，需 **Node 22+**：
+
+```bash
+cd frontend && npm install && npm run dev
+```
+
+详见 [`frontend/README.md`](frontend/README.md)。
 
 ## 🌐 外网访问（Cursor Web / 手机 / 分享给他人）
 

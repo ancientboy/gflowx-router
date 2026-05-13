@@ -6,11 +6,13 @@
 |------|-----|
 | 远程仓库 | https://github.com/QuantumNous/new-api |
 | Git 子模块路径 | `backend/` |
-| 当前提交（以 `git submodule status` 为准） | `3856b9d2c0bc3f412992d3ae17d975bf59900b1b` |
-| 子模块标签参考 | `v1.0.0-rc.5` 之后 1 个提交 |
-| 提交说明 | `chore(deps): bump axios from 1.15.0 to 1.15.2 in /web/classic` |
+| 当前提交（以 `git submodule status` 为准） | `49d6662b989644505a869c8b42d9fc11213d2ecb` |
+| 子模块说明 | 含 GFlowX `gflowxscene` 场景标签路由（见 `docs/ROUTER.md` §7） |
+| 提交说明 | `feat(gflowx): scene tag to model resolution before relay` |
 
 升级子模块后请更新上表中的提交哈希与说明。
+
+> **推送说明**：若你在 `backend/` 内做了二开提交（如本仓库的 `gflowxscene`），`git push` 默认会推向子模块的 `origin`（即 QuantumNous/new-api）。若无写权限，请将子模块 `origin` 改为你方 **fork** 的 URL，从 fork 提 PR 合入上游；父仓库则 `git add backend` 记录新的子模块提交指针。
 
 ```bash
 cd backend && git fetch origin && git checkout <tag-or-commit> && cd .. && git add backend && git commit -m "chore(backend): bump new-api submodule"
