@@ -56,6 +56,8 @@ docker compose up -d
 
 启动完成后访问：**http://localhost:3000**（与官方 new-api 一致）。
 
+可选：将 `config/gflowx_scene_pools.example.json` 复制为自定义路径，并在运行环境中设置 `GFLOWX_SCENE_POOLS_FILE` / `GFLOWX_ALIASES_FILE`（详见 `docs/ROUTER.md` §8）。
+
 等效命令（任选其一）：
 
 ```bash
@@ -102,5 +104,4 @@ docker compose -f docker-compose.yml -f docker-compose.tunnel.yml logs cloudflar
 
 ## 📄 License
 
-- **`backend/`（子模块 [QuantumNous/new-api](https://github.com/QuantumNous/new-api)）** 适用 **AGPL-3.0**，以子模块内 `LICENSE` 为准；修改与分发须遵守该许可及项目署名要求。
-- 本仓库中 GFlowX 自有文档、脚本等，若与 AGPL 产生覆盖关系，以你方后续在根目录补充的 `LICENSE` 及法务结论为准；**不要**再假定整仓为历史上的「MIT 示例文案」。
+见仓库根目录 [`LICENSE`](LICENSE)：**本仓库自有文件**（文档、脚本、`frontend/`、`patches/`、`config/` 示例等）在 **MIT** 下授权；**`backend/` 子模块**为 [QuantumNous/new-api](https://github.com/QuantumNous/new-api)，适用 **AGPL-3.0**，构建或分发包含该子模块的产物时须遵守 AGPL 义务。

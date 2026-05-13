@@ -68,6 +68,16 @@ GFlowX Router 是一个 **场景化 AI API 智能路由网关**。
 - **外网 / Cursor Web**：云端 Agent 给出的 `localhost` 无法在你本机浏览器打开；请在可执行 Docker 的环境使用 Quick Tunnel 等，见 [`docs/EXTERNAL_ACCESS.md`](EXTERNAL_ACCESS.md)。
 - **`frontend/`**：GFlowX 全新管理端脚手架（`frontend/`）；与官方 Web 并行开发，待 P0 后再切换默认入口。
 
+### 1.6 自有 new-api fork（团队协作，可选）
+
+当团队维护 **QuantumNous/new-api 的 fork** 并将 GFlowX 二开直接推到该 fork 的 `main`（或固定分支）时：
+
+1. 将根目录 `.gitmodules` 中 `backend` 的 `url` 改为 fork 地址，并 `git submodule sync`。
+2. 将子模块指针提交到 **fork 上已含 GFlowX 改动的提交**（不再依赖同事本机 `git am`）。
+3. 新成员克隆后只需 `git submodule update --init`，**无需**再执行 `./scripts/apply-gflowx-backend-patch.sh`（除非仍想保留「上游 pin + 补丁」双轨流程做对照）。
+
+在 fork 未就绪前，可继续使用 `patches/` + `apply-gflowx-backend-patch.sh` 流程；详见 [`docs/BACKEND_PIN.md`](BACKEND_PIN.md)。
+
 ---
 
 ## 二、系统架构

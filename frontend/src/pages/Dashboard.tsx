@@ -1,4 +1,4 @@
-import { Card, Descriptions, Spin, Alert } from 'antd'
+import { Card, Descriptions, Spin, Alert, Typography } from 'antd'
 import { useEffect, useState } from 'react'
 import * as authApi from '../api/auth'
 import type { UserSelf } from '../api/types'
@@ -27,7 +27,7 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <Card title="仪表盘">
+      <Card className="gflow-card" title={<Typography.Title level={4} className="gflow-page-title">仪表盘</Typography.Title>}>
         <Spin />
       </Card>
     )
@@ -35,7 +35,7 @@ export default function Dashboard() {
 
   if (err || !user) {
     return (
-      <Card title="仪表盘">
+      <Card className="gflow-card" title={<Typography.Title level={4} className="gflow-page-title">仪表盘</Typography.Title>}>
         <Alert type="error" message={err || '无用户数据'} showIcon />
       </Card>
     )
@@ -44,7 +44,7 @@ export default function Dashboard() {
   const remain = user.quota - user.used_quota
 
   return (
-    <Card title="仪表盘">
+    <Card className="gflow-card" title={<Typography.Title level={4} className="gflow-page-title">仪表盘</Typography.Title>}>
       <Descriptions bordered column={1} size="small">
         <Descriptions.Item label="用户名">{user.username}</Descriptions.Item>
         <Descriptions.Item label="显示名">{user.display_name || '—'}</Descriptions.Item>

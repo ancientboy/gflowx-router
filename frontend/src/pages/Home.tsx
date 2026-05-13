@@ -29,15 +29,15 @@ export default function Home() {
   }, [])
 
   return (
-    <Card title="GFlowX Router">
-      <Typography.Paragraph>
+    <Card className="gflow-card" title={<Typography.Title level={4} className="gflow-page-title">GFlowX Router</Typography.Title>}>
+      <Typography.Paragraph className="gflow-muted">
         全新管理端（与 new-api 自带 Web 分离）。开发命令：{' '}
         <Typography.Text code>cd frontend && npm run dev</Typography.Text>；接口经 Vite 代理到{' '}
         <Typography.Text code>127.0.0.1:3000</Typography.Text>。
       </Typography.Paragraph>
-      <Typography.Paragraph>
-        场景标签路由见仓库 <Typography.Text code>docs/ROUTER.md</Typography.Text> §7 与{' '}
-        <Typography.Text code>docs/WORK_PLAN.md</Typography.Text>。
+      <Typography.Paragraph className="gflow-muted">
+        场景与模型池见 <Typography.Text code>docs/ROUTER.md</Typography.Text> §7–§8；任务清单见{' '}
+        <Typography.Text code>docs/WORK_PLAN.md</Typography.Text>。可选配置示例：<Typography.Text code>config/gflowx_scene_pools.example.json</Typography.Text>。
       </Typography.Paragraph>
       {ready && user ? (
         <Typography.Paragraph>
@@ -53,7 +53,17 @@ export default function Home() {
       {loading ? <Spin /> : null}
       {err ? <Alert type="warning" message={err} showIcon style={{ marginTop: 8 }} /> : null}
       {!loading && !err && status != null ? (
-        <pre style={{ background: '#fff', padding: 12, borderRadius: 8, maxHeight: 320, overflow: 'auto' }}>
+        <pre
+          style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border)',
+            padding: 12,
+            borderRadius: 12,
+            maxHeight: 320,
+            overflow: 'auto',
+            textAlign: 'left',
+          }}
+        >
           {JSON.stringify(status, null, 2)}
         </pre>
       ) : null}

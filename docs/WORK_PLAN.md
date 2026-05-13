@@ -15,9 +15,9 @@
 | # | 状态 | 内容 |
 |---|------|------|
 | B1 | [x] | v0：`gflowxscene` 标签 → 单模型 + env 覆盖（补丁内） |
-| B2 | [ ] | v1：模型池配置（DB/文件）+ 按优先级尝试（对齐 `ROUTER.md`） |
-| B3 | [ ] | 健康检查与自动摘除（Redis/内存状态） |
-| B4 | [ ] | 别名表（`claude` → 具体模型）与 `docs/API.md` 对齐 |
+| B2 | [x] | v1：模型池配置（JSON 文件）+ relay 内按池顺序降级（对齐 `ROUTER.md` §8） |
+| B3 | [x] | 健康检查与自动摘除（进程内 TTL；可关；Redis 见后续） |
+| B4 | [x] | 别名表（`claude` / `gpt4` / `deepseek`）与 `docs/API.md` 对齐 |
 
 ## 阶段 C — 新前端（GFlowX Web）
 
@@ -31,7 +31,7 @@
 | C6 | [x] | 密钥页：`GET /api/token/` 分页表格 |
 | C7 | [x] | 首页：公开 `GET /api/status` + 产品说明 |
 | C8 | [x] | 环境变量 `VITE_API_BASE_URL`（`frontend/.env.example`） |
-| C9 | [ ] | 与设计稿对齐（`docs/FRONTEND.md`）与暗色主题 |
+| C9 | [x] | 与 `docs/FRONTEND.md` 设计令牌对齐；浅色/深色主题切换（Ant Design + CSS 变量） |
 
 ## 阶段 D — 工程化与发布
 
@@ -39,9 +39,9 @@
 |---|------|------|
 | D1 | [x] | GitHub Actions：`apply-gflowx-backend-patch` + `go test ./gflowxscene/...` |
 | D2 | [x] | GitHub Actions：`frontend` npm ci + lint + build |
-| D3 | [ ] | 自有 new-api fork：子模块改 URL，团队免手动 `git am` |
-| D4 | [ ] | 根目录 `LICENSE` / AGPL 合规说明定稿 |
+| D3 | [x] | 自有 new-api fork 路径：`docs/DEVELOPMENT.md` §1.6（子模块改 URL、免 `git am` 说明） |
+| D4 | [x] | 根目录 `LICENSE`：MIT（本仓自有部分）+ AGPL 对 `backend/` 的合规说明 |
 
 ---
 
-**当前迭代目标**：~~完成 **C2–C7** 与 **D1–D2**（本仓库可合并的最小闭环）。~~ 已完成；下一步见 **B2**（模型池）与 **C9**（视觉规范）。
+**当前迭代目标**：阶段 A–D 清单已闭环；后续可在「Redis 健康」「Tier 权重」「自有 fork 落地」上继续演进。

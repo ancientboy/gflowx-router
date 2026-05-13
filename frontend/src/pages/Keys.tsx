@@ -1,4 +1,4 @@
-import { Card, Table, Alert } from 'antd'
+import { Card, Table, Alert, Typography } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { startTransition, useEffect, useState } from 'react'
 import { fetchTokens } from '../api/token'
@@ -52,7 +52,7 @@ export default function Keys() {
   ]
 
   return (
-    <Card title="API 密钥">
+    <Card className="gflow-card" title={<Typography.Title level={4} className="gflow-page-title">API 密钥</Typography.Title>}>
       {err ? <Alert type="error" message={err} showIcon style={{ marginBottom: 16 }} /> : null}
       <Table<TokenRow>
         rowKey="id"

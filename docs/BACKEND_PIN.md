@@ -20,7 +20,7 @@
 ./scripts/apply-gflowx-backend-patch.sh
 ```
 
-这会在 `backend/` 内生成 `gflowxscene/` 并改写 `controller/relay.go`。若你已将 `backend` 推送到 **自有的 new-api fork**，请把 `.gitmodules` 的 `url` 改为 fork 地址，并把补丁后的提交推到该 fork，团队成员即可直接依赖子模块指针而无需每次 `git am`。
+这会在 `backend/` 内生成 `gflowxscene/` 并改写 `controller/relay.go`。若你已将 `backend` 推送到 **自有的 new-api fork**，请把 `.gitmodules` 的 `url` 改为 fork 地址，并把补丁后的提交推到该 fork，团队成员即可直接依赖子模块指针而无需每次 `git am`（流程说明见 [`docs/DEVELOPMENT.md`](DEVELOPMENT.md) §1.6）。
 
 升级子模块后请更新上表中的提交哈希与说明；若上游变更导致补丁失效，需重新导出补丁（见下）。
 
