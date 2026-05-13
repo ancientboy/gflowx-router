@@ -1,4 +1,4 @@
-# GFlowX Router — 前端设计规范
+# gflowx-api — 前端设计规范
 
 > 极简、现代、直觉
 
@@ -6,13 +6,13 @@
 
 ## 1. 技术栈
 
-| 技术 | 版本 | 用途 |
+| 技术 | 版本（以 `frontend/package.json` 为准） | 用途 |
 |------|------|------|
-| React | 18 | UI 框架 |
-| Vite | 6 | 构建工具 |
-| Ant Design | 5 | UI 组件库 |
-| Tailwind CSS | 4 | 原子样式 |
-| Recharts | 2 | 图表 |
+| React | 19 | UI 框架 |
+| Vite | 8 | 构建工具 |
+| Ant Design | 6 | UI 组件库 |
+| Tailwind CSS | 4 | 原子样式（规范内；**工程尚未接入**，后续可加） |
+| Recharts | 2 | 图表（规范内；**尚未接入**） |
 | Zustand | 5 | 状态管理 |
 | React Router | 7 | 路由 |
 | Axios | 1 | HTTP 客户端 |
@@ -21,10 +21,11 @@
 
 | 路由 | 页面 | 说明 |
 |------|------|------|
-| `/` | 落地页 | 选身份 → 推荐套餐 → 注册 |
-| `/dashboard` | 仪表盘 | 用量/费用/统计 |
-| `/keys` | Key 管理 | 创建/管理 API Key |
-| `/docs` | 接入文档 | 如何使用（可选） |
+| `/` | 首页 | 公开 `GET /api/status`、产品说明、登录态提示（**尚未**实现设计稿中的「选身份→套餐→注册」落地页） |
+| `/login` | 登录 | `POST /api/user/login`，Cookie 会话 |
+| `/dashboard` | 仪表盘 | `GET /api/user/self`：用户名、分组、额度等 |
+| `/keys` | 密钥列表 | `GET /api/token/` 分页表格 |
+| `/docs` | 接入文档 | **未实现**（路由未挂载） |
 
 ## 3. 设计风格
 
@@ -115,6 +116,23 @@ hover 时轻微阴影
 平板：≥ 768px（2 列布局）
 手机：< 768px（单列布局）
 ```
+
+## 6. 管理端（`frontend/`）已实现清单（相对本规范）
+
+以下为 **当前代码已实现** 的能力，便于与 §2 设计稿对照；未列项表示仍为规划或 P1。
+
+| 类别 | 已实现 |
+|------|--------|
+| **品牌** | 对外展示名 **`gflowx-api`**（`src/brand.ts`）；顶栏、首页/登录标题、浏览器 `<title>` 一致 |
+| **布局** | 顶栏导航 + 内容区；响应式边距（见 `App.css` / `index.css`） |
+| **路由** | `/`、`/login`、`/dashboard`、`/keys`；`/dashboard` 与 `/keys` 需登录（`ProtectedRoute`） |
+| **鉴权** | 应用启动 `AuthBootstrap` 拉取会话；`POST /api/user/login`、`/api/user/logout`；Zustand `authStore` |
+| **HTTP** | Axios 实例 `withCredentials: true`；`VITE_API_BASE_URL`；Vite 开发代理 `/api`、`/v1` → new-api |
+| **主题** | 浅色 / 深色切换（`themeStore` + `ConfigProvider` algorithm）；CSS 变量对齐 §3 配色与圆角；Ant Design `token`（主色 `#4F46E5`、圆角等） |
+| **组件** | 首页 / 登录 / 仪表盘 / 密钥页使用统一 **`gflow-card`** 卡片样式（§4 卡片规范的部分落地） |
+| **数据** | 首页公开状态 JSON；仪表盘 `Descriptions`；密钥 `Table` 分页 |
+
+**尚未实现（相对 §2 / §4）**：落地页身份与套餐流程、密钥「新建」表单、`/docs` 路由、Recharts 图表、Tailwind 原子类工程化、完整营销文案与插图 Logo 资源。
 
 ---
 

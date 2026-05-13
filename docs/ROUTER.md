@@ -1,6 +1,6 @@
-# GFlowX Router — 智能路由引擎设计
+# gflowx-api — 智能路由引擎设计
 
-> 这是 GFlowX 的核心差异化模块
+> 这是 gflowx-api 的核心差异化模块
 
 ---
 

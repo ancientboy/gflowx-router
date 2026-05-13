@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 在已初始化的 backend 子模块（处于官方 pin 提交）上应用 GFlowX 场景路由补丁。
+# 在已初始化的 backend 子模块（处于官方 pin 提交）上应用 gflowx-api 场景路由补丁。
 # 用法：./scripts/apply-gflowx-backend-patch.sh
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -18,4 +18,4 @@ if [ -d gflowxscene ]; then
   exit 0
 fi
 git am "$PATCH"
-echo "Applied GFlowX backend patch. To publish for your team, push this backend state to your new-api fork and update .gitmodules."
+echo "Applied gflowx-api backend patch. To publish for your team, push this backend state to your new-api fork and update .gitmodules."

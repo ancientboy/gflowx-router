@@ -1,6 +1,6 @@
 # New-API 底座版本（子模块固定点）
 
-本文件记录 GFlowX Router 当前锁定的 **QuantumNous/new-api** 提交，便于对照上游与排查问题。
+本文件记录 gflowx-api 当前锁定的 **QuantumNous/new-api** 提交，便于对照上游与排查问题。
 
 | 字段 | 值 |
 |------|-----|
@@ -10,9 +10,9 @@
 | 子模块标签参考 | `v1.0.0-rc.5` 之后 1 个提交 |
 | 提交说明 | `chore(deps): bump axios from 1.15.0 to 1.15.2 in /web/classic` |
 
-## GFlowX 二开补丁（场景路由）
+## gflowx-api 二开补丁（场景路由）
 
-在 **不修改子模块远程 URL** 的前提下，GFlowX 对 new-api 的改动以 **`git am` 补丁** 形式放在 `patches/0001-feat-gflowx-scene-tag-to-model-resolution-before-rel.patch`。
+在 **不修改子模块远程 URL** 的前提下，gflowx-api 对 new-api 的改动以 **`git am` 补丁** 形式放在 `patches/0001-feat-gflowx-scene-tag-to-model-resolution-before-rel.patch`。
 
 克隆本仓库并 `git submodule update --init` 后，在仓库根目录执行：
 

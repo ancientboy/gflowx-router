@@ -18,7 +18,7 @@
 
 环境要求：**Go**（建议与 `backend/go.mod` 一致）、**Node/npm**。
 
-1. 拉子模块并应用 GFlowX 后端补丁，然后在仓库根目录执行：
+1. 拉子模块并应用 gflowx-api 后端补丁，然后在仓库根目录执行：
 
    ```bash
    git submodule update --init --recursive
@@ -49,8 +49,8 @@
 1. 在 **安装了 Docker** 的机器上克隆并拉子模块：
 
    ```bash
-   git clone --recurse-submodules <你的 gflowx-router 仓库 URL>
-   cd gflowx-router
+   git clone --recurse-submodules <你的仓库克隆 URL>
+   cd gflowx-api
    ```
 
 2. 启动 **new-api + 数据库 + Redis + 隧道**：
