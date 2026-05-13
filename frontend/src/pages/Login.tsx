@@ -1,6 +1,7 @@
 import { Alert, Button, Card, Form, Input, Typography } from 'antd'
 import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { BRAND_NAME } from '../brand'
 import { useAuthStore } from '../store/authStore'
 
 export default function Login() {
@@ -22,7 +23,11 @@ export default function Login() {
     <div style={{ maxWidth: 400, margin: '64px auto' }}>
       <Card
         className="gflow-card"
-        title={<Typography.Title level={4} className="gflow-page-title">登录 GFlowX 控制台</Typography.Title>}
+        title={
+          <Typography.Title level={4} className="gflow-page-title">
+            登录 {BRAND_NAME}
+          </Typography.Title>
+        }
       >
         <Typography.Paragraph type="secondary">
           使用与 new-api 相同的账号密码（会话 Cookie 经 Vite 代理写入当前域名）。

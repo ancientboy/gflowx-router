@@ -18,6 +18,7 @@ import Dashboard from './pages/Dashboard'
 import Home from './pages/Home'
 import Keys from './pages/Keys'
 import Login from './pages/Login'
+import { BRAND_NAME } from './brand'
 import { useAuthStore } from './store/authStore'
 import { type ThemeMode, useThemeStore } from './store/themeStore'
 
@@ -40,8 +41,8 @@ function Shell() {
   return (
     <Layout className="gflow-shell" style={{ minHeight: '100vh' }}>
       <Header className="gflow-header">
-        <Typography.Text strong className="gflow-brand">
-          GFlowX
+        <Typography.Text strong className="gflow-brand" style={{ fontFamily: 'var(--mono, monospace)' }}>
+          {BRAND_NAME}
         </Typography.Text>
         <Menu
           theme={isDark ? 'dark' : 'light'}

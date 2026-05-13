@@ -1,6 +1,7 @@
 import { Card, Typography, Alert, Spin } from 'antd'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { BRAND_NAME } from '../brand'
 import { fetchPublicStatus } from '../api/status'
 import { useAuthStore } from '../store/authStore'
 
@@ -29,9 +30,16 @@ export default function Home() {
   }, [])
 
   return (
-    <Card className="gflow-card" title={<Typography.Title level={4} className="gflow-page-title">GFlowX Router</Typography.Title>}>
+    <Card
+      className="gflow-card"
+      title={
+        <Typography.Title level={4} className="gflow-page-title">
+          {BRAND_NAME}
+        </Typography.Title>
+      }
+    >
       <Typography.Paragraph className="gflow-muted">
-        全新管理端（与 new-api 自带 Web 分离）。开发命令：{' '}
+        {BRAND_NAME} 管理端（与 new-api 自带 Web 分离）。开发命令：{' '}
         <Typography.Text code>cd frontend && npm run dev</Typography.Text>；接口经 Vite 代理到{' '}
         <Typography.Text code>127.0.0.1:3000</Typography.Text>。
       </Typography.Paragraph>
