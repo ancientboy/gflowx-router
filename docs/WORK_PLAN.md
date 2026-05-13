@@ -54,9 +54,9 @@
 | E6 | [x] | 三步接入（Steps）+ 文档引用 |
 | E7 | [x] | FAQ（Collapse） |
 | E8 | [x] | 页脚外链 + 折叠展示 `GET /api/status` |
-| E9 | [x] | `index.html`：`lang=zh-CN`、`<meta name="description">`、title 加长（og 图待 E10） |
-| E10 | [ ] | 打磨：注册/套餐 CTA 策略、社交分享图、Lighthouse、埋点、懒加载重块 |
+| E9 | [x] | `index.html`：`lang=zh-CN`、`<meta name="description">`、title 加长；`og:image` 等见 E10 |
+| E10 | [x] | 打磨：注册/套餐 CTA（`LandingPricing` + 登录 query 提示）、社交分享图（`og-image.svg` + `VITE_SITE_URL` 注入）、Lighthouse 基础（`<main>`、跳过链接、懒加载重块）、可选 GA4（`VITE_GA_MEASUREMENT_ID`）、`Suspense` 懒加载场景区以下模块 |
 
 ---
 
-**当前迭代目标**：阶段 E 首版已上线；E10 与「登录后仪表盘增强」可作为下一迭代。
+**当前迭代目标**：阶段 E 已全部勾选；后续可迭代「登录后仪表盘增强」与 `docs/DEVELOPMENT.md` 路线图中的产品能力。

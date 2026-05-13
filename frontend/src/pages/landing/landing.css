@@ -126,6 +126,27 @@
   margin-top: 16px;
 }
 
+.landing-lazy-fallback {
+  display: flex;
+  justify-content: center;
+  padding: 48px 0;
+}
+
+.landing-pricing-card--highlight {
+  border-color: rgba(79, 70, 229, 0.55) !important;
+  box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.1);
+}
+
+[data-theme='dark'] .landing-pricing-card--highlight {
+  border-color: rgba(129, 140, 248, 0.55) !important;
+}
+
+.landing-pricing-price {
+  margin: 0 0 12px !important;
+  font-size: 1.2rem !important;
+  font-weight: 600 !important;
+}
+
 .gflow-content--landing {
   padding: 0 !important;
   background: var(--bg-secondary);

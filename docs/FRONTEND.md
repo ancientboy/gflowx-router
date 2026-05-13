@@ -128,12 +128,14 @@ hover 时轻微阴影
 | **路由** | `/`、`/login`、`/dashboard`、`/keys`；`/dashboard` 与 `/keys` 需登录（`ProtectedRoute`） |
 | **鉴权** | 应用启动 `AuthBootstrap` 拉取会话；`POST /api/user/login`、`/api/user/logout`；Zustand `authStore` |
 | **HTTP** | Axios 实例 `withCredentials: true`；`VITE_API_BASE_URL`；Vite 开发代理 `/api`、`/v1` → new-api |
+| **SEO / 分享** | `index.html` 含 `og:*` / `twitter:*`；`VITE_SITE_URL` 存在时 `og:image` 为该源下的 `/og-image.svg`；否则构建期回退到 `raw.githubusercontent.com` 上的仓库内 SVG |
+| **埋点** | 可选 `VITE_GA_MEASUREMENT_ID`（GA4）；`src/analytics.ts` + 路由变更 `page_view` |
 | **主题** | 浅色 / 深色切换（`themeStore` + `ConfigProvider` algorithm）；CSS 变量对齐 §3 配色与圆角；Ant Design `token`（主色 `#4F46E5`、圆角等） |
 | **组件** | 首页 / 登录 / 仪表盘 / 密钥页使用统一 **`gflow-card`** 卡片样式（§4 卡片规范的部分落地） |
 | **数据** | 落地页页脚折叠 `GET /api/status`；仪表盘 `Descriptions`；密钥 `Table` 分页 |
-| **落地页** | 见 `docs/LANDING_PAGE.md` 与 `frontend/src/pages/landing/*`（阶段 E 首版） |
+| **落地页** | 见 `docs/LANDING_PAGE.md` 与 `frontend/src/pages/landing/*`（阶段 E 含 E10：套餐 CTA、懒加载、主内容 `<main>`、跳过链接、社交 meta、可选 GA4） |
 
-**尚未实现（相对 §2 / §4）**：选身份→套餐→注册 完整闭环、密钥「新建」表单、`/docs` 路由、Recharts 图表、Tailwind 原子类工程化、独立 Logo 资产与 E10 打磨项。
+**尚未实现（相对 §2 / §4）**：选身份→套餐→注册 完整闭环、密钥「新建」表单、`/docs` 路由、Recharts 图表、Tailwind 原子类工程化、独立 Logo 资产。
 
 ---
 

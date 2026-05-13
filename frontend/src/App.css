@@ -53,3 +53,7 @@
     padding-block: 12px;
   }
 }
+
+#main-content:focus {
+  outline: none;
+}

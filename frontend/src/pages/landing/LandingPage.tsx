@@ -1,20 +1,53 @@
+import { lazy, Suspense } from 'react'
+import { Spin } from 'antd'
 import './landing.css'
-import { LandingCompare } from './LandingCompare'
-import { LandingFaq } from './LandingFaq'
-import { LandingFooter } from './LandingFooter'
 import { LandingHero } from './LandingHero'
-import { LandingHow } from './LandingHow'
-import { LandingScenes } from './LandingScenes'
+
+const LandingCompare = lazy(async () => {
+  const m = await import('./LandingCompare')
+  return { default: m.LandingCompare }
+})
+const LandingScenes = lazy(async () => {
+  const m = await import('./LandingScenes')
+  return { default: m.LandingScenes }
+})
+const LandingPricing = lazy(async () => {
+  const m = await import('./LandingPricing')
+  return { default: m.LandingPricing }
+})
+const LandingHow = lazy(async () => {
+  const m = await import('./LandingHow')
+  return { default: m.LandingHow }
+})
+const LandingFaq = lazy(async () => {
+  const m = await import('./LandingFaq')
+  return { default: m.LandingFaq }
+})
+const LandingFooter = lazy(async () => {
+  const m = await import('./LandingFooter')
+  return { default: m.LandingFooter }
+})
+
+function LandingFallback() {
+  return (
+    <div className="landing-lazy-fallback" role="status" aria-label="加载中">
+      <Spin />
+    </div>
+  )
+}
 
 export function LandingPage() {
   return (
-    <div className="landing-page">
+    <div className="landing-page" id="landing-main">
       <LandingHero />
-      <LandingCompare />
-      <LandingScenes />
-      <LandingHow />
-      <LandingFaq />
-      <LandingFooter />
+      <Suspense fallback={<LandingFallback />}>
+        <LandingCompare />
+        <LandingScenes />
+        <LandingPricing />
+        <LandingHow />
+        <LandingFaq />
+        <LandingFooter />
+      </Suspense>
     </div>
   )
 }

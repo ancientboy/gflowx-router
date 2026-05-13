@@ -11,6 +11,7 @@ import {
 import zhCN from 'antd/locale/zh_CN'
 import { useEffect } from 'react'
 import { BrowserRouter, Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { trackPageView } from './analytics'
 import './App.css'
 import AuthBootstrap from './components/AuthBootstrap'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -40,12 +41,17 @@ function Shell() {
     document.documentElement.dataset.theme = mode
   }, [mode])
 
+  useEffect(() => {
+    trackPageView(loc.pathname + loc.search)
+  }, [loc.pathname, loc.search])
+
   const menuItems = isLanding
     ? [
         { key: '/', label: <Link to="/">首页</Link> },
         { key: 'scenes', label: <a href="#landing-scenes">场景与能力</a> },
         { key: 'how', label: <a href="#landing-how">如何使用</a> },
         { key: 'faq', label: <a href="#landing-faq">常见问题</a> },
+        { key: 'pricing', label: <a href="#landing-pricing">套餐与开通</a> },
         ...(ready && user
           ? [
               { key: '/dashboard', label: <Link to="/dashboard">控制台</Link> },
@@ -63,6 +69,9 @@ function Shell() {
 
   return (
     <Layout className="gflow-shell" style={{ minHeight: '100vh' }}>
+      <a href="#main-content" className="skip-link">
+        跳到主内容
+      </a>
       <Header className="gflow-header">
         <Typography.Text strong className="gflow-brand" style={{ fontFamily: 'var(--mono, monospace)' }}>
           <Link to="/" style={{ color: 'inherit' }}>
@@ -104,26 +113,28 @@ function Shell() {
         </Space>
       </Header>
       <Content className={isLanding ? 'gflow-content gflow-content--landing' : 'gflow-content'}>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/keys"
-            element={
-              <ProtectedRoute>
-                <Keys />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
+        <main id="main-content" tabIndex={-1}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/keys"
+              element={
+                <ProtectedRoute>
+                  <Keys />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </main>
       </Content>
     </Layout>
   )

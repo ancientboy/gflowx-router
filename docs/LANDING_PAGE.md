@@ -24,13 +24,14 @@
 | **`/login`** | 登录（已有） |
 | **`/dashboard`、`/keys`** | 登录后控制台（已有；从落地页 CTA 进入） |
 
-**首屏导航（仅 `/`）**：品牌 → 锚点「场景与能力」「如何使用」「常见问题」→ 登录；已登录时增加「进入控制台」。
+**首屏导航（仅 `/`）**：品牌 → 锚点「场景与能力」「如何使用」「常见问题」「套餐与开通」→ 登录；已登录时增加「进入控制台」。
 
 **锚点 ID 约定**（便于 Header 链接与滚动）：
 
 - `#landing-scenes` — 场景卡片区  
 - `#landing-how` — 三步接入  
 - `#landing-faq` — FAQ  
+- `#landing-pricing` — 套餐与开通（CTA 策略）  
 - `#landing-status` — 可选公开状态（`/api/status`）
 
 ---
@@ -99,14 +100,14 @@
 | **E7** | FAQ | `Collapse` ≥4 条 |
 | **E8** | 页脚 + 状态区 | 折叠 `/api/status`；失败不崩 |
 | **E9** | SEO 基础 | `index.html`：`lang=zh-CN`、`meta description`、加长 `title`（`og:image` 等归 E10） |
-| **E10** | 打磨 | 文案审校、懒加载重块、Lighthouse 基础项 |
+| **E10** | 打磨 | 注册/套餐 CTA、社交分享图（`public/og-image.svg` + 构建期注入；无 `VITE_SITE_URL` 时回退 raw.githubusercontent）、Lighthouse 基础（`<main>`、跳过链接、懒加载）、可选 GA4（`VITE_GA_MEASUREMENT_ID`） |
 
 **依赖后端**：仅 E8 的 `/api/status`（已有）；其余均为静态或可配置文案。
 
 ### 6.1 实现同步（仓库当前）
 
-- **代码**：`frontend/src/pages/landing/` + `Home.tsx` 聚合；`App.tsx` 在 `/` 切换营销导航；样式 `landing.css`；`index.html` 已含中文 `description`。  
-- **任务勾选**：以 `docs/WORK_PLAN.md` **阶段 E** 为准；E10 仍为待办。
+- **代码**：`frontend/src/pages/landing/` + `Home.tsx` 聚合；`App.tsx` 在 `/` 切换营销导航；样式 `landing.css`；`index.html` 已含中文 `description` 与 Open Graph / Twitter（`vite.config` 注入 `og:url` / `og:image`）；`LandingPricing.tsx`；`src/analytics.ts`；`public/og-image.svg`。  
+- **任务勾选**：以 `docs/WORK_PLAN.md` **阶段 E** 为准；**E10 已完成**。
 
 ---
 
