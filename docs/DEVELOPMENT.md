@@ -40,8 +40,9 @@ gflowx-router 是一个 **场景化 AI API 智能路由网关**。
 
    **集成顺序（推荐）**：fork 导入后，**优先**在「与 upstream 尽量一致」的形态下 **端到端跑通**（构建、数据库迁移、Docker、环境变量；**可暂时保留 new-api 官方自带 Web** 作管理与联调），用于确认 **底座与部署无误、二开未破坏核心路径**。**再** 并行开发同仓 `frontend/`（gflowx-router 管理端 UI）及场景路由等差异化能力。新前端 **P0 齐备** 后，将 **对外默认入口** 切至 gflowx-router 管理端；官方 Web 可下线，或 **仅在开发/内网** 保留作功能对照。这与「最终产品不复用官方 UI」不矛盾：**先同构跑通降低土建风险，再换产品面**。
 
-3. **前端路线——同仓全新前端工程**：在 **同一 monorepo** 内维护独立目录（如 `frontend/`），**不复用、不渐进替换** new-api 自带管理端 UI。视觉（样式、配色、信息架构）与产品流程 **完全按 `docs/FRONTEND.md`（gflowx-router 管理端规范）** 实现，与官方 new-api 界面 **脱钩**，避免混淆。技术栈以文档与 `frontend/package.json` 为准。
-4. **功能对齐与防遗漏**：new-api 管理端功能面较广（用户、渠道、模型、计费、日志、系统设置等）。全新前端须维护 **「路由 / 页面 ↔ 后端 API」对照清单**，按 **P0（可上线最小集）→ P1 → P2** 分阶段验收；开发期可将 **上游 new-api 前端仅作本地对照**（不随产品对外发布），用于查漏，而非代码复用来源。
+3. **前端路线——同仓全新前端工程**：在 **同一 monorepo** 内维护独立目录（如 `frontend/`），**默认不复用** new-api 自带管理端 UI 作为对外产品面。视觉与信息架构按 **`docs/FRONTEND.md`** 实现，与官方 new-api 界面 **脱钩**，避免混淆。技术栈以 `frontend/package.json` 为准。  
+   **（可选）** 若需在 **与 upstream 相同技术栈** 下迭代（`backend/web/default/`，TanStack Router + Rsbuild + Tailwind），可在官方控制台目录内 **增量加路由与页面**（例如场景路由说明 **`/gflowx-scenes`**）；此类改动可通过 **`patches/0001-...` 一并 `git am`** 分发，与根目录 `frontend/` **可并存**（见 [`BACKEND_PIN.md`](BACKEND_PIN.md)）。
+4. **功能对齐与防遗漏**：new-api 管理端功能面较广（用户、渠道、模型、计费、日志、系统设置等）。全新前端须维护 **「路由 / 页面 ↔ 后端 API」对照清单**（亦见 [`ADMIN_SPEC.md`](ADMIN_SPEC.md)），按 **P0（可上线最小集）→ P1 → P2** 分阶段验收；开发期可将 **上游 new-api 前端仅作本地对照**（不随产品对外发布），用于查漏，而非代码复用来源。
 
 > **许可证**：衍生作品仍须遵守 new-api 所采用的开源许可证（如 AGPL）及署名要求，与是否「独立主仓」无关。
 
@@ -56,7 +57,7 @@ gflowx-router 是一个 **场景化 AI API 智能路由网关**。
   ```bash
   git submodule update --init --recursive
   ```
-- **应用 gflowx-router 后端补丁**（场景路由 `gflowxscene`；子模块指针仍指向官方 pin，补丁见 `patches/`）：
+- **应用 gflowx-router 后端补丁**（场景路由 `gflowxscene`、`controller/relay.go` 改动，以及 **default 控制台** 内 **`/gflowx-scenes`** 路由增量；子模块指针仍指向官方 pin，补丁见 `patches/`）：
   ```bash
   ./scripts/apply-gflowx-backend-patch.sh
   ```

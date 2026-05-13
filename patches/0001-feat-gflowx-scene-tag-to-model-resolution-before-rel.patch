@@ -1,31 +1,35 @@
-From e224f05ecc6ab66edb09dde33144c62cd1a84884 Mon Sep 17 00:00:00 2001
+From 15e0c967efbb7f333a6fb265f3eab7c869d43dea Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursor-agent@local>
-Date: Wed, 13 May 2026 05:06:50 +0000
-Subject: [PATCH] =?UTF-8?q?feat(gflowx):=20scene=20routing=20v1=20?=
- =?UTF-8?q?=E2=80=94=20pools,=20health,=20aliases,=20relay=20fallback?=
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Date: Wed, 13 May 2026 12:25:05 +0000
+Subject: [PATCH] feat(gflowx): scene routing v1 + default web scene page
 
-Scene tags resolve via env override, optional JSON pool file, then builtin
-defaults; skip models recently marked unhealthy. Friendly aliases (claude,
-gpt4, deepseek) map before scenes. Relay syncs original_model after rewrite,
-retries next pool model on channel failure when pools are configured.
+Backend: gflowxscene (pools, health, aliases), relay integration.
+Web (default): /gflowx-scenes route, sidebar entry, i18n en/zh.
 ---
- controller/relay.go         |  25 ++++++-
- gflowxscene/alias.go        |  93 +++++++++++++++++++++++
- gflowxscene/apply.go        | 145 ++++++++++++++++++++++++++++++++++++
- gflowxscene/health.go       |  63 ++++++++++++++++
- gflowxscene/pool.go         |  65 ++++++++++++++++
- gflowxscene/resolve.go      | 105 ++++++++++++++++++++++++++
- gflowxscene/resolve_test.go | 142 +++++++++++++++++++++++++++++++++++
- 7 files changed, 636 insertions(+), 2 deletions(-)
+ controller/relay.go                           |  25 ++-
+ gflowxscene/alias.go                          |  93 +++++++++++
+ gflowxscene/apply.go                          | 145 ++++++++++++++++++
+ gflowxscene/health.go                         |  63 ++++++++
+ gflowxscene/pool.go                           |  65 ++++++++
+ gflowxscene/resolve.go                        | 105 +++++++++++++
+ gflowxscene/resolve_test.go                   | 142 +++++++++++++++++
+ .../gflowx-scenes/gflowx-scenes-page.tsx      | 131 ++++++++++++++++
+ .../src/features/gflowx-scenes/index.ts       |  19 +++
+ web/default/src/hooks/use-sidebar-data.ts     |   6 +
+ web/default/src/i18n/locales/en.json          |   8 +
+ web/default/src/i18n/locales/zh.json          |   8 +
+ web/default/src/routeTree.gen.ts              |  22 +++
+ .../_authenticated/gflowx-scenes/index.tsx    |  24 +++
+ 14 files changed, 854 insertions(+), 2 deletions(-)
  create mode 100644 gflowxscene/alias.go
  create mode 100644 gflowxscene/apply.go
  create mode 100644 gflowxscene/health.go
  create mode 100644 gflowxscene/pool.go
  create mode 100644 gflowxscene/resolve.go
  create mode 100644 gflowxscene/resolve_test.go
+ create mode 100644 web/default/src/features/gflowx-scenes/gflowx-scenes-page.tsx
+ create mode 100644 web/default/src/features/gflowx-scenes/index.ts
+ create mode 100644 web/default/src/routes/_authenticated/gflowx-scenes/index.tsx
 
 diff --git a/controller/relay.go b/controller/relay.go
 index 5e2db44c..15c312e8 100644
@@ -738,6 +742,363 @@ index 00000000..6dc7cc9e
 +		t.Fatal("expected no third model")
 +	}
 +}
+diff --git a/web/default/src/features/gflowx-scenes/gflowx-scenes-page.tsx b/web/default/src/features/gflowx-scenes/gflowx-scenes-page.tsx
+new file mode 100644
+index 00000000..586fcacd
+--- /dev/null
++++ b/web/default/src/features/gflowx-scenes/gflowx-scenes-page.tsx
+@@ -0,0 +1,131 @@
++/*
++Copyright (C) 2023-2026 QuantumNous
++
++This program is free software: you can redistribute it and/or modify
++it under the terms of the GNU Affero General Public License as
++published by the Free Software Foundation, either version 3 of the
++License, or (at your option) any later version.
++
++This program is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++GNU Affero General Public License for more details.
++
++You should have received a copy of the GNU Affero General Public License
++along with this program. If not, see <https://www.gnu.org/licenses/>.
++
++For commercial licensing, please contact support@quantumnous.com
++*/
++import { useTranslation } from 'react-i18next'
++import { Main } from '@/components/layout'
++import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
++import { useAuthStore } from '@/stores/auth-store'
++import {
++  Table,
++  TableBody,
++  TableCell,
++  TableHead,
++  TableHeader,
++  TableRow,
++} from '@/components/ui/table'
++import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
++
++const SCENE_ROWS: { tag: string; hint: string }[] = [
++  { tag: 'code', hint: 'Engineering / refactor / review' },
++  { tag: 'smart', hint: 'Multi-step reasoning' },
++  { tag: 'fast', hint: 'Low latency default' },
++  { tag: 'cheap', hint: 'Cost-first batch' },
++  { tag: 'write', hint: 'Long-form writing' },
++  { tag: 'creative', hint: 'Naming / brainstorm' },
++  { tag: 'vision', hint: 'Image understanding (channel-dependent)' },
++  { tag: 'translate', hint: 'Translation' },
++]
++
++export function GflowxScenesPage() {
++  const { t } = useTranslation()
++  const user = useAuthStore((s) => s.auth.user)
++
++  return (
++    <Main>
++      <div className='min-h-0 flex-1 overflow-auto px-3 py-3 sm:px-4 sm:py-6'>
++        <div className='mx-auto flex w-full max-w-5xl flex-col gap-4 sm:gap-6'>
++          <div>
++            <h1 className='text-foreground text-2xl font-semibold tracking-tight'>
++              {t('Scene routing')}
++            </h1>
++            <p className='text-muted-foreground mt-2 max-w-3xl text-sm leading-relaxed'>
++              {t('Scene routing intro')}
++            </p>
++          </div>
++
++          <Card>
++            <CardHeader>
++              <CardTitle>{t('Overview')}</CardTitle>
++            </CardHeader>
++            <CardContent className='text-muted-foreground space-y-1 text-sm'>
++              <p>
++                <span className='text-foreground font-medium'>{t('Role')}: </span>
++                {user?.role ?? '—'}
++              </p>
++              <p>
++                <span className='text-foreground font-medium'>{t('Group')}: </span>
++                {user?.group ?? '—'}
++              </p>
++              <p className='pt-2'>{t('Scene routing role hint')}</p>
++            </CardContent>
++          </Card>
++
++          <Card>
++            <CardHeader>
++              <CardTitle>{t('Scene tags')}</CardTitle>
++            </CardHeader>
++            <CardContent>
++              <p className='text-muted-foreground mb-4 text-sm'>{t('Scene tags table hint')}</p>
++              <Table>
++                <TableHeader>
++                  <TableRow>
++                    <TableHead>{t('model')}</TableHead>
++                    <TableHead>{t('Description')}</TableHead>
++                  </TableRow>
++                </TableHeader>
++                <TableBody>
++                  {SCENE_ROWS.map((row) => (
++                    <TableRow key={row.tag}>
++                      <TableCell className='font-mono text-sm'>{row.tag}</TableCell>
++                      <TableCell className='text-muted-foreground text-sm'>{row.hint}</TableCell>
++                    </TableRow>
++                  ))}
++                </TableBody>
++              </Table>
++            </CardContent>
++          </Card>
++
++          <Card>
++            <CardHeader>
++              <CardTitle>{t('Example chat request')}</CardTitle>
++            </CardHeader>
++            <CardContent>
++              <pre className='bg-muted text-foreground overflow-x-auto rounded-md border p-3 text-xs leading-relaxed'>
++                {`POST /v1/chat/completions
++Authorization: Bearer <your API key>
++Content-Type: application/json
++
++{
++  "model": "code",
++  "messages": [{ "role": "user", "content": "Hello" }]
++}`}
++              </pre>
++            </CardContent>
++          </Card>
++
++          <Alert>
++            <AlertTitle>{t('Gateway configuration')}</AlertTitle>
++            <AlertDescription className='text-sm leading-relaxed'>
++              {t('Scene routing gateway hint')}
++            </AlertDescription>
++          </Alert>
++        </div>
++      </div>
++    </Main>
++  )
++}
+diff --git a/web/default/src/features/gflowx-scenes/index.ts b/web/default/src/features/gflowx-scenes/index.ts
+new file mode 100644
+index 00000000..669ad82b
+--- /dev/null
++++ b/web/default/src/features/gflowx-scenes/index.ts
+@@ -0,0 +1,19 @@
++/*
++Copyright (C) 2023-2026 QuantumNous
++
++This program is free software: you can redistribute it and/or modify
++it under the terms of the GNU Affero General Public License as
++published by the Free Software Foundation, either version 3 of the
++License, or (at your option) any later version.
++
++This program is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++GNU Affero General Public License for more details.
++
++You should have received a copy of the GNU Affero General Public License
++along with this program. If not, see <https://www.gnu.org/licenses/>.
++
++For commercial licensing, please contact support@quantumnous.com
++*/
++export { GflowxScenesPage } from './gflowx-scenes-page'
+diff --git a/web/default/src/hooks/use-sidebar-data.ts b/web/default/src/hooks/use-sidebar-data.ts
+index f5c9a978..1c634c3e 100644
+--- a/web/default/src/hooks/use-sidebar-data.ts
++++ b/web/default/src/hooks/use-sidebar-data.ts
+@@ -33,6 +33,7 @@ import {
+   CreditCard,
+   ListTodo,
+   Settings,
++  Layers,
+ } from 'lucide-react'
+ import { useTranslation } from 'react-i18next'
+ import { WORKSPACE_IDS } from '@/components/layout/lib/workspace-registry'
+@@ -86,6 +87,11 @@ export function useSidebarData(): SidebarData {
+             url: '/keys',
+             icon: Key,
+           },
++          {
++            title: t('Scene routing'),
++            url: '/gflowx-scenes',
++            icon: Layers,
++          },
+           {
+             title: t('Usage Logs'),
+             url: '/usage-logs/common',
+diff --git a/web/default/src/i18n/locales/en.json b/web/default/src/i18n/locales/en.json
+index 29897900..3fb89143 100644
+--- a/web/default/src/i18n/locales/en.json
++++ b/web/default/src/i18n/locales/en.json
+@@ -3417,6 +3417,14 @@
+     "Scan the QR code with WeChat to bind your account": "Scan the QR code with WeChat to bind your account",
+     "Scan this QR code with your authenticator app (Google Authenticator, Microsoft Authenticator, etc.)": "Scan this QR code with your authenticator app (Google Authenticator, Microsoft Authenticator, etc.)",
+     "Scenario Templates": "Scenario Templates",
++    "Scene routing": "Scene routing",
++    "Scene routing gateway hint": "Model pools (JSON), aliases, and health TTL are configured on the gateway host (environment variables and files), not in this page. Operators should refer to deployment docs (e.g. GFLOWX_SCENE_POOLS_FILE, GFLOWX_ALIASES_FILE).",
++    "Scene routing intro": "Use OpenAI-compatible clients with Base URL pointing to this gateway. Set the JSON field model to a scene tag (for example code or smart); the gateway resolves it to an upstream model before relay. Advanced mode still allows concrete model names.",
++    "Scene routing role hint": "Your role and group in this console control quota and which models you may use. Scene resolution is applied at relay time according to gflowx-router gateway settings.",
++    "Scene tags": "Scene tags",
++    "Scene tags table hint": "Use these values as model in POST /v1/chat/completions. See your deployment documentation for the full tag list and built-in aliases.",
++    "Example chat request": "Example request",
++    "Gateway configuration": "Gateway configuration",
+     "Scheduled channel tests": "Scheduled channel tests",
+     "scheduling controls": "scheduling controls",
+     "Science": "Science",
+diff --git a/web/default/src/i18n/locales/zh.json b/web/default/src/i18n/locales/zh.json
+index 53e912c2..8106fa86 100644
+--- a/web/default/src/i18n/locales/zh.json
++++ b/web/default/src/i18n/locales/zh.json
+@@ -3417,6 +3417,14 @@
+     "Scan the QR code with WeChat to bind your account": "使用微信扫描二维码绑定您的账户",
+     "Scan this QR code with your authenticator app (Google Authenticator, Microsoft Authenticator, etc.)": "使用您的身份验证器应用（Google Authenticator、Microsoft Authenticator 等）扫描此二维码",
+     "Scenario Templates": "场景模板",
++    "Scene routing": "场景路由",
++    "Scene routing gateway hint": "模型池（JSON）、别名与健康 TTL 在网关进程所在主机通过环境变量与文件配置，本页不可编辑。运维请参见部署说明（如 GFLOWX_SCENE_POOLS_FILE、GFLOWX_ALIASES_FILE）。",
++    "Scene routing intro": "使用兼容 OpenAI 的客户端，将 Base URL 指向本网关；在请求 JSON 中将 model 设为场景标签（如 code、smart），网关在转发前解析为上游模型。高级模式仍可填写具体模型名。",
++    "Scene routing role hint": "你在本控制台中的角色与分组仍决定额度与可用模型范围；场景解析在转发阶段按 gflowx-router 网关策略生效。",
++    "Scene tags": "场景标签",
++    "Scene tags table hint": "以下取值可作为 POST /v1/chat/completions 的 model 字段。完整标签与内置别名以部署方文档为准。",
++    "Example chat request": "请求示例",
++    "Gateway configuration": "网关配置（只读说明）",
+     "Scheduled channel tests": "定期渠道测试",
+     "scheduling controls": "调度控制能力",
+     "Science": "科研",
+diff --git a/web/default/src/routeTree.gen.ts b/web/default/src/routeTree.gen.ts
+index 8202cdc2..f0af8c55 100644
+--- a/web/default/src/routeTree.gen.ts
++++ b/web/default/src/routeTree.gen.ts
+@@ -45,6 +45,7 @@ import { Route as AuthenticatedProfileIndexRouteImport } from './routes/_authent
+ import { Route as AuthenticatedPlaygroundIndexRouteImport } from './routes/_authenticated/playground/index'
+ import { Route as AuthenticatedModelsIndexRouteImport } from './routes/_authenticated/models/index'
+ import { Route as AuthenticatedKeysIndexRouteImport } from './routes/_authenticated/keys/index'
++import { Route as AuthenticatedGflowxScenesIndexRouteImport } from './routes/_authenticated/gflowx-scenes/index'
+ import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
+ import { Route as AuthenticatedChannelsIndexRouteImport } from './routes/_authenticated/channels/index'
+ import { Route as AuthenticatedUsageLogsSectionRouteImport } from './routes/_authenticated/usage-logs/$section'
+@@ -255,6 +256,12 @@ const AuthenticatedKeysIndexRoute = AuthenticatedKeysIndexRouteImport.update({
+   path: '/keys/',
+   getParentRoute: () => AuthenticatedRouteRoute,
+ } as any)
++const AuthenticatedGflowxScenesIndexRoute =
++  AuthenticatedGflowxScenesIndexRouteImport.update({
++    id: '/gflowx-scenes/',
++    path: '/gflowx-scenes/',
++    getParentRoute: () => AuthenticatedRouteRoute,
++  } as any)
+ const AuthenticatedDashboardIndexRoute =
+   AuthenticatedDashboardIndexRouteImport.update({
+     id: '/dashboard/',
+@@ -418,6 +425,7 @@ export interface FileRoutesByFullPath {
+   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
+   '/channels/': typeof AuthenticatedChannelsIndexRoute
+   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
++  '/gflowx-scenes/': typeof AuthenticatedGflowxScenesIndexRoute
+   '/keys/': typeof AuthenticatedKeysIndexRoute
+   '/models/': typeof AuthenticatedModelsIndexRoute
+   '/playground/': typeof AuthenticatedPlaygroundIndexRoute
+@@ -475,6 +483,7 @@ export interface FileRoutesByTo {
+   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
+   '/channels': typeof AuthenticatedChannelsIndexRoute
+   '/dashboard': typeof AuthenticatedDashboardIndexRoute
++  '/gflowx-scenes': typeof AuthenticatedGflowxScenesIndexRoute
+   '/keys': typeof AuthenticatedKeysIndexRoute
+   '/models': typeof AuthenticatedModelsIndexRoute
+   '/playground': typeof AuthenticatedPlaygroundIndexRoute
+@@ -536,6 +545,7 @@ export interface FileRoutesById {
+   '/_authenticated/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
+   '/_authenticated/channels/': typeof AuthenticatedChannelsIndexRoute
+   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
++  '/_authenticated/gflowx-scenes/': typeof AuthenticatedGflowxScenesIndexRoute
+   '/_authenticated/keys/': typeof AuthenticatedKeysIndexRoute
+   '/_authenticated/models/': typeof AuthenticatedModelsIndexRoute
+   '/_authenticated/playground/': typeof AuthenticatedPlaygroundIndexRoute
+@@ -596,6 +606,7 @@ export interface FileRouteTypes {
+     | '/usage-logs/$section'
+     | '/channels/'
+     | '/dashboard/'
++    | '/gflowx-scenes/'
+     | '/keys/'
+     | '/models/'
+     | '/playground/'
+@@ -653,6 +664,7 @@ export interface FileRouteTypes {
+     | '/usage-logs/$section'
+     | '/channels'
+     | '/dashboard'
++    | '/gflowx-scenes'
+     | '/keys'
+     | '/models'
+     | '/playground'
+@@ -713,6 +725,7 @@ export interface FileRouteTypes {
+     | '/_authenticated/usage-logs/$section'
+     | '/_authenticated/channels/'
+     | '/_authenticated/dashboard/'
++    | '/_authenticated/gflowx-scenes/'
+     | '/_authenticated/keys/'
+     | '/_authenticated/models/'
+     | '/_authenticated/playground/'
+@@ -1015,6 +1028,13 @@ declare module '@tanstack/react-router' {
+       preLoaderRoute: typeof AuthenticatedKeysIndexRouteImport
+       parentRoute: typeof AuthenticatedRouteRoute
+     }
++    '/_authenticated/gflowx-scenes/': {
++      id: '/_authenticated/gflowx-scenes/'
++      path: '/gflowx-scenes'
++      fullPath: '/gflowx-scenes/'
++      preLoaderRoute: typeof AuthenticatedGflowxScenesIndexRouteImport
++      parentRoute: typeof AuthenticatedRouteRoute
++    }
+     '/_authenticated/dashboard/': {
+       id: '/_authenticated/dashboard/'
+       path: '/dashboard'
+@@ -1263,6 +1283,7 @@ interface AuthenticatedRouteRouteChildren {
+   AuthenticatedUsageLogsSectionRoute: typeof AuthenticatedUsageLogsSectionRoute
+   AuthenticatedChannelsIndexRoute: typeof AuthenticatedChannelsIndexRoute
+   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
++  AuthenticatedGflowxScenesIndexRoute: typeof AuthenticatedGflowxScenesIndexRoute
+   AuthenticatedKeysIndexRoute: typeof AuthenticatedKeysIndexRoute
+   AuthenticatedModelsIndexRoute: typeof AuthenticatedModelsIndexRoute
+   AuthenticatedPlaygroundIndexRoute: typeof AuthenticatedPlaygroundIndexRoute
+@@ -1285,6 +1306,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+   AuthenticatedUsageLogsSectionRoute: AuthenticatedUsageLogsSectionRoute,
+   AuthenticatedChannelsIndexRoute: AuthenticatedChannelsIndexRoute,
+   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
++  AuthenticatedGflowxScenesIndexRoute: AuthenticatedGflowxScenesIndexRoute,
+   AuthenticatedKeysIndexRoute: AuthenticatedKeysIndexRoute,
+   AuthenticatedModelsIndexRoute: AuthenticatedModelsIndexRoute,
+   AuthenticatedPlaygroundIndexRoute: AuthenticatedPlaygroundIndexRoute,
+diff --git a/web/default/src/routes/_authenticated/gflowx-scenes/index.tsx b/web/default/src/routes/_authenticated/gflowx-scenes/index.tsx
+new file mode 100644
+index 00000000..c61290d0
+--- /dev/null
++++ b/web/default/src/routes/_authenticated/gflowx-scenes/index.tsx
+@@ -0,0 +1,24 @@
++/*
++Copyright (C) 2023-2026 QuantumNous
++
++This program is free software: you can redistribute it and/or modify
++it under the terms of the GNU Affero General Public License as
++published by the Free Software Foundation, either version 3 of the
++License, or (at your option) any later version.
++
++This program is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++GNU Affero General Public License for more details.
++
++You should have received a copy of the GNU Affero General Public License
++along with this program. If not, see <https://www.gnu.org/licenses/>.
++
++For commercial licensing, please contact support@quantumnous.com
++*/
++import { createFileRoute } from '@tanstack/react-router'
++import { GflowxScenesPage } from '@/features/gflowx-scenes'
++
++export const Route = createFileRoute('/_authenticated/gflowx-scenes/')({
++  component: GflowxScenesPage,
++})
 -- 
 2.43.0
 

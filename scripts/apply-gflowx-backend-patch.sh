@@ -12,9 +12,9 @@ cd "$ROOT/backend"
 if git rev-parse --verify HEAD >/dev/null 2>&1; then
   :
 fi
-# 若已应用过（存在 gflowxscene），则跳过
-if [ -d gflowxscene ]; then
-  echo "gflowxscene/ already present; skip apply (reset backend submodule if you need a clean re-apply)." >&2
+# 若已应用过（存在 gflowxscene 或 default 中已有 gflowx 路由文件），则跳过
+if [ -d gflowxscene ] || [ -f web/default/src/routes/_authenticated/gflowx-scenes/index.tsx ]; then
+  echo "gflowx patch already applied (gflowxscene/ or web route present); skip. Reset backend submodule if you need a clean re-apply." >&2
   exit 0
 fi
 git am "$PATCH"

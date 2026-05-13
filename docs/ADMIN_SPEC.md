@@ -135,6 +135,7 @@
 ## 5. 与官方 Web 的关系
 
 - **并存**：同一 `Base URL` 下，官方打包 UI 与 `frontend/` 可并行部署（路径由部署方式决定）；新后台顶栏保留 **「经典管理后台」** 外链为推荐做法，直到 F4 覆盖足够管理面。
+- **官方 default 控制台（`web/default`）**：自 gflowx-router 补丁起，可在侧栏进入 **`/gflowx-scenes`**（「场景路由」），用于在 **与 new-api 相同技术栈** 下展示场景标签、角色/分组说明与请求示例；网关侧池化/别名等仍以环境变量与文件配置为准（只读说明）。详见 `docs/BACKEND_PIN.md` 与 `docs/DEVELOPMENT.md` §1.4。
 - **Cookie 会话**：与现有一致，`withCredentials` 同源或代理到 new-api。
 
 ---
