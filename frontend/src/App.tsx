@@ -49,6 +49,7 @@ function Shell() {
     ? [
         { key: '/', label: <Link to="/">首页</Link> },
         { key: 'scenes', label: <a href="#landing-scenes">场景与能力</a> },
+        { key: 'scene-mgmt', label: <a href="#landing-scene-mgmt">场景管理</a> },
         { key: 'how', label: <a href="#landing-how">如何使用</a> },
         { key: 'faq', label: <a href="#landing-faq">常见问题</a> },
         { key: 'pricing', label: <a href="#landing-pricing">套餐与开通</a> },
@@ -68,7 +69,7 @@ function Shell() {
       ]
 
   return (
-    <Layout className="gflow-shell" style={{ minHeight: '100vh' }}>
+    <Layout className={isLanding ? 'gflow-shell gflow-shell--landing' : 'gflow-shell'} style={{ minHeight: '100vh' }}>
       <a href="#main-content" className="skip-link">
         跳到主内容
       </a>

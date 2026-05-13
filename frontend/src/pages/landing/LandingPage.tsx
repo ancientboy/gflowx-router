@@ -11,6 +11,10 @@ const LandingScenes = lazy(async () => {
   const m = await import('./LandingScenes')
   return { default: m.LandingScenes }
 })
+const LandingSceneMgmt = lazy(async () => {
+  const m = await import('./LandingSceneMgmt')
+  return { default: m.LandingSceneMgmt }
+})
 const LandingPricing = lazy(async () => {
   const m = await import('./LandingPricing')
   return { default: m.LandingPricing }
@@ -43,6 +47,7 @@ export function LandingPage() {
       <Suspense fallback={<LandingFallback />}>
         <LandingCompare />
         <LandingScenes />
+        <LandingSceneMgmt />
         <LandingPricing />
         <LandingHow />
         <LandingFaq />

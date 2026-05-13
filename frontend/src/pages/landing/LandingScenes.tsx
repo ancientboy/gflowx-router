@@ -55,7 +55,14 @@ export function LandingScenes() {
           ))}
         </Row>
       </div>
-      <Modal title={`示例：model = "${tag}"`} open={open} onCancel={() => setOpen(false)} footer={null} width={640}>
+      <Modal
+        title={`示例：model = "${tag}"`}
+        open={open}
+        onCancel={() => setOpen(false)}
+        footer={null}
+        width={640}
+        rootClassName="landing-surface-modal"
+      >
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
           <Paragraph type="secondary" style={{ marginBottom: 0 }}>
             请求体（JSON）

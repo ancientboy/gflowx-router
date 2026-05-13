@@ -2,6 +2,54 @@
   background: var(--bg-primary);
 }
 
+/* 落地页：顶栏与「影棚」深色主区衔接，避免白底像官方控制台 */
+.gflow-shell--landing {
+  background: linear-gradient(180deg, #050810 0%, #0a1224 28%, #060d1c 100%);
+}
+
+.gflow-shell--landing .gflow-header {
+  background: rgba(5, 8, 16, 0.72) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(125, 211, 252, 0.12) !important;
+}
+
+.gflow-shell--landing .gflow-brand {
+  color: #e8f1ff !important;
+}
+
+.gflow-shell--landing .gflow-nav .ant-menu-item,
+.gflow-shell--landing .gflow-nav .ant-menu-submenu-title {
+  color: #9db5d9 !important;
+}
+
+.gflow-shell--landing .gflow-nav .ant-menu-item:hover,
+.gflow-shell--landing .gflow-nav .ant-menu-item-active,
+.gflow-shell--landing .gflow-nav .ant-menu-item-selected {
+  color: #5eead4 !important;
+}
+
+.gflow-shell--landing .gflow-nav .ant-menu-item a {
+  color: inherit !important;
+}
+
+.gflow-shell--landing .gflow-header-user {
+  color: #8da4c9 !important;
+}
+
+.gflow-shell--landing .ant-segmented {
+  background: rgba(8, 14, 28, 0.85) !important;
+}
+
+.gflow-shell--landing .ant-segmented-item {
+  color: #9db5d9 !important;
+}
+
+.gflow-shell--landing .ant-segmented-item-selected {
+  background: rgba(45, 212, 191, 0.2) !important;
+  color: #e8f1ff !important;
+}
+
 .gflow-header {
   display: flex;
   align-items: center;
