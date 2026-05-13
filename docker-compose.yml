@@ -1,11 +1,11 @@
-# gflowx-api — 从仓库根目录启动官方 new-api 底座（子模块内编排）
+# gflowx-router — 从仓库根目录启动官方 new-api 底座（子模块内编排）
 # 需要 Docker Compose v2.20+（支持 include）。
 # 若 `docker compose up` 报错，可改用：./scripts/up-official.sh 或 cd backend && docker compose up -d
 #
 # 启动后访问：http://localhost:3000
 # 默认连接 PostgreSQL + Redis，密码见 backend/docker-compose.yml（生产环境务必修改）。
 
-name: gflowx-api
+name: gflowx-router
 
 include:
   - path: backend/docker-compose.yml

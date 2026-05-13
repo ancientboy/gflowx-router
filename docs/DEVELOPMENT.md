@@ -1,8 +1,8 @@
-# gflowx-api — 开发文档
+# gflowx-router — 开发文档
 
 > 版本：v0.1.0-draft
 > 日期：2026-05-12
-> 产品代号：gflowx-api
+> 产品代号：gflowx-router
 
 ---
 
@@ -10,9 +10,9 @@
 
 ### 1.1 产品定位
 
-gflowx-api 是一个 **场景化 AI API 智能路由网关**。
+gflowx-router 是一个 **场景化 AI API 智能路由网关**。
 
-与 One-API / New-API 暴露数百个模型让用户自己选不同，gflowx-api 让用户**选择使用场景**（写代码、写文章、看图片...），系统自动将请求路由到最优的后端模型。
+与 One-API / New-API 暴露数百个模型让用户自己选不同，gflowx-router 让用户**选择使用场景**（写代码、写文章、看图片...），系统自动将请求路由到最优的后端模型。
 
 ### 1.2 目标用户
 
@@ -25,7 +25,7 @@ gflowx-api 是一个 **场景化 AI API 智能路由网关**。
 
 ### 1.3 核心差异化
 
-| 维度 | One-API / New-API | gflowx-api |
+| 维度 | One-API / New-API | gflowx-router |
 |------|-------------------|---------------|
 | 用户选择 | 选具体模型（gpt-4o、claude-3.5...） | **选场景**（smart、code、write...） |
 | 认知负担 | 高（需要了解模型差异） | **低**（标签即功能） |
@@ -38,9 +38,9 @@ gflowx-api 是一个 **场景化 AI API 智能路由网关**。
 1. **起点冻结**：接入 new-api 时选定一个稳定的 **tag 或 commit** 作为底座，写入发布说明或变更记录，便于追溯与对比上游。
 2. **主仓与更新**：以 **自有 fork 仓库** 为唯一主开发线；上游 new-api **不强制跟更**，按需阅读 release / 安全公告，**有选择地** cherry-pick 或合并；日常维护由团队自行负责。
 
-   **集成顺序（推荐）**：fork 导入后，**优先**在「与 upstream 尽量一致」的形态下 **端到端跑通**（构建、数据库迁移、Docker、环境变量；**可暂时保留 new-api 官方自带 Web** 作管理与联调），用于确认 **底座与部署无误、二开未破坏核心路径**。**再** 并行开发同仓 `frontend/`（gflowx-api 管理端 UI）及场景路由等差异化能力。新前端 **P0 齐备** 后，将 **对外默认入口** 切至 gflowx-api 管理端；官方 Web 可下线，或 **仅在开发/内网** 保留作功能对照。这与「最终产品不复用官方 UI」不矛盾：**先同构跑通降低土建风险，再换产品面**。
+   **集成顺序（推荐）**：fork 导入后，**优先**在「与 upstream 尽量一致」的形态下 **端到端跑通**（构建、数据库迁移、Docker、环境变量；**可暂时保留 new-api 官方自带 Web** 作管理与联调），用于确认 **底座与部署无误、二开未破坏核心路径**。**再** 并行开发同仓 `frontend/`（gflowx-router 管理端 UI）及场景路由等差异化能力。新前端 **P0 齐备** 后，将 **对外默认入口** 切至 gflowx-router 管理端；官方 Web 可下线，或 **仅在开发/内网** 保留作功能对照。这与「最终产品不复用官方 UI」不矛盾：**先同构跑通降低土建风险，再换产品面**。
 
-3. **前端路线——同仓全新前端工程**：在 **同一 monorepo** 内维护独立目录（如 `frontend/`），**不复用、不渐进替换** new-api 自带管理端 UI。视觉（样式、配色、信息架构）与产品流程 **完全按 `docs/FRONTEND.md`（gflowx-api 管理端规范）** 实现，与官方 new-api 界面 **脱钩**，避免混淆。技术栈以文档与 `frontend/package.json` 为准。
+3. **前端路线——同仓全新前端工程**：在 **同一 monorepo** 内维护独立目录（如 `frontend/`），**不复用、不渐进替换** new-api 自带管理端 UI。视觉（样式、配色、信息架构）与产品流程 **完全按 `docs/FRONTEND.md`（gflowx-router 管理端规范）** 实现，与官方 new-api 界面 **脱钩**，避免混淆。技术栈以文档与 `frontend/package.json` 为准。
 4. **功能对齐与防遗漏**：new-api 管理端功能面较广（用户、渠道、模型、计费、日志、系统设置等）。全新前端须维护 **「路由 / 页面 ↔ 后端 API」对照清单**，按 **P0（可上线最小集）→ P1 → P2** 分阶段验收；开发期可将 **上游 new-api 前端仅作本地对照**（不随产品对外发布），用于查漏，而非代码复用来源。
 
 > **许可证**：衍生作品仍须遵守 new-api 所采用的开源许可证（如 AGPL）及署名要求，与是否「独立主仓」无关。
@@ -56,7 +56,7 @@ gflowx-api 是一个 **场景化 AI API 智能路由网关**。
   ```bash
   git submodule update --init --recursive
   ```
-- **应用 gflowx-api 后端补丁**（场景路由 `gflowxscene`；子模块指针仍指向官方 pin，补丁见 `patches/`）：
+- **应用 gflowx-router 后端补丁**（场景路由 `gflowxscene`；子模块指针仍指向官方 pin，补丁见 `patches/`）：
   ```bash
   ./scripts/apply-gflowx-backend-patch.sh
   ```
@@ -66,14 +66,14 @@ gflowx-api 是一个 **场景化 AI API 智能路由网关**。
   - 或：`cd backend && docker compose up -d`
 - **验证**：浏览器打开 `http://localhost:3000`；健康检查见子模块 compose 中 `new-api` 的 `healthcheck`。
 - **外网 / Cursor Web**：云端 Agent 给出的 `localhost` 无法在你本机浏览器打开；请在可执行 Docker 的环境使用 Quick Tunnel 等，见 [`docs/EXTERNAL_ACCESS.md`](EXTERNAL_ACCESS.md)。
-- **`frontend/`**：gflowx-api 全新管理端脚手架（`frontend/`）；与官方 Web 并行开发，待 P0 后再切换默认入口。
+- **`frontend/`**：gflowx-router 全新管理端脚手架（`frontend/`）；与官方 Web 并行开发，待 P0 后再切换默认入口。
 
 ### 1.6 自有 new-api fork（团队协作，可选）
 
-当团队维护 **QuantumNous/new-api 的 fork** 并将 gflowx-api 二开直接推到该 fork 的 `main`（或固定分支）时：
+当团队维护 **QuantumNous/new-api 的 fork** 并将 gflowx-router 二开直接推到该 fork 的 `main`（或固定分支）时：
 
 1. 将根目录 `.gitmodules` 中 `backend` 的 `url` 改为 fork 地址，并 `git submodule sync`。
-2. 将子模块指针提交到 **fork 上已含 gflowx-api 改动的提交**（不再依赖同事本机 `git am`）。
+2. 将子模块指针提交到 **fork 上已含 gflowx-router 改动的提交**（不再依赖同事本机 `git am`）。
 3. 新成员克隆后只需 `git submodule update --init`，**无需**再执行 `./scripts/apply-gflowx-backend-patch.sh`（除非仍想保留「上游 pin + 补丁」双轨流程做对照）。
 
 在 fork 未就绪前，可继续使用 `patches/` + `apply-gflowx-backend-patch.sh` 流程；详见 [`docs/BACKEND_PIN.md`](BACKEND_PIN.md)。
@@ -92,7 +92,7 @@ gflowx-api 是一个 **场景化 AI API 智能路由网关**。
                            │ OpenAI 兼容协议
                            ▼
 ┌──────────────────────────────────────────────────────────┐
-│                    gflowx-api                          │
+│                    gflowx-router                          │
 │                                                           │
 │  ┌─────────────────────────────────────────────────────┐ │
 │  │              🧠 智能路由层（新增核心）                 │ │
@@ -139,7 +139,7 @@ gflowx-api 是一个 **场景化 AI API 智能路由网关**。
 ### 2.2 模块划分
 
 ```
-gflowx-api/
+gflowx-router/
 ├── backend/                 # 后端（基于 New-API 二开）
 │   ├── router/              # 🆕 智能路由引擎
 │   │   ├── category.go      #    场景分类定义
@@ -157,7 +157,7 @@ gflowx-api/
 │   ├── middleware/           # 🔧 中间件（复用 + 新增）
 │   └── main.go              # 入口
 │
-├── frontend/                # gflowx-api 全新管理端（Vite + React + Ant Design 脚手架）
+├── frontend/                # gflowx-router 全新管理端（Vite + React + Ant Design 脚手架）
 │   ├── src/
 │   │   ├── pages/           #    Home / Dashboard / Keys 占位路由
 │   │   ├── App.tsx
@@ -449,7 +449,7 @@ strategy:
 
 ```
 ┌─────────────────────────────────────────────┐
-│  gflowx-api              [登录] [注册]           │
+│  gflowx-router              [登录] [注册]           │
 ├─────────────────────────────────────────────┤
 │                                              │
 │        AI 路由，简单到不像话                   │
@@ -477,7 +477,7 @@ strategy:
 
 ```
 ┌─────────────────────────────────────────────┐
-│  gflowx-api   仪表盘   Key管理        [头像▼]    │
+│  gflowx-router   仪表盘   Key管理        [头像▼]    │
 ├─────────────────────────────────────────────┤
 │                                              │
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐    │
@@ -517,7 +517,7 @@ strategy:
 
 ```
 ┌─────────────────────────────────────────────┐
-│  gflowx-api   仪表盘   Key管理        [头像▼]    │
+│  gflowx-router   仪表盘   Key管理        [头像▼]    │
 ├─────────────────────────────────────────────┤
 │                                              │
 │  API Keys                     [ + 新建 Key ] │
@@ -822,7 +822,7 @@ version: '3.8'
 services:
   gflowx:
     build: .
-    container_name: gflowx-api
+    container_name: gflowx-router
     restart: always
     ports:
       - "3000:3000"
@@ -866,7 +866,7 @@ PORT=3000
 SYNC_FREQUENCY=60
 NODE_TYPE=master
 
-# gflowx-api 自定义
+# gflowx-router 自定义
 GFLOWX_DEFAULT_PACK=developer        # 默认套餐
 GFLOWX_HEALTH_CHECK=true             # 健康检查
 GFLOWX_FALLBACK_ENABLED=true         # 自动降级

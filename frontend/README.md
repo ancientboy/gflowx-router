@@ -1,4 +1,4 @@
-# gflowx-api 管理端（脚手架）
+# gflowx-router 管理端（脚手架）
 
 - **技术栈**：Vite 8、React 19、TypeScript、Ant Design 5、React Router（与 `docs/FRONTEND.md` 对齐中）。
 - **开发**：后端 new-api 需已在 `http://127.0.0.1:3000` 运行（如 `./scripts/dev-newapi-sqlite.sh` 或 Docker）。

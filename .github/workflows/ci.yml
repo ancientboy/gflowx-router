@@ -19,7 +19,7 @@ jobs:
         with:
           go-version-file: backend/go.mod
 
-      - name: Apply gflowx-api backend patch
+      - name: Apply gflowx-router backend patch
         run: git -C backend am "${{ github.workspace }}/patches/0001-feat-gflowx-scene-tag-to-model-resolution-before-rel.patch"
 
       - name: Go test (gflowxscene)

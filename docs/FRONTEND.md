@@ -1,4 +1,4 @@
-# gflowx-api — 前端设计规范
+# gflowx-router — 前端设计规范
 
 > 极简、现代、直觉
 
@@ -123,7 +123,7 @@ hover 时轻微阴影
 
 | 类别 | 已实现 |
 |------|--------|
-| **品牌** | 对外展示名 **`gflowx-api`**（`src/brand.ts`）；顶栏、首页/登录标题、浏览器 `<title>` 一致 |
+| **品牌** | 对外展示名 **`gflowx-router`**（`src/brand.ts`）；顶栏、首页/登录标题、浏览器 `<title>` 一致 |
 | **布局** | 顶栏导航 + 内容区；响应式边距（见 `App.css` / `index.css`） |
 | **路由** | `/`、`/login`、`/dashboard`、`/keys`；`/dashboard` 与 `/keys` 需登录（`ProtectedRoute`） |
 | **鉴权** | 应用启动 `AuthBootstrap` 拉取会话；`POST /api/user/login`、`/api/user/logout`；Zustand `authStore` |
