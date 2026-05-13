@@ -103,7 +103,9 @@ Redis 缓存层：
    - 别名在场景标签之前解析；命中别名后会同步 `original_model` 为解析结果，避免 `InitChannelMeta` 把请求体模型改回标签字符串。
 
 2. **模型池（文件配置）**  
-   - 环境变量 `GFLOWX_SCENE_POOLS_FILE` 指向 JSON：`{ "code": ["gpt-4o","deepseek-chat"], ... }`（示例 `config/gflowx_scene_pools.example.json`）。  
+   - 环境变量 `GFLOWX_SCENE_POOLS_FILE` 指向 JSON。  
+   - **当前实现（v1）**：平面 `{ "code": ["gpt-4o","deepseek-chat"], ... }`（示例 `config/gflowx_scene_pools.example.json`）。  
+   - **按用户分组分池（v2，设计稿）**：单文件嵌套 `poolsByGroup` 等，与订阅档位 `upgrade_group` 对齐；详见 **`docs/GFLOWX_POOL_BY_GROUP_DESIGN.md`** 与示例 **`config/gflowx_scene_pools_by_group.example.json`**（落地以 `gflowxscene` 补丁为准）。  
    - 单标签 **环境变量覆盖**（如 `GFLOWX_SCENE_CODE`）仍为最高优先级；设置后忽略该标签的池文件。  
    - 池内顺序表示 **优先级**；首个通过「健康检查」的模型作为当前请求模型。
 

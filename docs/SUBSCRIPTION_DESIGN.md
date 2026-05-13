@@ -60,7 +60,7 @@
 | **高成本场景 `vision`** | 可关闭（分组无视觉模型）或池仅 1 个便宜模型 | 默认可用 | 默认可用 + 更大池 |
 | **别名** | 可与专业版共用或收紧 `GFLOWX_ALIASES_FILE` | 全量内置 + 自定义文件 | 同左或单独文件 |
 
-> **演进（可选）**：在 `gflowxscene` 中支持 **按用户 `group` 选择不同 pool 文件路径**（例如 `GFLOWX_SCENE_POOLS_FILE_{GROUP}` 或单 JSON 内分 `{"pro": {"code": [...]}, "free": {...}}`），实现「同标签、不同档不同池」而仍 **单计费周期**。
+> **演进（可选）**：在 `gflowxscene` 中支持 **按用户 `group` 选择不同池配置**（推荐 **单 JSON 文件内 `poolsByGroup`**，见 **[`GFLOWX_POOL_BY_GROUP_DESIGN.md`](GFLOWX_POOL_BY_GROUP_DESIGN.md)**），实现「同标签、不同档不同池」而仍 **单计费周期**。备选为多环境变量路径（如 `GFLOWX_SCENE_POOLS_FILE_PRO`），运维成本更高。
 
 ### 4.3 与 9router 思路的对齐
 
@@ -106,6 +106,7 @@
 - 计费与计划字段：`backend/model/subscription.go` 中 `SubscriptionPlan`。  
 - 场景与池：`docs/ROUTER.md`、`docs/API.md`。  
 - 管理端接口映射：`docs/ADMIN_SPEC.md`。  
+- **按分组切换场景池（技术）**：`docs/GFLOWX_POOL_BY_GROUP_DESIGN.md`。
 
 ---
 

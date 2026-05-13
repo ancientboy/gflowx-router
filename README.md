@@ -34,6 +34,7 @@
 - [前端设计](docs/FRONTEND.md) — UI/UX 规范与 **管理端已实现清单（§6）**
 - [管理后台规格](docs/ADMIN_SPEC.md) — **按需求重写后台**的功能清单、new-api 接口映射、阶段 F1–F5（与 `WORK_PLAN` 阶段 F 对应）
 - [订阅档位与场景设计](docs/SUBSCRIPTION_DESIGN.md) — **三档订阅**与场景池、分组、周期的对齐方式（产品定稿）
+- [按分组切换场景池（技术）](docs/GFLOWX_POOL_BY_GROUP_DESIGN.md) — **池 JSON v2**、解析优先级、兼容与只读 API 建议
 - [产品落地页规划](docs/LANDING_PAGE.md) — `/` 落地信息架构与分阶段任务（阶段 E）
 - [外网访问](docs/EXTERNAL_ACCESS.md) — 隧道与无 Docker 本地跑法
 - [工作清单](docs/WORK_PLAN.md) — 任务与完成状态
@@ -59,7 +60,7 @@ docker compose up -d
 
 启动完成后访问：**http://localhost:3000**（与官方 new-api 一致）。
 
-可选：将 `config/gflowx_scene_pools.example.json` 复制为自定义路径，并在运行环境中设置 `GFLOWX_SCENE_POOLS_FILE` / `GFLOWX_ALIASES_FILE`（详见 `docs/ROUTER.md` §8）。
+可选：将 `config/gflowx_scene_pools.example.json`（平面池 v1）或 `config/gflowx_scene_pools_by_group.example.json`（按分组 v2，见 `docs/GFLOWX_POOL_BY_GROUP_DESIGN.md`）复制为自定义路径，并设置 `GFLOWX_SCENE_POOLS_FILE` / `GFLOWX_ALIASES_FILE`（详见 `docs/ROUTER.md` §8）。
 
 等效命令（任选其一）：
 
