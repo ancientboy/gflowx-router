@@ -57,6 +57,19 @@
 | E9 | [x] | `index.html`：`lang=zh-CN`、`<meta name="description">`、title 加长；`og:image` 等见 E10 |
 | E10 | [x] | 打磨：注册/套餐 CTA（`LandingPricing` + 登录 query 提示）、社交分享图（`og-image.svg` + `VITE_SITE_URL` 注入）、Lighthouse 基础（`<main>`、跳过链接、懒加载重块）、可选 GA4（`VITE_GA_MEASUREMENT_ID`）、`Suspense` 懒加载场景区以下模块 |
 
+## 阶段 F — 管理后台按需求重写（复用 new-api API）
+
+> 规格全文：**[`docs/ADMIN_SPEC.md`](ADMIN_SPEC.md)**（功能清单、接口映射、阶段 F1–F5）。
+
+| # | 状态 | 内容 |
+|---|------|------|
+| F0 | [x] | 写入 `docs/ADMIN_SPEC.md`：角色边界、功能模块、与 `api-router.go` 对齐的接口映射表、F1–F5 分期 |
+| F1 | [ ] | 用户闭环：Token 新建/编辑/删除/复制；`PUT /api/user/self` 或只读资料；站内 API 文档入口（`/docs` 或外链） |
+| F2 | [ ] | 套餐与模型心智：仪表盘聚合 `subscription/*`（若部署开启）、`GET /api/user/models`、分组/订阅说明文案 |
+| F3 | [ ] | 用量与日志：`GET /api/data/self`、`GET /api/log/self`（+ 简单筛选） |
+| F4 | [ ] | Admin 分区（可选）：用户/渠道/模型 高频接口 + 顶栏「经典管理后台」外链 |
+| F5 | [ ] | gflowx 场景池配置面：只读 API 或运维文档链（与 `ROUTER.md` 一致） |
+
 ---
 
-**当前迭代目标**：阶段 E 已全部勾选；后续可迭代「登录后仪表盘增强」与 `docs/DEVELOPMENT.md` 路线图中的产品能力。
+**当前迭代目标**：按 **`docs/ADMIN_SPEC.md`** 推进 **阶段 F**（先 F1 用户闭环）；深度运维可继续暂用 new-api 自带 Web。

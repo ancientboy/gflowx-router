@@ -119,6 +119,8 @@ hover 时轻微阴影
 
 ## 6. 管理端（`frontend/`）已实现清单（相对本规范）
 
+**按需求扩展管理后台**时，以 **[`ADMIN_SPEC.md`](ADMIN_SPEC.md)** 为产品规格与 **new-api 接口映射** 主文档，并以 **`docs/WORK_PLAN.md` 阶段 F** 为任务勾选来源（F1 起逐项实现）。
+
 以下为 **当前代码已实现** 的能力，便于与 §2 设计稿对照；未列项表示仍为规划或 P1。
 
 | 类别 | 已实现 |
@@ -135,7 +137,7 @@ hover 时轻微阴影
 | **数据** | 落地页页脚折叠 `GET /api/status`；仪表盘 `Descriptions`；密钥 `Table` 分页 |
 | **落地页** | 见 `docs/LANDING_PAGE.md` 与 `frontend/src/pages/landing/*`（阶段 E 含 E10：套餐 CTA、懒加载、主内容 `<main>`、跳过链接、社交 meta、可选 GA4） |
 
-**尚未实现（相对 §2 / §4）**：选身份→套餐→注册 完整闭环、密钥「新建」表单、`/docs` 路由、Recharts 图表、Tailwind 原子类工程化、独立 Logo 资产。
+**尚未实现（相对 §2 / §4）**：见 **`ADMIN_SPEC.md`** 分期 **F1–F5**（含密钥新建/编辑、订阅与模型列表、用量日志、Admin 分区、gflowx 配置面等）；另含 `/docs` 路由、Recharts 图表、Tailwind 原子类工程化、独立 Logo 资产等工程项。
 
 ---
 
