@@ -15,5 +15,12 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    // Cloudflare Quick Tunnel / 任意反向代理 Host，避免 trycloudflare.com 被默认拦截
+    allowedHosts: true,
+  },
+  preview: {
+    port: 5173,
+    strictPort: true,
+    allowedHosts: true,
   },
 })

@@ -83,7 +83,14 @@ Cursor Web Agent 等无法访问本机时，可在仓库根目录执行：
 ./scripts/dev-tunnel-frontend.sh
 ```
 
-终端会打印 **trycloudflare.com** 的 HTTPS 临时域名（进程结束后失效）。
+Cursor Web Agent 等无法访问本机时，可在仓库根目录执行：
+
+```bash
+./scripts/dev-tunnel-frontend.sh
+```
+
+终端会打印 **trycloudflare.com** 的 HTTPS 临时域名（进程结束后失效）。  
+`vite.config.ts` 已设置 **`server.allowedHosts: true`**，避免隧道随机子域被 Vite 默认拦截；更新代码后请**重启** `npm run dev` / 隧道脚本。
 
 ## 📄 License
 
