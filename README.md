@@ -92,6 +92,16 @@ Cursor Web Agent 等无法访问本机时，可在仓库根目录执行：
 终端会打印 **trycloudflare.com** 的 HTTPS 临时域名（进程结束后失效）。  
 `vite.config.ts` 已设置 **`server.allowedHosts: true`**，避免隧道随机子域被 Vite 默认拦截；更新代码后请**重启** `npm run dev` / 隧道脚本。
 
+在 **new-api 已启动**（默认 `http://localhost:3000`）且允许自助注册时，可一键注册测试用户：
+
+```bash
+chmod +x ./scripts/register-test-user.sh
+./scripts/register-test-user.sh
+# 或指定网关与账号：BASE_URL=http://127.0.0.1:3000 USERNAME=mytest PASSWORD='TestUser88!' ./scripts/register-test-user.sh
+```
+
+若登录/注册接口开启了 **Turnstile**，需传入：`TURNSTILE_TOKEN=... ./scripts/register-test-user.sh`（token 来自浏览器完成人机验证后的值），或在后台关闭校验。
+
 ## 📄 License
 
 - **`backend/`（子模块 [QuantumNous/new-api](https://github.com/QuantumNous/new-api)）** 适用 **AGPL-3.0**，以子模块内 `LICENSE` 为准；修改与分发须遵守该许可及项目署名要求。
