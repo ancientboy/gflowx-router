@@ -21,7 +21,10 @@ GFlowX Router 是一个基于分类推荐的 AI API 智能中转站。用户无�
 ## 🏗️ 技术架构
 
 - **后端底座**：`backend/` 为官方 [QuantumNous/new-api](https://github.com/QuantumNous/new-api) 的 **Git 子模块**（Go；二开与场景路由将在此之上演进）
-- **前端**：React + Vite 等（同仓全新工程，与 New-API 默认管理端脱钩；见 `docs/FRONTEND.md`）
+- **前端**：根目录 **`frontend/`** 为独立 Vite + React + Ant Design 站点（与 new-api 默认管理端脱钩；见 `docs/FRONTEND.md`）
+  - **`/`**：面向终端用户的**营销首页**，自带**独立顶栏**（影棚风深色主区）。
+  - **`/login`**、**`/dashboard`**、**`/keys`**：浅色 **控制台壳**（另一套顶栏），后续可接 new-api API。
+  - 外网临时预览：`./scripts/dev-tunnel-frontend.sh`（需本机 `npm`；自动下载 `cloudflared` 到 `/tmp/cloudflared`）。
 - **数据库（当前官方 compose）**：PostgreSQL + Redis（见 `backend/docker-compose.yml`）
 - **部署**：Docker Compose；根目录编排通过 `include` 引用子模块内官方 compose
 
@@ -63,6 +66,24 @@ cd backend && docker compose up -d
 > 默认数据库与 Redis 密码写在 `backend/docker-compose.yml` 中，**仅适用于本地/内网验证**；上生产前请全部更换，并阅读 new-api 官方环境变量说明。
 
 本环境若未安装 Docker，无法在 CI 容器内替你完成拉镜像验证；请在本地或装有 Docker 的机器上执行上述命令。
+
+## 独立前端（`frontend/`）
+
+```bash
+cd frontend
+npm install
+npm run dev
+# 浏览器打开 http://127.0.0.1:5173/  — 用户向首页（独立顶栏）
+# http://127.0.0.1:5173/login  — 控制台壳（浅色顶栏）
+```
+
+Cursor Web Agent 等无法访问本机时，可在仓库根目录执行：
+
+```bash
+./scripts/dev-tunnel-frontend.sh
+```
+
+终端会打印 **trycloudflare.com** 的 HTTPS 临时域名（进程结束后失效）。
 
 ## 📄 License
 
