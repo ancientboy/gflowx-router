@@ -102,6 +102,16 @@ chmod +x ./scripts/register-test-user.sh
 
 若登录/注册接口开启了 **Turnstile**，需传入：`TURNSTILE_TOKEN=... ./scripts/register-test-user.sh`（token 来自浏览器完成人机验证后的值），或在后台关闭校验。
 
+**绕过 HTTP、直接写库（PostgreSQL）**：在官方 `docker-compose`（容器 `postgres`、库 `new-api`）已运行时使用：
+
+```bash
+chmod +x ./scripts/insert-test-user-db.sh
+./scripts/insert-test-user-db.sh
+# 自定义：USERNAME=gflowx_u1 PASSWORD='TestUser88!' ./scripts/insert-test-user-db.sh
+```
+
+密码哈希与 new-api 一致（`bcrypt.DefaultCost`）。若容器名不是 `postgres`，请设置 `PG_CMD='docker exec -i <名> psql -U root -d new-api'`。
+
 ## 📄 License
 
 - **`backend/`（子模块 [QuantumNous/new-api](https://github.com/QuantumNous/new-api)）** 适用 **AGPL-3.0**，以子模块内 `LICENSE` 为准；修改与分发须遵守该许可及项目署名要求。
