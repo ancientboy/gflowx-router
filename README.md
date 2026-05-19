@@ -23,8 +23,8 @@ GFlowX Router 是一个基于分类推荐的 AI API 智能中转站。用户无�
 - **后端底座**：`backend/` 为官方 [QuantumNous/new-api](https://github.com/QuantumNous/new-api) 的 **Git 子模块**（Go；二开与场景路由将在此之上演进）
 - **前端**：根目录 **`frontend/`** 为独立 Vite + React + Ant Design 站点（与 new-api 默认管理端脱钩；见 `docs/FRONTEND.md`）
   - **`/`**：面向终端用户的**营销首页**，自带**独立顶栏**（影棚风深色主区）。
-  - **`/login`**、**`/dashboard`**、**`/keys`**：浅色 **控制台壳**（另一套顶栏），后续可接 new-api API。
-  - 外网临时预览：`./scripts/dev-tunnel-frontend.sh`（需本机 `npm`；自动下载 `cloudflared` 到 `/tmp/cloudflared`）。
+  - **`/login`**、**`/dashboard`**、**`/keys`**：浅色 **控制台壳**；**`/login` 已对接** `POST /api/user/login`（Cookie 会话）。开发模式下 Vite 将 **`/api` 代理到 `VITE_DEV_PROXY_TARGET`（默认 `http://127.0.0.1:3000`）**，便于与 trycloudflare 隧道同机联调。
+  - 外网临时预览：`./scripts/dev-tunnel-frontend.sh`（需本机 `npm`；自动下载 `cloudflared` 到 `/tmp/cloudflared`）。**隧道只暴露前端时，new-api 须在同一台机器本机端口运行**，代理才能把登录请求转到网关。
 - **数据库（当前官方 compose）**：PostgreSQL + Redis（见 `backend/docker-compose.yml`）
 - **部署**：Docker Compose；根目录编排通过 `include` 引用子模块内官方 compose
 

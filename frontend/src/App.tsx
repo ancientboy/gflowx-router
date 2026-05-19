@@ -1,4 +1,6 @@
 import { Route, Routes } from 'react-router-dom'
+
+import ProtectedRoute from './components/ProtectedRoute'
 import { ConsoleLayout } from './layouts/ConsoleLayout'
 import { MarketingLayout } from './layouts/MarketingLayout'
 import Dashboard from './pages/Dashboard'
@@ -14,8 +16,22 @@ export default function App() {
       </Route>
       <Route element={<ConsoleLayout />}>
         <Route path="login" element={<Login />} />
-        <Route path="dashboard" element={<Dashboard />} />
-        <Route path="keys" element={<Keys />} />
+        <Route
+          path="dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="keys"
+          element={
+            <ProtectedRoute>
+              <Keys />
+            </ProtectedRoute>
+          }
+        />
       </Route>
     </Routes>
   )
