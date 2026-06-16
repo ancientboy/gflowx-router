@@ -42,6 +42,10 @@ export function TopNavBar() {
           <span style={{ fontSize: 20 }}>{mainAgent?.icon || '🐧'}</span>
           <span style={{ fontSize: 11, color: '#8A92A0' }}>{mainAgent?.name?.split(' ')[0] || 'Agent'}</span>
         </button>
+        <button className="ui-btn" onClick={() => openModal('workshop')} title="创建 Agent"
+          style={{ padding: '4px 8px', fontSize: 11, color: '#48d093', borderColor: '#48d093' }}>
+          + 创建
+        </button>
       </div>
 
       <div style={{ flex: 1, display: 'flex', justifyContent: 'center', gap: 12 }}>

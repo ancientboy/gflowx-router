@@ -33,10 +33,13 @@ export function tickCharacterSim(dt: number) {
         c.moveTimer = 0;
         c.nextMoveTime = nextWanderDelay(c.state);
         const target = pickWanderTarget(c);
+        const booth = OfficePath.boothByAgent[c.agentId];
         if ([OfficePath.massageByAgent[c.agentId], OfficePath.dineByAgent[c.agentId], OfficePath.pokerByAgent[c.agentId]].includes(target)) {
           const intent = target === OfficePath.massageByAgent[c.agentId] ? 'massage'
             : target === OfficePath.dineByAgent[c.agentId] ? 'dine' : 'poker';
           c = { ...assignPath(c, target), travelIntent: intent };
+        } else if (target === booth || target?.startsWith('rest_l')) {
+          c = { ...assignPath(c, target), travelIntent: 'rest' };
         } else {
           c = assignPath(c, target);
         }

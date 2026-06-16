@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
-import { CheckIcon } from '@heroicons/react/24/solid';
+import { PlusIcon } from '@heroicons/react/24/outline';
 import { useGameStore } from '../../store/useGameStore';
 import { AppIcon } from '../icons/AppIcon';
 import { LucideIcons, MiniLucide } from '../icons/lucideIcons';
 import { fetchAgentProfile, saveAgentConfig, saveAgentSoul } from '../../lib/api';
+import { APPEARANCE_PRESETS, type CustomAgentDraft } from '../../lib/customAgents';
 import type { CharState } from '../../lib/constants';
 
 export function AgentWorkshop() {
   const agents = useGameStore(s => s.agents);
   const selectedAgentId = useGameStore(s => s.selectedAgentId);
   const selectAgent = useGameStore(s => s.selectAgent);
+  const createAgent = useGameStore(s => s.createAgent);
   const setProfile = useGameStore(s => s.setProfile);
   const schema = useGameStore(s => s.profileSchema);
   const config = useGameStore(s => s.profileConfig);
@@ -17,10 +19,16 @@ export function AgentWorkshop() {
   const closeModal = useGameStore(s => s.closeModal);
   const setFollowAgent = useGameStore(s => s.setFollowAgent);
 
+  const [mode, setMode] = useState<'list' | 'create'>('list');
   const [editId, setEditId] = useState(selectedAgentId || Object.keys(agents)[0] || 'xau');
   const [tab, setTab] = useState<'info' | 'config' | 'soul'>('info');
   const [msg, setMsg] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const [draft, setDraft] = useState<CustomAgentDraft>({
+    name: '', icon: '🤖', color: APPEARANCE_PRESETS.colors[0],
+    desc: '', strategy: '趋势跟踪', market: 'BTC/ETH', interval: '15m/1h', risk: '中',
+  });
 
   const agentList = Object.values(agents) as CharState[];
   const current = editId ? agents[editId] : null;
@@ -28,29 +36,133 @@ export function AgentWorkshop() {
 
   useEffect(() => {
     const fallback = selectedAgentId || Object.keys(agents)[0];
-    if (fallback && fallback !== editId) setEditId(fallback);
-  }, [selectedAgentId, agents, editId]);
+    if (fallback && fallback !== editId && mode === 'list') setEditId(fallback);
+  }, [selectedAgentId, agents, editId, mode]);
 
   useEffect(() => {
-    if (!editId) return;
+    if (!editId || mode !== 'list') return;
     setLoading(true);
     fetchAgentProfile(editId).then(data => {
       if (!data.error) setProfile(data.schema?.fields || [], data.config || {}, data.soul_md || '');
       setLoading(false);
     }).catch(() => setLoading(false));
-  }, [editId, setProfile]);
+  }, [editId, setProfile, mode]);
 
   const pickAgent = (id: string) => {
+    setMode('list');
     setEditId(id);
     selectAgent(id);
     setTab('info');
     setMsg('');
   };
 
+  const handleCreate = () => {
+    if (!draft.name.trim()) {
+      setMsg('请填写 Agent 名称');
+      return;
+    }
+    const ok = createAgent(draft);
+    if (ok) {
+      setMode('list');
+      setDraft({
+        name: '', icon: '🤖', color: APPEARANCE_PRESETS.colors[0],
+        desc: '', strategy: '趋势跟踪', market: 'BTC/ETH', interval: '15m/1h', risk: '中',
+      });
+      setMsg('');
+    }
+  };
+
+  if (mode === 'create') {
+    return (
+      <div style={{ color: '#3d3530', maxHeight: 420, overflowY: 'auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div style={{ fontWeight: 700, fontSize: 15 }}>创建新 Agent</div>
+          <button className="ui-btn" onClick={() => setMode('list')}>返回列表</button>
+        </div>
+        <p style={{ fontSize: 12, color: '#8a7e72', marginBottom: 14, lineHeight: 1.5 }}>
+          创建成功后 Agent 将自动出现在<b>交易大厅</b>工位，可立即在场景中点击选中并派遣至各休闲区。
+        </p>
+
+        <Field label="名称">
+          <input value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })}
+            placeholder="例如：Alpha Hunter" style={inputStyle} />
+        </Field>
+
+        <Field label="外形 · 图标">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {APPEARANCE_PRESETS.icons.map(ic => (
+              <button key={ic} type="button" className={`ui-btn ${draft.icon === ic ? 'active' : ''}`}
+                onClick={() => setDraft({ ...draft, icon: ic })} style={{ fontSize: 20, padding: '4px 8px' }}>{ic}</button>
+            ))}
+          </div>
+        </Field>
+
+        <Field label="外形 · 围巾颜色">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {APPEARANCE_PRESETS.colors.map(c => (
+              <button key={c} type="button" onClick={() => setDraft({ ...draft, color: c })}
+                style={{
+                  width: 28, height: 28, borderRadius: 6, border: draft.color === c ? '2px solid #d4af37' : '1px solid #ddd',
+                  background: c, cursor: 'pointer',
+                }} />
+            ))}
+          </div>
+        </Field>
+
+        <Field label="简介">
+          <input value={draft.desc} onChange={e => setDraft({ ...draft, desc: e.target.value })}
+            placeholder="Agent 职能描述" style={inputStyle} />
+        </Field>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <Field label="策略">
+            <input value={draft.strategy} onChange={e => setDraft({ ...draft, strategy: e.target.value })} style={inputStyle} />
+          </Field>
+          <Field label="市场">
+            <input value={draft.market} onChange={e => setDraft({ ...draft, market: e.target.value })} style={inputStyle} />
+          </Field>
+          <Field label="周期">
+            <input value={draft.interval} onChange={e => setDraft({ ...draft, interval: e.target.value })} style={inputStyle} />
+          </Field>
+          <Field label="风险">
+            <select value={draft.risk} onChange={e => setDraft({ ...draft, risk: e.target.value })} style={inputStyle}>
+              {['低', '中', '中高', '高'].map(r => <option key={r}>{r}</option>)}
+            </select>
+          </Field>
+        </div>
+
+        <div style={{
+          margin: '14px 0', padding: 12, background: '#faf6ef', borderRadius: 10,
+          display: 'flex', alignItems: 'center', gap: 12,
+        }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: '50%', background: '#1a1a1a',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
+          }}>
+            <span style={{ position: 'absolute', top: 6, width: 32, height: 8, borderRadius: 4, background: draft.color }} />
+            <span style={{ fontSize: 18 }}>{draft.icon}</span>
+          </div>
+          <div style={{ fontSize: 12, color: '#6b5e4e' }}>预览：俯视剪纸风 · 黑圆头 + 彩色围巾</div>
+        </div>
+
+        <button className="ui-btn" style={{ width: '100%', padding: '10px 0', marginTop: 4 }} onClick={handleCreate}>
+          创建并加入交易大厅
+        </button>
+        {msg && <div style={{ marginTop: 8, fontSize: 11, color: '#e74c3c' }}>{msg}</div>}
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: 16, minHeight: 360, color: '#3d3530' }}>
-      {/* 左：Agent 列表 */}
       <div style={{ borderRight: '1px dashed #e0d8cc', paddingRight: 12, overflowY: 'auto', maxHeight: 420 }}>
+        <button className="ui-btn" style={{
+          width: '100%', marginBottom: 10, padding: '8px 0', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', gap: 6, background: '#eef8f0', borderColor: '#48d093',
+        }} onClick={() => { setMode('create'); setMsg(''); }}>
+          <AppIcon icon={PlusIcon} size="mini" color="profit" />
+          创建 Agent
+        </button>
         <div style={{ fontSize: 11, color: '#9a8b7a', marginBottom: 8 }}>我的 Agent ({agentList.length})</div>
         {agentList.length === 0 && (
           <p style={{ fontSize: 12, color: '#8a7e72', lineHeight: 1.6 }}>正在加载 Agent 列表…</p>
@@ -178,6 +290,19 @@ function InfoRow({ k, v, cls = '', icon }: { k: string; v: string; cls?: string;
     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px dashed #eee8dc', fontSize: 13 }}>
       <span style={{ color: '#8A92A0', display: 'flex', alignItems: 'center', gap: 4 }}>{icon}{k}</span>
       <span className={cls}>{v}</span>
+    </div>
+  );
+}
+
+const inputStyle: React.CSSProperties = {
+  width: '100%', padding: '6px 8px', borderRadius: 6, border: '1px solid #d4c8b8', marginTop: 3, fontSize: 13,
+};
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <label style={{ fontSize: 11, color: '#7a6e62' }}>{label}</label>
+      {children}
     </div>
   );
 }

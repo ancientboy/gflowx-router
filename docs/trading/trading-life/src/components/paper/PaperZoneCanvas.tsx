@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { tickCharacterSim } from '../../lib/characterSimLoop';
 import { WORLD_MAP, ZONE_CAMERA } from '../../lib/worldMap';
 import { ZONE_LAYOUTS } from '../../lib/zoneLayouts';
 import { PAPER, agentVisibleInZone } from '../../lib/zoneProjection';
 import {
-  makePaperCamera, camToScreen, screenToPaper, renderZone, renderAgents,
+  makePaperCamera, camToScreen, screenToPaper, renderZone, renderAgents, getFacilityPaperPos,
 } from './renderZone';
 
 export function PaperZoneCanvas() {
@@ -15,6 +15,7 @@ export function PaperZoneCanvas() {
   const dragRef = useRef<{ active: boolean; lx: number; ly: number; sx: number; sy: number }>({
     active: false, lx: 0, ly: 0, sx: 0, sy: 0,
   });
+  const [hoverFacilityId, setHoverFacilityId] = useState<string | null>(null);
 
   const activeZone = useGameStore(s => s.activeZone);
   const agents = useGameStore(s => s.agents);
@@ -27,7 +28,7 @@ export function PaperZoneCanvas() {
 
   const flyToZone = useGameStore(s => s.flyToZone);
   const selectAgent = useGameStore(s => s.selectAgent);
-  const sendAgentToLeisure = useGameStore(s => s.sendAgentToLeisure);
+  const sendAgentToFacility = useGameStore(s => s.sendAgentToFacility);
   const panCamera = useGameStore(s => s.panCamera);
   const setCameraZoom = useGameStore(s => s.setCameraZoom);
   const setCameraLookAt = useGameStore(s => s.setCameraLookAt);
@@ -60,16 +61,15 @@ export function PaperZoneCanvas() {
     const t = performance.now() / 1000;
 
     renderZone(ctx, activeZone, cam, agents, {
-      selectedId: selectedAgentId,
+      hoverFacilityId: hoverFacilityId,
       bob: bobRef.current,
       dayMode,
     });
     renderAgents(ctx, activeZone, cam, agents, c => agentVisibleInZone(c, activeZone), {
       selectedId: selectedAgentId,
-      bob: bobRef.current,
       t,
     });
-  }, [activeZone, agents, selectedAgentId, cameraZoom, dayMode, getPan]);
+  }, [activeZone, agents, selectedAgentId, cameraZoom, dayMode, getPan, hoverFacilityId]);
 
   useEffect(() => {
     let last = performance.now();
@@ -80,9 +80,9 @@ export function PaperZoneCanvas() {
       if (!paused) tickCharacterSim(dt);
       if (followAgentId && agents[followAgentId]) {
         const a = agents[followAgentId];
-        const dx = Math.abs(a.x - cameraLookAt.x);
-        const dz = Math.abs(a.z - cameraLookAt.z);
-        if (dx > 0.15 || dz > 0.15) setCameraLookAt(a.x, a.z);
+        if (Math.abs(a.x - cameraLookAt.x) > 0.15 || Math.abs(a.z - cameraLookAt.z) > 0.15) {
+          setCameraLookAt(a.x, a.z);
+        }
       }
       paint();
       rafRef.current = requestAnimationFrame(loop);
@@ -112,49 +112,55 @@ export function PaperZoneCanvas() {
     const layout = ZONE_LAYOUTS[activeZone];
     for (const a of layout.navArrows) {
       const s = camToScreen(cam, a.x, a.y);
-      if (Math.hypot(sx - s.x, sy - s.y) < 56) {
+      if (Math.hypot(sx - s.x, sy - s.y) < 36) {
         return { type: 'nav' as const, target: a.target };
       }
     }
 
     for (const f of layout.facilities) {
-      if (Math.hypot(paper.x - f.x, paper.y - f.y) < f.r && f.leisure) {
-        return { type: 'facility' as const, leisure: f.leisure, id: f.id };
+      const fp = getFacilityPaperPos(activeZone, f);
+      if (!fp) continue;
+      if (Math.hypot(paper.x - fp.x, paper.y - fp.y) < f.r) {
+        return { type: 'facility' as const, action: f.action, nodeId: f.nodeId, id: f.id };
       }
     }
 
     let best: { id: string; d: number } | null = null;
     Object.values(agents).forEach(char => {
       if (!agentVisibleInZone(char, activeZone)) return;
-      const p = { x: PAPER.zoneW / 2 + (char.x - ZONE_CAMERA[activeZone].x) * PAPER.ppu,
-        y: PAPER.zoneH / 2 + (char.z - ZONE_CAMERA[activeZone].z) * PAPER.ppu };
+      const p = {
+        x: PAPER.zoneW / 2 + (char.x - ZONE_CAMERA[activeZone].x) * PAPER.ppu,
+        y: PAPER.zoneH / 2 + (char.z - ZONE_CAMERA[activeZone].z) * PAPER.ppu,
+      };
       const d = Math.hypot(paper.x - p.x, paper.y - p.y);
-      if (d < 24 && (!best || d < best.d)) best = { id: char.agentId, d };
+      if (d < 22 && (!best || d < best.d)) best = { id: char.agentId, d };
     });
     if (best) return { type: 'agent' as const, id: best.id };
     return null;
   }, [activeZone, agents, cameraZoom, getPan]);
 
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (dragRef.current.active) {
+      const dx = e.clientX - dragRef.current.lx;
+      const dy = e.clientY - dragRef.current.ly;
+      dragRef.current.lx = e.clientX;
+      dragRef.current.ly = e.clientY;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const cw = canvas.clientWidth;
+      const ch = canvas.clientHeight;
+      const { panX, panY } = getPan();
+      const cam = makePaperCamera(cw, ch, cameraZoom, WORLD_MAP.defaultZoom, panX, panY);
+      panCamera(-dx / cam.scale / PAPER.ppu, -dy / cam.scale / PAPER.ppu);
+      return;
+    }
+    const hit = hitTest(e.clientX, e.clientY);
+    setHoverFacilityId(hit?.type === 'facility' ? hit.id : null);
+  };
+
   const onPointerDown = (e: React.PointerEvent) => {
     dragRef.current = { active: true, lx: e.clientX, ly: e.clientY, sx: e.clientX, sy: e.clientY };
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
-  };
-
-  const onPointerMove = (e: React.PointerEvent) => {
-    if (!dragRef.current.active) return;
-    const dx = e.clientX - dragRef.current.lx;
-    const dy = e.clientY - dragRef.current.ly;
-    dragRef.current.lx = e.clientX;
-    dragRef.current.ly = e.clientY;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const cw = canvas.clientWidth;
-    const ch = canvas.clientHeight;
-    const { panX, panY } = getPan();
-    const cam = makePaperCamera(cw, ch, cameraZoom, WORLD_MAP.defaultZoom, panX, panY);
-    const worldDx = -dx / cam.scale / PAPER.ppu;
-    const worldDz = -dy / cam.scale / PAPER.ppu;
-    panCamera(worldDx, worldDz);
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
@@ -167,7 +173,7 @@ export function PaperZoneCanvas() {
     if (!hit) return;
     if (hit.type === 'nav') flyToZone(hit.target);
     else if (hit.type === 'agent') selectAgent(hit.id);
-    else if (hit.type === 'facility') sendAgentToLeisure(hit.leisure);
+    else if (hit.type === 'facility') sendAgentToFacility(hit.action, { nodeId: hit.nodeId });
   };
 
   const onWheel = (e: React.WheelEvent) => {
@@ -179,10 +185,14 @@ export function PaperZoneCanvas() {
     <canvas
       ref={canvasRef}
       className="paper-zone-canvas"
-      style={{ width: '100%', height: '100%', display: 'block', touchAction: 'none', cursor: 'grab' }}
+      style={{
+        width: '100%', height: '100%', display: 'block', touchAction: 'none',
+        cursor: hoverFacilityId ? 'pointer' : dragRef.current.active ? 'grabbing' : 'grab',
+      }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
+      onPointerLeave={() => setHoverFacilityId(null)}
       onWheel={onWheel}
     />
   );

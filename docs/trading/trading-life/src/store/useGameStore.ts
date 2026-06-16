@@ -1,9 +1,14 @@
 import { create } from 'zustand';
 import type { AgentData, CameraMode, CharState, QualityTier, TradeRecord } from '../lib/constants';
 import { AGENT_META } from '../lib/constants';
+import type { AgentMeta } from '../lib/constants';
 import { OfficePath } from '../lib/pathfinding';
 import { WORLD_MAP, ZONE_CAMERA } from '../lib/worldMap';
 import { SIDEBAR_TO_ZONE, ZONE_TO_RIGHT_TAB } from '../lib/zones';
+import {
+  loadCustomAgentMeta, saveCustomAgentMeta, registerCustomAgentSlots,
+  ensureExtraDeskEdges, nextCustomAgentId, type CustomAgentDraft,
+} from '../lib/customAgents';
 
 export type RightTab = 'hall' | 'object' | 'agent' | 'npc' | 'facility' | 'assets' | 'strategy' | 'messages';
 export type SidebarAction = 'hall' | 'agents' | 'strategy' | 'positions' | 'restaurant' | 'spa' | 'casino' | 'warehouse' | 'social' | 'logs';
@@ -69,6 +74,8 @@ interface GameStore {
   setSidebarActive: (id: string) => void;
   navigateSidebar: (action: SidebarAction) => void;
   sendAgentToLeisure: (type: 'dine' | 'massage' | 'poker', agentId?: string) => void;
+  sendAgentToFacility: (action: 'dine' | 'massage' | 'poker' | 'rest', opts?: { agentId?: string; nodeId?: string }) => void;
+  createAgent: (draft: CustomAgentDraft) => boolean;
   openModal: (id: ModalId) => void;
   closeModal: () => void;
   flyToZone: (zone: ZoneId) => void;
@@ -237,25 +244,34 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   sendAgentToLeisure: (type, agentId) => {
+    get().sendAgentToFacility(type, { agentId });
+  },
+
+  sendAgentToFacility: (action, opts) => {
     const s = get();
-    const id = agentId || s.selectedAgentId || Object.values(s.agents).sort((a, b) => b.stress - a.stress)[0]?.agentId;
+    const id = opts?.agentId || s.selectedAgentId || Object.values(s.agents).sort((a, b) => b.stress - a.stress)[0]?.agentId;
     if (!id || !s.agents[id]) return;
-    const zoneMap = { dine: 'restaurant' as ZoneId, massage: 'spa' as ZoneId, poker: 'casino' as ZoneId };
-    const activityMap = { dine: 'dine' as const, massage: 'massage' as const, poker: 'poker' as const };
-    const nodeMap = { dine: OfficePath.dineByAgent, massage: OfficePath.massageByAgent, poker: OfficePath.pokerByAgent };
-    const zone = zoneMap[type];
+
+    const zoneMap = { dine: 'restaurant' as ZoneId, massage: 'spa' as ZoneId, poker: 'casino' as ZoneId, rest: 'hall' as ZoneId };
+    const intentMap = { dine: 'dine' as const, massage: 'massage' as const, poker: 'poker' as const, rest: 'rest' as const };
+    const nodeMap = { dine: OfficePath.dineByAgent, massage: OfficePath.massageByAgent, poker: OfficePath.pokerByAgent, rest: OfficePath.boothByAgent };
+
+    const zone = zoneMap[action];
     const cam = ZONE_CAMERA[zone];
-    let char = { ...s.agents[id], travelIntent: activityMap[type], activity: null, activityUntil: 0 };
-    const node = nodeMap[type][id];
+    const node = opts?.nodeId || nodeMap[action][id];
+    if (!node) return;
+
+    let char = { ...s.agents[id], travelIntent: intentMap[action], activity: null, activityUntil: 0 };
     char = assignPath(char, node);
+
     set({
       agents: { ...s.agents, [id]: char },
       selectedAgentId: id,
       followAgentId: id,
       activeZone: zone,
-      sidebarActive: zone,
-      rightTab: 'facility',
-      selectedFacility: LEISURE_FACILITY[zone],
+      sidebarActive: zone === 'hall' ? 'hall' : zone,
+      rightTab: action === 'rest' ? 'hall' : 'facility',
+      selectedFacility: action === 'rest' ? null : LEISURE_FACILITY[zone as keyof typeof LEISURE_FACILITY] ?? null,
       rightPanelCollapsed: false,
       activeModal: null,
       cameraLookAt: { x: cam.x, z: cam.z },
@@ -263,6 +279,52 @@ export const useGameStore = create<GameStore>((set, get) => ({
       mapOverview: false,
     });
     get().addMessage(`${char.data.name} 正前往${cam.label}…`);
+  },
+
+  createAgent: (draft) => {
+    const s = get();
+    ensureExtraDeskEdges(OfficePath);
+    const customMeta = loadCustomAgentMeta();
+    const id = nextCustomAgentId({ ...s.agents, ...customMeta });
+    const slot = registerCustomAgentSlots(OfficePath, id, Object.keys(customMeta).length);
+    if (!slot) {
+      get().addMessage('工位已满，最多再创建 3 个自定义 Agent');
+      return false;
+    }
+    const meta: AgentMeta = {
+      id,
+      name: draft.name.trim() || `Agent ${id}`,
+      icon: draft.icon,
+      color: draft.color,
+      desc: draft.desc.trim() || '自定义交易策略 Agent',
+      strategy: draft.strategy.trim() || '自定义策略',
+      market: draft.market.trim() || 'Crypto',
+      interval: draft.interval.trim() || '15m/1h',
+      risk: draft.risk || '中',
+    };
+    saveCustomAgentMeta({ ...customMeta, [id]: meta });
+    const pos = OfficePath.nodes[slot];
+    const char: CharState = {
+      agentId: id, x: pos.x, z: pos.z,
+      pathQueue: [], pathIndex: 0, isWalking: false, destNode: null,
+      activity: null, activityUntil: 0, travelIntent: null,
+      state: 'idle', stress: 0,
+      moveTimer: 0, nextMoveTime: 1500 + Math.random() * 2500,
+      data: { ...meta, capital: 10000, initial_capital: 10000, pnl: 0, running: false },
+    };
+    set({
+      agents: { ...s.agents, [id]: char },
+      selectedAgentId: id,
+      activeZone: 'hall',
+      sidebarActive: 'hall',
+      rightTab: 'agent',
+      followAgentId: id,
+      cameraLookAt: { x: ZONE_CAMERA.hall.x, z: ZONE_CAMERA.hall.z },
+      cameraZoom: WORLD_MAP.defaultZoom,
+      activeModal: 'workshop',
+    });
+    get().addMessage(`${meta.name} 已加入交易大厅工位`);
+    return true;
   },
   resetCamera: () => set({
     activeZone: 'hall',
@@ -299,16 +361,28 @@ export const useGameStore = create<GameStore>((set, get) => ({
   }),
 
   initAgents: () => {
+    ensureExtraDeskEdges(OfficePath);
+    const customMeta = loadCustomAgentMeta();
+    Object.entries(customMeta).forEach(([id], i) => {
+      if (!OfficePath.deskByAgent[id]) registerCustomAgentSlots(OfficePath, id, i);
+    });
+
     const agents: Record<string, CharState> = {};
-    Object.entries(OfficePath.deskByAgent).forEach(([id, nodeId]) => {
+    const allIds = new Set([...Object.keys(AGENT_META), ...Object.keys(customMeta)]);
+
+    allIds.forEach(id => {
+      const nodeId = OfficePath.deskByAgent[id];
+      if (!nodeId) return;
       const pos = OfficePath.nodes[nodeId];
+      const meta = AGENT_META[id] || customMeta[id];
+      if (!meta || !pos) return;
       agents[id] = {
         agentId: id, x: pos.x, z: pos.z,
         pathQueue: [], pathIndex: 0, isWalking: false, destNode: null,
         activity: null, activityUntil: 0, travelIntent: null,
         state: 'idle', stress: 0,
         moveTimer: 0, nextMoveTime: 1500 + Math.random() * 2500,
-        data: { ...AGENT_META[id] },
+        data: { ...meta },
       };
     });
     set({ agents });
@@ -395,6 +469,11 @@ export function pickWanderTarget(char: CharState): string {
     return desk;
   }
   const r = Math.random();
+  if (char.stress > 45) {
+    if (r > 0.7) return OfficePath.massageByAgent[char.agentId];
+    if (r > 0.5) return OfficePath.dineByAgent[char.agentId];
+    if (r > 0.35) return OfficePath.pokerByAgent[char.agentId];
+  }
   if (r > 0.65) return booth;
   if (r > 0.45) return 'scr_ctr';
   return desk;
@@ -405,12 +484,12 @@ export function onPathComplete(char: CharState, now: number): CharState {
   if (char.travelIntent) {
     const intent = char.travelIntent;
     return startActivity({ ...char, travelIntent: null }, intent, now,
-      intent === 'poker' ? 12000 : intent === 'massage' ? 10000 : 9000);
+      intent === 'poker' ? 12000 : intent === 'massage' ? 10000 : intent === 'rest' ? 9000 : 9000);
   }
-  if (node === OfficePath.boothByAgent[char.agentId]) return startActivity(char, 'rest', now, 9000);
-  if (node === OfficePath.massageByAgent[char.agentId]) return startActivity(char, 'massage', now, 10000);
-  if (node === OfficePath.dineByAgent[char.agentId]) return startActivity(char, 'dine', now, 9000);
-  if (node === OfficePath.pokerByAgent[char.agentId]) return startActivity(char, 'poker', now, 12000);
+  if (node === OfficePath.boothByAgent[char.agentId] || node?.startsWith('rest_l')) return startActivity(char, 'rest', now, 9000);
+  if (node === OfficePath.massageByAgent[char.agentId] || node?.startsWith('bed_')) return startActivity(char, 'massage', now, 10000);
+  if (node === OfficePath.dineByAgent[char.agentId] || node?.startsWith('dine_')) return startActivity(char, 'dine', now, 9000);
+  if (node === OfficePath.pokerByAgent[char.agentId] || node?.startsWith('poker_')) return startActivity(char, 'poker', now, 12000);
   return { ...char, destNode: null, isWalking: false, pathQueue: [] };
 }
 
@@ -419,7 +498,7 @@ function startActivity(char: CharState, activity: CharState['activity'], now: nu
     rest: OfficePath.boothByAgent, massage: OfficePath.massageByAgent,
     dine: OfficePath.dineByAgent, poker: OfficePath.pokerByAgent,
   };
-  const nodeId = seatMap[activity!]?.[char.agentId];
+  const nodeId = char.destNode || seatMap[activity!]?.[char.agentId];
   const pos = nodeId ? OfficePath.nodes[nodeId] : null;
   return {
     ...char, activity, activityUntil: now + dur + Math.random() * 5000,
@@ -434,7 +513,7 @@ function startActivity(char: CharState, activity: CharState['activity'], now: nu
 
 /** 高压力时自动派遣 Agent 步行去休闲区 */
 export function maybeDispatchLeisure(char: CharState): CharState {
-  if (char.isWalking || char.activity || char.travelIntent || char.stress < 72) return char;
+  if (char.isWalking || char.activity || char.travelIntent || char.stress < 50) return char;
   const r = Math.random();
   let intent: CharState['travelIntent'] = null;
   let node = '';

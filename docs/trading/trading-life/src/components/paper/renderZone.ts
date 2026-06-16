@@ -1,11 +1,11 @@
 import type { ZoneId } from '../../store/useGameStore';
 import type { CharState } from '../../lib/constants';
 import { OfficePath } from '../../lib/pathfinding';
-import { ZONE_LAYOUTS } from '../../lib/zoneLayouts';
+import { ZONE_LAYOUTS, type FacilityDef } from '../../lib/zoneLayouts';
 import { PAPER, worldToPaper } from '../../lib/zoneProjection';
 import {
   rrect, dropShadow, drawDesk, drawBooth, drawAgentTop, drawNavArrow,
-  drawDiningTable, drawMassageBed, drawRoundTable,
+  drawDiningTable, drawMassageBed, drawRoundTable, drawFacilityLabel,
 } from './paperDraw';
 
 export interface PaperCamera {
@@ -47,6 +47,14 @@ function ws(cam: PaperCamera, v: number) {
   return v * cam.scale;
 }
 
+function drawZoneAccent(ctx: CanvasRenderingContext2D, cam: PaperCamera, color: string) {
+  const cx = cam.cw / 2, cy = cam.ch / 2;
+  const hw = ws(cam, PAPER.zoneW * 0.46), hh = ws(cam, PAPER.zoneH * 0.4);
+  ctx.fillStyle = color;
+  rrect(ctx, cx - hw, cy - hh, hw * 2, hh * 2, ws(cam, 14));
+  ctx.fill();
+}
+
 function drawTicker(ctx: CanvasRenderingContext2D, cam: PaperCamera, zone: ZoneId, active: boolean) {
   const p = worldToPaper(zone, OfficePath.nodes.scr_ctr.x, OfficePath.nodes.scr_ctr.z);
   const s = camToScreen(cam, p.x, p.y);
@@ -67,7 +75,7 @@ function drawTicker(ctx: CanvasRenderingContext2D, cam: PaperCamera, zone: ZoneI
 function drawCoffeeBar(ctx: CanvasRenderingContext2D, cam: PaperCamera, zone: ZoneId) {
   const p = worldToPaper(zone, 22, 8.5);
   const s = camToScreen(cam, p.x, p.y);
-  const w = ws(cam, 90), h = ws(cam, 40);
+  const w = ws(cam, 100), h = ws(cam, 44);
   dropShadow(ctx, s.x, s.y, w, h);
   ctx.fillStyle = '#fafafa';
   rrect(ctx, s.x - w / 2, s.y - h / 2, w, h, ws(cam, 8));
@@ -76,89 +84,102 @@ function drawCoffeeBar(ctx: CanvasRenderingContext2D, cam: PaperCamera, zone: Zo
   for (let i = 0; i < 3; i++) {
     ctx.fillStyle = '#8B6914';
     ctx.beginPath();
-    ctx.ellipse(s.x - ws(cam, 20) + i * ws(cam, 20), s.y, ws(cam, 5), ws(cam, 4), 0, 0, Math.PI * 2);
+    ctx.ellipse(s.x - ws(cam, 22) + i * ws(cam, 22), s.y, ws(cam, 6), ws(cam, 5), 0, 0, Math.PI * 2);
     ctx.fill();
   }
+  drawFacilityLabel(ctx, s.x, s.y + ws(cam, 32), '咖啡区', cam.scale);
 }
 
-function drawReceptionDesk(ctx: CanvasRenderingContext2D, cam: PaperCamera, zone: ZoneId) {
-  const p = worldToPaper(zone, OfficePath.nodes.recv_ctr.x, OfficePath.nodes.recv_ctr.z);
+function facilityPaperPos(zone: ZoneId, f: FacilityDef) {
+  const n = OfficePath.nodes[f.nodeId];
+  if (!n) return null;
+  return worldToPaper(zone, n.x, n.z);
+}
+
+function drawFacility(
+  ctx: CanvasRenderingContext2D, cam: PaperCamera, zone: ZoneId, f: FacilityDef,
+  opts: { hoverId: string | null; occupied: boolean },
+) {
+  const p = facilityPaperPos(zone, f);
+  if (!p) return;
   const s = camToScreen(cam, p.x, p.y);
-  const w = ws(cam, 160), h = ws(cam, 48);
-  dropShadow(ctx, s.x, s.y, w, h);
-  ctx.fillStyle = '#e8e0d4';
-  rrect(ctx, s.x - w / 2, s.y - h / 2, w, h, ws(cam, 8));
-  ctx.fill();
-  ctx.fillStyle = '#3d3530';
-  ctx.font = `600 ${Math.max(10, ws(cam, 12))}px Inter,sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.fillText('接待台', s.x, s.y + ws(cam, 4));
+  const sc = cam.scale;
+  const hover = opts.hoverId === f.id;
+
+  if (hover) {
+    ctx.strokeStyle = 'rgba(212,175,55,0.55)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, ws(cam, f.r), 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  switch (f.action) {
+    case 'dine': drawDiningTable(ctx, s.x, s.y, sc); break;
+    case 'massage': drawMassageBed(ctx, s.x, s.y, sc); break;
+    case 'poker': drawRoundTable(ctx, s.x, s.y, sc); break;
+    case 'rest':
+      if (f.nodeId.startsWith('rest_l')) drawBooth(ctx, s.x, s.y, sc);
+      else {
+        dropShadow(ctx, s.x, s.y, ws(cam, 140), ws(cam, 44));
+        ctx.fillStyle = '#e8e0d4';
+        rrect(ctx, s.x - ws(cam, 70), s.y - ws(cam, 22), ws(cam, 140), ws(cam, 44), ws(cam, 8));
+        ctx.fill();
+      }
+      break;
+  }
+
+  if (opts.occupied) {
+    ctx.fillStyle = 'rgba(72,208,147,0.25)';
+    ctx.beginPath();
+    ctx.arc(s.x + ws(cam, f.r * 0.6), s.y - ws(cam, f.r * 0.5), ws(cam, 6), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  drawFacilityLabel(ctx, s.x, s.y + ws(cam, f.r * 0.85), f.label, cam.scale, hover);
 }
 
 function drawHallScene(ctx: CanvasRenderingContext2D, cam: PaperCamera, zone: ZoneId, agents: Record<string, CharState>) {
-  const layout = ZONE_LAYOUTS.hall;
-  const cx = cam.cw / 2, cy = cam.ch / 2;
-  const hw = ws(cam, PAPER.zoneW * 0.48), hh = ws(cam, PAPER.zoneH * 0.42);
-  ctx.fillStyle = layout.accent;
-  rrect(ctx, cx - hw, cy - hh, hw * 2, hh * 2, ws(cam, 16));
-  ctx.fill();
-
+  drawZoneAccent(ctx, cam, ZONE_LAYOUTS.hall.accent);
   drawTicker(ctx, cam, zone, Object.values(agents).some(a => a.state === 'trading' || a.state === 'scanning'));
   drawCoffeeBar(ctx, cam, zone);
 
-  const deskIds = ['desk_xau', 'desk_maj', 'desk_alt', 'desk_new', 'desk_mom'];
-  deskIds.forEach(id => {
+  const deskIds = Object.values(OfficePath.deskByAgent);
+  const uniqueDesks = [...new Set(deskIds)];
+  uniqueDesks.forEach(id => {
     const n = OfficePath.nodes[id];
+    if (!n) return;
     const p = worldToPaper(zone, n.x, n.z);
-    const s = camToScreen(cam, p.x, p.y + 20);
+    const s = camToScreen(cam, p.x, p.y + 18);
     const agent = Object.values(agents).find(a => OfficePath.deskByAgent[a.agentId] === id);
     const trading = agent?.state === 'trading' || agent?.state === 'scanning';
-    drawDesk(ctx, s.x, s.y, cam.scale / 28, trading);
-  });
-
-  ['rest_l_1', 'rest_l_2'].forEach(id => {
-    const n = OfficePath.nodes[id];
-    const p = worldToPaper(zone, n.x, n.z);
-    const s = camToScreen(cam, p.x, p.y);
-    drawBooth(ctx, s.x, s.y, cam.scale / 28);
+    drawDesk(ctx, s.x, s.y, cam.scale, trading);
   });
 }
 
-function drawRestaurantScene(ctx: CanvasRenderingContext2D, cam: PaperCamera, zone: ZoneId) {
-  const layout = ZONE_LAYOUTS.restaurant;
+function drawLeisureScene(ctx: CanvasRenderingContext2D, cam: PaperCamera, zone: ZoneId, layout: typeof ZONE_LAYOUTS.restaurant, agents: Record<string, CharState>, hoverId: string | null) {
+  drawZoneAccent(ctx, cam, layout.accent);
   layout.facilities.forEach(f => {
-    const s = camToScreen(cam, f.x, f.y);
-    drawDiningTable(ctx, s.x, s.y, cam.scale / 28);
+    const occupied = Object.values(agents).some(a =>
+      a.activity === f.action && (
+        OfficePath.dineByAgent[a.agentId] === f.nodeId
+        || OfficePath.massageByAgent[a.agentId] === f.nodeId
+        || OfficePath.pokerByAgent[a.agentId] === f.nodeId
+        || OfficePath.boothByAgent[a.agentId] === f.nodeId
+      ));
+    drawFacility(ctx, cam, zone, f, { hoverId, occupied });
   });
-  ctx.fillStyle = 'rgba(0,0,0,0.15)';
-  ctx.font = `600 ${Math.max(10, ws(cam, 13))}px Inter,sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.fillText('点击餐桌派遣 Agent 用餐', cam.cw / 2, cam.ch - ws(cam, 24));
 }
 
-function drawSpaScene(ctx: CanvasRenderingContext2D, cam: PaperCamera) {
-  ZONE_LAYOUTS.spa.facilities.forEach(f => {
-    const s = camToScreen(cam, f.x, f.y);
-    drawMassageBed(ctx, s.x, s.y, cam.scale / 28);
-  });
-  ctx.fillStyle = 'rgba(0,0,0,0.15)';
-  ctx.font = `600 ${Math.max(10, ws(cam, 13))}px Inter,sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.fillText('点击按摩床派遣 Agent 放松', cam.cw / 2, cam.ch - ws(cam, 24));
-}
-
-function drawCasinoScene(ctx: CanvasRenderingContext2D, cam: PaperCamera) {
-  const f = ZONE_LAYOUTS.casino.facilities[0];
-  const s = camToScreen(cam, f.x, f.y);
-  drawRoundTable(ctx, s.x, s.y, cam.scale / 28);
-  ctx.fillStyle = 'rgba(0,0,0,0.15)';
-  ctx.font = `600 ${Math.max(10, ws(cam, 13))}px Inter,sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.fillText('点击牌桌派遣 Agent 打牌', cam.cw / 2, cam.ch - ws(cam, 24));
-}
-
-function drawReceptionScene(ctx: CanvasRenderingContext2D, cam: PaperCamera, zone: ZoneId) {
-  drawReceptionDesk(ctx, cam, zone);
+function countInZone(agents: Record<string, CharState>, zone: ZoneId) {
+  return Object.values(agents).filter(a => {
+    if (a.activity === 'dine' && zone === 'restaurant') return true;
+    if (a.activity === 'massage' && zone === 'spa') return true;
+    if (a.activity === 'poker' && zone === 'casino') return true;
+    if (a.activity === 'rest' && zone === 'hall') return true;
+    return false;
+  }).length;
 }
 
 export function renderZone(
@@ -166,19 +187,23 @@ export function renderZone(
   zone: ZoneId,
   cam: PaperCamera,
   agents: Record<string, CharState>,
-  opts: { selectedId: string | null; bob: number; dayMode: 'day' | 'night' },
+  opts: { hoverFacilityId: string | null; bob: number; dayMode: 'day' | 'night' },
 ) {
   const layout = ZONE_LAYOUTS[zone];
   ctx.fillStyle = opts.dayMode === 'day' ? layout.floorColor : '#2a2838';
   ctx.fillRect(0, 0, cam.cw, cam.ch);
 
-  ctx.save();
   switch (zone) {
-    case 'hall': drawHallScene(ctx, cam, zone, agents); break;
-    case 'restaurant': drawRestaurantScene(ctx, cam, zone); break;
-    case 'spa': drawSpaScene(ctx, cam); break;
-    case 'casino': drawCasinoScene(ctx, cam); break;
-    case 'reception': drawReceptionScene(ctx, cam, zone); break;
+    case 'hall':
+      drawHallScene(ctx, cam, zone, agents);
+      drawLeisureScene(ctx, cam, zone, layout, agents, opts.hoverFacilityId);
+      break;
+    case 'restaurant':
+    case 'spa':
+    case 'casino':
+    case 'reception':
+      drawLeisureScene(ctx, cam, zone, layout, agents, opts.hoverFacilityId);
+      break;
   }
 
   layout.navArrows.forEach(a => {
@@ -186,20 +211,13 @@ export function renderZone(
     drawNavArrow(ctx, s.x, s.y, a.label, a.dir, opts.bob);
   });
 
-  layout.facilities.forEach(f => {
-    const s = camToScreen(cam, f.x, f.y);
-    if (opts.selectedId) {
-      ctx.strokeStyle = 'rgba(212,175,55,0.35)';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([4, 4]);
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, ws(cam, f.r), 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
-  });
-
-  ctx.restore();
+  const n = countInZone(agents, zone);
+  if (n > 0) {
+    ctx.fillStyle = 'rgba(61,53,48,0.45)';
+    ctx.font = `600 ${Math.max(10, ws(cam, 11))}px Inter,sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.fillText(`${n} 位 Agent 在此活动`, ws(cam, 12), cam.ch - ws(cam, 10));
+  }
 }
 
 export function renderAgents(
@@ -208,7 +226,7 @@ export function renderAgents(
   cam: PaperCamera,
   agents: Record<string, CharState>,
   visible: (c: CharState) => boolean,
-  opts: { selectedId: string | null; bob: number; t: number },
+  opts: { selectedId: string | null; t: number },
 ) {
   Object.values(agents).forEach(char => {
     if (!visible(char)) return;
@@ -217,15 +235,22 @@ export function renderAgents(
     drawAgentTop(ctx, s.x, s.y, char.data.color, {
       selected: char.agentId === opts.selectedId,
       trading: char.state === 'trading' || char.state === 'scanning',
-      resting: char.activity === 'rest' || char.activity === 'massage' || char.activity === 'dine' || char.activity === 'poker',
       walking: char.isWalking,
+      activity: char.activity,
+      icon: char.data.icon,
       t: opts.t,
     });
-    if (char.agentId === opts.selectedId || char.isWalking) {
+    const showName = char.agentId === opts.selectedId || char.activity || char.isWalking;
+    if (showName) {
       ctx.fillStyle = '#3d3530';
       ctx.font = `600 ${Math.max(9, ws(cam, 10))}px Inter,sans-serif`;
       ctx.textAlign = 'center';
-      ctx.fillText(char.data.name.split(' ')[0], s.x, s.y - ws(cam, 22));
+      ctx.fillText(char.data.name.split(' ')[0], s.x, s.y - ws(cam, 24));
     }
   });
+}
+
+/** 设施纸面坐标（供命中检测） */
+export function getFacilityPaperPos(zone: ZoneId, f: FacilityDef) {
+  return facilityPaperPos(zone, f);
 }
