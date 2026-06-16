@@ -95,6 +95,19 @@ html, body, #root {
   height: 100%;
 }
 
+.canvas-wrap canvas {
+  display: block !important;
+}
+
+.zone-fade {
+  animation: zoneFadeIn 0.35s ease;
+}
+
+@keyframes zoneFadeIn {
+  from { opacity: 0.4; }
+  to { opacity: 1; }
+}
+
 .zone-title-badge {
   position: absolute;
   top: 12px;
@@ -289,6 +302,7 @@ html, body, #root {
   overflow-y: auto;
   box-shadow: 0 16px 48px rgba(0,0,0,0.1);
   animation: scaleIn 0.2s ease;
+  color: var(--text);
 }
 .modal-box.modal-wide {
   min-width: 640px;

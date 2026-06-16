@@ -17,7 +17,7 @@ export function AgentWorkshop() {
   const closeModal = useGameStore(s => s.closeModal);
   const setFollowAgent = useGameStore(s => s.setFollowAgent);
 
-  const [editId, setEditId] = useState(selectedAgentId || Object.keys(agents)[0] || '');
+  const [editId, setEditId] = useState(selectedAgentId || Object.keys(agents)[0] || 'xau');
   const [tab, setTab] = useState<'info' | 'config' | 'soul'>('info');
   const [msg, setMsg] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,6 +25,11 @@ export function AgentWorkshop() {
   const agentList = Object.values(agents) as CharState[];
   const current = editId ? agents[editId] : null;
   const d = current?.data;
+
+  useEffect(() => {
+    const fallback = selectedAgentId || Object.keys(agents)[0];
+    if (fallback && fallback !== editId) setEditId(fallback);
+  }, [selectedAgentId, agents, editId]);
 
   useEffect(() => {
     if (!editId) return;
@@ -43,10 +48,13 @@ export function AgentWorkshop() {
   };
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: 16, minHeight: 360 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: 16, minHeight: 360, color: '#3d3530' }}>
       {/* 左：Agent 列表 */}
       <div style={{ borderRight: '1px dashed #e0d8cc', paddingRight: 12, overflowY: 'auto', maxHeight: 420 }}>
         <div style={{ fontSize: 11, color: '#9a8b7a', marginBottom: 8 }}>我的 Agent ({agentList.length})</div>
+        {agentList.length === 0 && (
+          <p style={{ fontSize: 12, color: '#8a7e72', lineHeight: 1.6 }}>正在加载 Agent 列表…</p>
+        )}
         {agentList.map(a => (
           <div
             key={a.agentId}
@@ -71,7 +79,9 @@ export function AgentWorkshop() {
       {/* 右：详情编辑 */}
       <div style={{ overflowY: 'auto', maxHeight: 420 }}>
         {!d ? (
-          <p style={{ color: '#999' }}>请选择 Agent</p>
+          <p style={{ color: '#8a7e72', fontSize: 13, lineHeight: 1.6 }}>
+            {agentList.length === 0 ? 'Agent 数据加载中，请稍候…' : '请从左侧选择一个 Agent'}
+          </p>
         ) : (
           <>
             <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16 }}>

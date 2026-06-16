@@ -132,7 +132,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     selectedAgentId: id,
     selectedNpcId: null,
     selectedFacility: null,
-    followAgentId: id,
+    followAgentId: null,
     rightTab: 'hall',
     rightPanelCollapsed: false,
   }),
@@ -164,13 +164,29 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
     switch (action) {
       case 'agents': {
-        const firstId = s.selectedAgentId || Object.keys(s.agents)[0] || null;
-        set({ ...expand, sidebarActive: 'agents', activeZone: 'hall', rightTab: 'agent', selectedAgentId: firstId, activeModal: 'workshop' });
+        const firstId = s.selectedAgentId || Object.keys(s.agents)[0] || 'xau';
+        set({
+          rightPanelCollapsed: false,
+          sidebarActive: 'agents',
+          activeZone: 'hall',
+          rightTab: 'agent',
+          selectedAgentId: firstId,
+          activeModal: 'workshop',
+        });
         break;
       }
-      case 'strategy':
-        set({ ...expand, sidebarActive: 'strategy', activeZone: 'hall', rightTab: 'strategy', activeModal: 'strategy' });
+      case 'strategy': {
+        const firstId = s.selectedAgentId || Object.keys(s.agents)[0] || 'xau';
+        set({
+          rightPanelCollapsed: false,
+          sidebarActive: 'strategy',
+          activeZone: 'hall',
+          rightTab: 'strategy',
+          selectedAgentId: firstId,
+          activeModal: 'strategy',
+        });
         break;
+      }
       case 'positions':
         set({ ...expand, sidebarActive: 'positions', activeZone: 'hall', rightTab: 'assets' });
         break;
@@ -260,7 +276,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   updateFromOverview: (data) => {
     const prev = get();
-    const agents = { ...prev.agents };
+    if (Object.keys(prev.agents).length === 0) {
+      get().initAgents();
+    }
+    const agents = { ...get().agents };
     const tradeFeed: GameStore['tradeFeed'] = [];
 
     (data.agents || []).forEach((a) => {

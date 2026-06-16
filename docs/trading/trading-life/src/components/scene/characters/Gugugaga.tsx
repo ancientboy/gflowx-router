@@ -129,7 +129,7 @@ export function Gugugaga({
       </mesh>
       {roleAcc[role]?.extra}
       {label && (
-        <Html center position={[0, 1.55, 0]} distanceFactor={12} style={{ pointerEvents: 'none' }}>
+        <Html center position={[0, 1.55, 0]} distanceFactor={12} zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
           <div style={{
             padding: '3px 8px', borderRadius: 8, fontSize: 11, fontWeight: 600,
             background: 'rgba(255,252,247,0.95)', border: '1px solid #e0d8cc',
