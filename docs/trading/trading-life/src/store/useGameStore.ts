@@ -111,9 +111,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
   activeZone: 'hall',
   activeModal: null,
   followAgentId: null,
-  cameraLookAt: { x: WORLD_MAP.centerX, z: WORLD_MAP.centerZ },
-  cameraZoom: WORLD_MAP.overviewZoom,
-  mapOverview: true,
+  cameraLookAt: { x: ZONE_CAMERA.hall.x, z: ZONE_CAMERA.hall.z },
+  cameraZoom: WORLD_MAP.defaultZoom,
+  mapOverview: false,
   agents: {},
   ticker: {},
   overview: {},
@@ -185,6 +185,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
           rightTab: 'agent',
           selectedAgentId: firstId,
           activeModal: 'workshop',
+          cameraLookAt: { x: ZONE_CAMERA.hall.x, z: ZONE_CAMERA.hall.z },
+          cameraZoom: WORLD_MAP.defaultZoom,
+          mapOverview: false,
         });
         break;
       }
@@ -269,9 +272,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     activeModal: null,
     selectedNpcId: null,
     selectedFacility: null,
-    cameraLookAt: { x: WORLD_MAP.centerX, z: WORLD_MAP.centerZ },
-    cameraZoom: WORLD_MAP.overviewZoom,
-    mapOverview: true,
+    cameraLookAt: { x: ZONE_CAMERA.hall.x, z: ZONE_CAMERA.hall.z },
+    cameraZoom: WORLD_MAP.defaultZoom,
+    mapOverview: false,
   }),
   setFollowAgent: (id) => set({ followAgentId: id, selectedAgentId: id, rightPanelCollapsed: false }),
 

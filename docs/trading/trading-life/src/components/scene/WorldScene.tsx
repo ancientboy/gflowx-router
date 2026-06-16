@@ -7,6 +7,7 @@ import { Gugugaga } from './characters/Gugugaga';
 import { ZoneEffects } from './effects/ZoneEffects';
 import { SceneSprite } from './ui/SceneSprite';
 import { RestBoothWorld } from './world/RestBoothWorld';
+import { ZoneNavArrows } from './world/ZoneNavArrows';
 import { useGameStore } from '../../store/useGameStore';
 import type { CharState } from '../../lib/constants';
 import type { ZoneId } from '../../store/useGameStore';
@@ -46,7 +47,7 @@ function ZoneLabel3D({ label, position, color = '#6b5e4e' }: {
   }, [label, color]);
 
   return (
-    <mesh position={position} rotation={[-Math.PI / 2.3, 0, 0]} renderOrder={8}>
+    <mesh position={position} rotation={[-Math.PI / 2, 0, 0]} renderOrder={8}>
       <planeGeometry args={[2.8, 0.52]} />
       <meshBasicMaterial map={map} transparent toneMapped={false} depthWrite={false} />
     </mesh>
@@ -128,30 +129,23 @@ export function WorldScene() {
     [4.2, 0.5, 5.6], [7, 0.5, 5.6], [9.8, 0.5, 5.6], [12.6, 0.5, 5.6], [15.4, 0.5, 5.6],
   ];
 
-  const onZoneClick = (zoneId: ZoneId) => (e: { stopPropagation: () => void }) => {
-    e.stopPropagation();
-    flyToZone(zoneId);
-  };
-
   return (
     <group>
       {ZONES.map(z => (
         <group key={z.id}>
-          <mesh
-            rotation={[-Math.PI / 2, 0, 0]}
-            position={[z.x, 0.01, z.z]}
-            onClick={onZoneClick(z.id as ZoneId)}
-          >
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[z.x, 0, z.z]}>
             <planeGeometry args={[z.w, z.d]} />
-            <meshBasicMaterial color={z.color} transparent opacity={0.92} />
+            <meshBasicMaterial color={z.color} />
           </mesh>
           <ZoneLabel3D
             label={z.label}
-            position={[z.x, 0.6, z.z - z.d / 2 + 1.4]}
+            position={[z.x, 0.4, z.z]}
             color={z.id === 'casino' ? '#8b7355' : '#6b5e4e'}
           />
         </group>
       ))}
+
+      <ZoneNavArrows />
 
       <Wall x={28} z={3.65} w={0.25} d={7.3} />
       <Wall x={28} z={10.15} w={0.25} d={7.3} />

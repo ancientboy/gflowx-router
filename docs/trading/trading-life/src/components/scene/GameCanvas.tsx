@@ -15,10 +15,8 @@ function SceneContent() {
   return (
     <>
       <WorldMapCamera />
-      <ambientLight intensity={dayMode === 'day' ? 0.85 : 0.45} />
-      <hemisphereLight args={[dayMode === 'day' ? '#fff8f0' : '#607090', dayMode === 'day' ? '#d8d0c8' : '#1a1520', 0.55]} />
-      <directionalLight position={[8, 16, 6]} intensity={0.9} castShadow={quality !== 'low'} />
-      {effectsOn && <directionalLight position={[-6, 8, -4]} intensity={0.25} />}
+      <ambientLight intensity={dayMode === 'day' ? 0.95 : 0.55} />
+      <directionalLight position={[14, 30, 7.5]} intensity={0.35} castShadow={quality !== 'low'} />
       <Suspense fallback={null}>
         <CharacterSim />
       </Suspense>
@@ -31,7 +29,6 @@ export function GameCanvas() {
   const quality = useGameStore(s => s.quality);
   const dayMode = useGameStore(s => s.dayMode);
   const activeZone = useGameStore(s => s.activeZone);
-  const mapOverview = useGameStore(s => s.mapOverview);
   const [zoneAnim, setZoneAnim] = useState(false);
 
   useEffect(() => {
@@ -41,7 +38,7 @@ export function GameCanvas() {
   }, [activeZone]);
 
   const bgColor = dayMode === 'day' ? '#e8e4dc' : '#2a2838';
-  const badge = mapOverview ? '全景地图 · 拖拽移动 · 滚轮缩放' : (ZONE_CAMERA[activeZone]?.label ?? '交易大厅');
+  const badge = `${ZONE_CAMERA[activeZone]?.label ?? '交易大厅'} · 拖拽移动 · 点击箭头切换区域`;
 
   return (
     <div className={`canvas-wrap${zoneAnim ? ' zone-fade' : ''}`}>

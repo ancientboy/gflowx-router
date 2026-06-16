@@ -1,14 +1,17 @@
 import type { ZoneId } from '../store/useGameStore';
 
-/** 大地图中心与默认视角 */
+/** 大地图 — 默认聚焦交易大厅，纯俯视 2D */
 export const WORLD_MAP = {
   centerX: 28,
   centerZ: 15,
-  overviewZoom: 30,
-  zoneZoom: 48,
-  minZoom: 22,
+  /** 默认：交易大厅单区视角 */
+  defaultZoom: 56,
+  zoneZoom: 56,
+  overviewZoom: 34,
+  minZoom: 40,
   maxZoom: 72,
-  panBounds: { minX: -4, maxX: 60, minZ: -2, maxZ: 32 },
+  cameraHeight: 42,
+  panBounds: { minX: 2, maxX: 52, minZ: 0, maxZ: 28 },
 };
 
 export const ZONE_CAMERA: Record<ZoneId, { x: number; z: number; label: string }> = {
@@ -18,6 +21,19 @@ export const ZONE_CAMERA: Record<ZoneId, { x: number; z: number; label: string }
   restaurant: { x: 14, z: 20, label: '餐厅' },
   casino: { x: 42, z: 20, label: '德州扑克' },
 };
+
+/** 区域导航悬浮箭头（点击切换视角） */
+export const ZONE_NAV_ARROWS: {
+  x: number; z: number; rotY: number; label: string; target: ZoneId; showWhen: ZoneId | 'always';
+}[] = [
+  { x: 14, z: 14.2, rotY: 0, label: '餐厅', target: 'restaurant', showWhen: 'hall' },
+  { x: 27.2, z: 7.5, rotY: -Math.PI / 2, label: '按摩区', target: 'spa', showWhen: 'hall' },
+  { x: 27.2, z: 12.5, rotY: -Math.PI / 2, label: '德州扑克', target: 'casino', showWhen: 'hall' },
+  { x: 14, z: 16.8, rotY: Math.PI, label: '交易大厅', target: 'hall', showWhen: 'restaurant' },
+  { x: 25.5, z: 7.5, rotY: Math.PI, label: '交易大厅', target: 'hall', showWhen: 'spa' },
+  { x: 25.5, z: 18.5, rotY: Math.PI, label: '交易大厅', target: 'hall', showWhen: 'casino' },
+  { x: 14, z: 22.5, rotY: Math.PI, label: '交易大厅', target: 'hall', showWhen: 'reception' },
+];
 
 /** 世界坐标休息包厢（更大卡座） */
 export const WORLD_BOOTHS = [
