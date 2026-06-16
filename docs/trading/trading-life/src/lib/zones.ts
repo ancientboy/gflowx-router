@@ -5,7 +5,7 @@ export const ZONE_META: Record<ZoneId, { label: string; floorColor: string; w: n
   hall: { label: '交易大厅', floorColor: '#f5f0e8', w: 22, d: 14 },
   reception: { label: '前厅接待', floorColor: '#faf6ef', w: 18, d: 10 },
   restaurant: { label: '餐厅', floorColor: '#fff8eb', w: 20, d: 14 },
-  spa: { label: '按摩放松区', floorColor: '#f5eef8', w: 20, d: 14 },
+  spa: { label: '按摩放松区', floorColor: '#f0ebf8', w: 20, d: 14 },
   casino: { label: '德州扑克', floorColor: '#f5efe6', w: 20, d: 14 },
 };
 
@@ -31,6 +31,29 @@ function seatSpot(seat: { x: number; z: number }) {
 
 const CASINO_AGENT_SPOTS = Object.fromEntries(
   CASINO_SEATS.map(s => [s.id, seatSpot(s)]),
+) as Record<string, { x: number; z: number }>;
+
+/** 按摩隔间 — 一 Agent 一床位 */
+export const SPA_CUBICLES: { id: string; agentId: string; x: number; z: number }[] = [
+  { id: 'bed_xau', agentId: 'xau', x: -6, z: 2 },
+  { id: 'bed_major', agentId: 'major', x: -3, z: 2 },
+  { id: 'bed_alt', agentId: 'altcoin', x: 0, z: 2 },
+  { id: 'bed_new', agentId: 'newcoin', x: 3, z: 2 },
+  { id: 'bed_mom', agentId: 'momentum', x: 6, z: 2 },
+];
+
+/** 公共等候走廊沙发 */
+export const SPA_WAIT_SOFAS: { x: number; z: number; rotY: number }[] = [
+  { x: -4.5, z: -3.5, rotY: 0 },
+  { x: 0, z: -3.8, rotY: 0 },
+  { x: 4.5, z: -3.5, rotY: 0 },
+];
+
+/** 技师 NPC 待机点位 */
+export const SPA_THERAPIST = { x: 7.8, z: -1.2 };
+
+const SPA_AGENT_SPOTS = Object.fromEntries(
+  SPA_CUBICLES.map(c => [c.agentId, { x: c.x, z: c.z }]),
 ) as Record<string, { x: number; z: number }>;
 
 export const HALL_DESKS: [number, number, number][] = [
@@ -65,10 +88,7 @@ export const LEISURE_SPOTS: Record<ZoneId, Record<string, { x: number; z: number
     xau: { x: -4, z: 1 }, major: { x: 0, z: 1 }, altcoin: { x: 4, z: 1 },
     newcoin: { x: -4, z: 4 }, momentum: { x: 4, z: 4 },
   },
-  spa: {
-    xau: { x: -5, z: 0 }, major: { x: 0, z: 0 }, altcoin: { x: 5, z: 0 },
-    newcoin: { x: -2.5, z: 3 }, momentum: { x: 2.5, z: 3 },
-  },
+  spa: SPA_AGENT_SPOTS,
   casino: CASINO_AGENT_SPOTS,
 };
 

@@ -6,6 +6,7 @@ import { SceneSprite } from '../ui/SceneSprite';
 import { useGameStore } from '../../../store/useGameStore';
 import { HALL_BOOTHS, HALL_COFFEE, HALL_DESKS, CASINO_SEATS, agentDisplayZone, LEISURE_SPOTS } from '../../../lib/zones';
 import { CasinoLounge } from './CasinoLounge';
+import { SpaLounge } from './SpaLounge';
 import type { CharState } from '../../../lib/constants';
 import type { ZoneId } from '../../../store/useGameStore';
 
@@ -119,20 +120,24 @@ function ZoneAgents({ zone }: { zone: ZoneId }) {
           : (LEISURE_SPOTS[zone][char.agentId] ?? { x: 0, z: 0 });
         const meta = char.data;
         const seat = zone === 'casino' ? CASINO_SEATS.find(s => s.id === char.agentId) : null;
-        const poseY = char.activity === 'massage' ? 0.45
+        const isMassage = char.activity === 'massage';
+        const poseY = isMassage ? 0.45
           : char.activity === 'dine' ? 0.15
           : char.activity === 'rest' ? 0.1
           : char.activity === 'poker' ? 0.18 : 0;
+        const poseRotX = isMassage ? -Math.PI / 2.2 : 0;
         const status = char.activity === 'rest' ? '休息中'
+          : isMassage ? '按摩中'
           : char.activity === 'poker' ? '打德州'
           : char.state === 'trading' ? '交易中'
           : char.state === 'scanning' ? '扫描中'
           : char.state === 'panic' ? '熔断'
           : char.activity || '空闲';
         return (
-          <group key={char.agentId} position={[spot.x, poseY, spot.z]} rotation={[0, seat?.rotY ?? 0, 0]}>
+          <group key={char.agentId} position={[spot.x, poseY, spot.z]} rotation={[poseRotX, seat?.rotY ?? 0, 0]}>
             {selected === char.agentId && <SceneSprite id="monitor" position={[0, 2.2, 0]} scale={0.38} />}
-            {char.stress > 70 && <SceneSprite id="stormCloud" position={[0, 2.4, 0]} scale={0.34} />}
+            {char.stress > 70 && !isMassage && <SceneSprite id="stormCloud" position={[0, 2.4, 0]} scale={0.34} />}
+            {isMassage && char.stress < 45 && <SceneSprite id="healStar" position={[0, 2.3, 0]} scale={0.34} />}
             <Gugugaga
               accentColor={meta.color}
               label={meta.name}
@@ -140,10 +145,11 @@ function ZoneAgents({ zone }: { zone: ZoneId }) {
               stress={char.stress}
               selected={selected === char.agentId}
               activity={char.activity}
-              scale={char.activity === 'poker' ? 0.88 : 1}
+              scale={char.activity === 'poker' ? 0.88 : isMassage ? 0.95 : 1}
               onClick={() => focusAgent(char.agentId)}
             />
-            {effectsOn && char.stress > 70 && <pointLight color="#888" intensity={0.3} distance={2} position={[0, 1, 0]} />}
+            {effectsOn && char.stress > 70 && !isMassage && <pointLight color="#888" intensity={0.3} distance={2} position={[0, 1, 0]} />}
+            {effectsOn && isMassage && <pointLight color="#48d093" intensity={0.45} distance={2.5} position={[0, 0.8, 0]} />}
           </group>
         );
       })}
@@ -204,23 +210,10 @@ export function SpaZone() {
   const selectFacility = useGameStore(s => s.selectFacility);
   return (
     <group>
-      <Floor color="#f5eef8" w={20} d={14} />
-      {[[-5, 0], [0, 0], [5, 0]].map(([x, z], i) => (
-        <group key={i} position={[x, 0, z]}>
-          <mesh position={[0, 0.25, 0]} castShadow>
-            <boxGeometry args={[1.6, 0.35, 0.7]} />
-            <meshToonMaterial color="#f0ebe3" />
-          </mesh>
-          <SceneSprite id="spaBubble" position={[0, 1, 0]} scale={0.38} />
-        </group>
-      ))}
-      <group position={[0, 0, 4]} onClick={(e) => { e.stopPropagation(); selectNpc('masseur'); }}>
-        <SceneSprite id="massageHand" position={[0, 2.2, 0]} scale={0.4} />
-        <Gugugaga role="masseur" accentColor="#c8a8e8" label="技师 Gaga" status="按摩放松" onClick={() => selectNpc('masseur')} />
-      </group>
-      <mesh position={[0, 0.5, 0]} onClick={(e) => { e.stopPropagation(); selectFacility('bed'); openModal('massage'); }}>
-        <boxGeometry args={[10, 0.1, 4]} /><meshBasicMaterial visible={false} />
-      </mesh>
+      <SpaLounge
+        onSelectTherapist={() => selectNpc('masseur')}
+        onSelectBed={() => { selectFacility('bed'); openModal('massage'); }}
+      />
       <ZoneAgents zone="spa" />
     </group>
   );

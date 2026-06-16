@@ -114,9 +114,9 @@ function ModalContent({ id }: { id: Exclude<ModalId, null> }) {
       ]} />;
     case 'massage':
       return <LeisureModal type="massage" title="按摩区" lucide={LucideIcons.massage} items={[
-        { id: 'a', name: '基础理疗', desc: '30 分钟肩颈', cost: 60, effect: '-30% 压力' },
-        { id: 'b', name: '深度按摩', desc: '60 分钟全身', cost: 80, effect: '-50% 压力' },
-        { id: 'c', name: '精油 SPA', desc: '90 分钟尊享', cost: 120, effect: '-70% 压力' },
+        { id: 'a', name: '基础理疗', desc: '30 分钟肩颈', cost: 60, effect: '-30% 压力', icon: LucideIcons.massageBed },
+        { id: 'b', name: '深度按摩', desc: '60 分钟全身', cost: 80, effect: '-50% 压力', icon: LucideIcons.massageWind },
+        { id: 'c', name: '精油 SPA', desc: '90 分钟尊享', cost: 120, effect: '-70% 压力', icon: LucideIcons.massageOil },
       ]} />;
     case 'poker':
       return <LeisureModal type="poker" title="德州扑克" lucide={LucideIcons.poker} items={[
@@ -133,7 +133,7 @@ function LeisureModal({ type, title, lucide, items }: {
   type: 'dine' | 'massage' | 'poker';
   title: string;
   lucide: typeof LucideIcons.dine;
-  items: { id: string; name: string; desc: string; cost: number; effect: string }[];
+  items: { id: string; name: string; desc: string; cost: number; effect: string; icon?: typeof LucideIcons.dine }[];
 }) {
   const closeModal = useGameStore(s => s.closeModal);
   const addMessage = useGameStore(s => s.addMessage);
@@ -163,7 +163,7 @@ function LeisureModal({ type, title, lucide, items }: {
       </div>
       {items.map(it => (
         <button key={it.id} className={`leisure-option ${picked === it.id ? 'selected' : ''}`} onClick={() => setPicked(it.id)}>
-          <MiniLucide icon={lucide} color={picked === it.id ? 'profit' : 'muted'} />
+          <MiniLucide icon={it.icon ?? lucide} color={picked === it.id ? 'profit' : 'muted'} />
           <div style={{ flex: 1, textAlign: 'left' }}>
             <div style={{ fontWeight: 600 }}>{it.name}</div>
             <div style={{ fontSize: 11, color: '#8a7e72' }}>{it.desc} · {it.effect}</div>

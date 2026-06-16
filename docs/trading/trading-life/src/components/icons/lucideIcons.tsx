@@ -1,6 +1,7 @@
 import {
   TrendingUp, Shield, CloudRain, Coins, Wind, Cloud,
   ArrowUpRight, ArrowDownRight, Utensils, Droplets, CircleDollarSign,
+  Sparkles, Bed,
 } from 'lucide-react';
 import { AppIcon } from './AppIcon';
 import type { IconColor } from './tokens';
@@ -15,7 +16,10 @@ export const LucideIcons = {
   takeProfit: ArrowUpRight,
   stopLoss: ArrowDownRight,
   dine: Utensils,
-  massage: Droplets,
+  massage: Sparkles,
+  massageOil: Droplets,
+  massageWind: Wind,
+  massageBed: Bed,
   poker: CircleDollarSign,
 };
 

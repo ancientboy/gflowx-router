@@ -60,7 +60,9 @@ function SceneContent() {
   const activeZone = useGameStore(s => s.activeZone);
   const bg = activeZone === 'casino'
     ? '#f0e8dc'
-    : (dayMode === 'day' ? '#e8e4dc' : '#2a2838');
+    : activeZone === 'spa'
+      ? '#ebe6f5'
+      : (dayMode === 'day' ? '#e8e4dc' : '#2a2838');
 
   return (
     <>
@@ -92,7 +94,9 @@ export function GameCanvas() {
 
   const bgColor = activeZone === 'casino'
     ? '#f0e8dc'
-    : (dayMode === 'day' ? '#e8e4dc' : '#2a2838');
+    : activeZone === 'spa'
+      ? '#ebe6f5'
+      : (dayMode === 'day' ? '#e8e4dc' : '#2a2838');
 
   return (
     <div className={`canvas-wrap${zoneAnim ? ' zone-fade' : ''}`}>
