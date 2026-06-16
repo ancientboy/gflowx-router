@@ -18,6 +18,14 @@ export const HALL_AGENT_START: Record<string, { x: number; z: number }> = {
   newcoin: { x: 3, z: -2 }, momentum: { x: 6, z: -2 },
 };
 
+/** 大厅休息包厢（本地坐标） */
+export const HALL_BOOTHS: { id: string; x: number; z: number; label: string }[] = [
+  { id: 'rest_l_1', x: -5.8, z: 5.15, label: '休息包厢 A' },
+  { id: 'rest_l_2', x: 5.8, z: 5.15, label: '休息包厢 B' },
+];
+
+export const HALL_COFFEE = { x: 9, z: 1 };
+
 export function agentDisplayZone(char: { activity: string | null }): ZoneId {
   if (char.activity === 'dine') return 'restaurant';
   if (char.activity === 'massage') return 'spa';

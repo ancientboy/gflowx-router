@@ -4,7 +4,7 @@ import { InstancedBoxes } from '../furniture/InstancedFurniture';
 import { Gugugaga } from '../characters/Gugugaga';
 import { SceneSprite } from '../ui/SceneSprite';
 import { useGameStore } from '../../../store/useGameStore';
-import { HALL_DESKS, agentDisplayZone, LEISURE_SPOTS } from '../../../lib/zones';
+import { HALL_BOOTHS, HALL_COFFEE, HALL_DESKS, agentDisplayZone, LEISURE_SPOTS } from '../../../lib/zones';
 import type { CharState } from '../../../lib/constants';
 import type { ZoneId } from '../../../store/useGameStore';
 
@@ -60,6 +60,48 @@ function BigScreen({ ticker }: { ticker: Record<string, number> }) {
   );
 }
 
+function RestBooth({ x, z, flip = false }: { x: number; z: number; flip?: boolean }) {
+  const sx = flip ? -1 : 1;
+  return (
+    <group position={[x, 0, z]} scale={[sx, 1, 1]}>
+      <mesh position={[0, 0.9, -0.55]} castShadow receiveShadow>
+        <boxGeometry args={[2.4, 1.8, 0.12]} />
+        <meshToonMaterial color="#c8baa8" />
+      </mesh>
+      <mesh position={[-1.05, 0.9, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.12, 1.8, 1.6]} />
+        <meshToonMaterial color="#b8aa98" />
+      </mesh>
+      <mesh position={[0, 0.35, 0.15]} castShadow receiveShadow>
+        <boxGeometry args={[1.8, 0.5, 0.8]} />
+        <meshToonMaterial color="#8b7355" />
+      </mesh>
+      <mesh position={[0, 0.62, 0.15]}>
+        <boxGeometry args={[1.6, 0.12, 0.65]} />
+        <meshToonMaterial color="#d4c8b8" />
+      </mesh>
+      <mesh position={[0.55, 0.45, 0.55]} castShadow>
+        <cylinderGeometry args={[0.22, 0.22, 0.04, 12]} />
+        <meshToonMaterial color="#d4c8b8" />
+      </mesh>
+      <SceneSprite id="plateCoffee" position={[-0.5, 1.15, 0.35]} scale={0.32} />
+      <pointLight color="#ffe8c8" intensity={0.35} distance={3} position={[0, 1.2, 0.3]} />
+    </group>
+  );
+}
+
+function CoffeeCorner({ x, z }: { x: number; z: number }) {
+  return (
+    <group position={[x, 0, z]}>
+      <mesh position={[0, 0.55, 0]} castShadow>
+        <boxGeometry args={[1.2, 1.1, 0.6]} />
+        <meshToonMaterial color="#a08060" />
+      </mesh>
+      <SceneSprite id="plateCoffee" position={[0, 1.35, 0]} scale={0.38} />
+    </group>
+  );
+}
+
 function ZoneAgents({ zone }: { zone: ZoneId }) {
   const agents = useGameStore(s => s.agents);
   const selected = useGameStore(s => s.selectedAgentId);
@@ -72,11 +114,15 @@ function ZoneAgents({ zone }: { zone: ZoneId }) {
     <>
       {list.map(char => {
         const spot = zone === 'hall'
-          ? { x: char.x - 10, z: char.z - 7.5 }
+          ? { x: char.x, z: char.z }
           : (LEISURE_SPOTS[zone][char.agentId] ?? { x: 0, z: 0 });
         const meta = char.data;
-        const poseY = char.activity === 'massage' ? 0.45 : char.activity === 'dine' ? 0.15 : 0;
-        const status = char.state === 'trading' ? '交易中' : char.state === 'panic' ? '熔断' : char.activity || '空闲';
+        const poseY = char.activity === 'massage' ? 0.45 : char.activity === 'dine' ? 0.15 : char.activity === 'rest' ? 0.1 : 0;
+        const status = char.activity === 'rest' ? '休息中'
+          : char.state === 'trading' ? '交易中'
+          : char.state === 'scanning' ? '扫描中'
+          : char.state === 'panic' ? '熔断'
+          : char.activity || '空闲';
         return (
           <group key={char.agentId} position={[spot.x, poseY, spot.z]}>
             {selected === char.agentId && <SceneSprite id="monitor" position={[0, 2.2, 0]} scale={0.38} />}
@@ -100,11 +146,18 @@ function ZoneAgents({ zone }: { zone: ZoneId }) {
 
 export function HallZone() {
   const ticker = useGameStore(s => s.ticker);
+  const selectFacility = useGameStore(s => s.selectFacility);
   return (
     <group>
       <Floor color="#f5f0e8" w={22} d={14} />
       <InstancedBoxes positions={HALL_DESKS} />
       <BigScreen ticker={ticker} />
+      {HALL_BOOTHS.map((b, i) => (
+        <group key={b.id} onClick={(e) => { e.stopPropagation(); selectFacility(b.id); }}>
+          <RestBooth x={b.x} z={b.z} flip={i % 2 === 1} />
+        </group>
+      ))}
+      <CoffeeCorner x={HALL_COFFEE.x} z={HALL_COFFEE.z} />
       <ZoneAgents zone="hall" />
     </group>
   );

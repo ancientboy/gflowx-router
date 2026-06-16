@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { AgentData, CameraMode, CharState, QualityTier, TradeRecord } from '../lib/constants';
 import { AGENT_META } from '../lib/constants';
-import { OfficePath } from '../lib/pathfinding';
+import { HallPath } from '../lib/hallPathfinding';
 import { HALL_AGENT_START, SIDEBAR_TO_ZONE, ZONE_TO_RIGHT_TAB } from '../lib/zones';
 
 export type RightTab = 'hall' | 'object' | 'agent' | 'npc' | 'facility' | 'assets' | 'strategy' | 'messages';
@@ -83,8 +83,7 @@ interface GameStore {
   addMessage: (text: string) => void;
 }
 
-/** 世界坐标：交易大厅中心约在 (10, 7.5)，与 ZoneAgents 偏移一致 */
-const WORLD_HALL_OFFSET = { x: 10, z: 7.5 };
+/** 大厅 Agent 使用本地坐标（分区中心为原点） */
 
 export const useGameStore = create<GameStore>((set, get) => ({
   cameraMode: 'ortho',
@@ -261,13 +260,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   initAgents: () => {
     const agents: Record<string, CharState> = {};
-    Object.entries(HALL_AGENT_START).forEach(([id, local]) => {
-      const pos = { x: local.x + WORLD_HALL_OFFSET.x, z: local.z + WORLD_HALL_OFFSET.z };
+    Object.entries(HALL_AGENT_START).forEach(([id, pos]) => {
       agents[id] = {
         agentId: id, x: pos.x, z: pos.z,
         pathQueue: [], pathIndex: 0, isWalking: false, destNode: null,
         activity: null, activityUntil: 0, state: 'idle', stress: 0,
-        moveTimer: 0, nextMoveTime: 3000 + Math.random() * 5000,
+        moveTimer: 0, nextMoveTime: 1500 + Math.random() * 2500,
         data: { ...AGENT_META[id] },
       };
     });
@@ -326,54 +324,48 @@ export const useGameStore = create<GameStore>((set, get) => ({
 }));
 
 export function assignPath(char: CharState, nodeId: string): CharState {
-  const pts = OfficePath.pathToNode(char.x, char.z, nodeId);
-  if (pts.length < 2) return char;
+  const pts = HallPath.pathToNode(char.x, char.z, nodeId);
+  if (pts.length < 2) return { ...char, destNode: nodeId, isWalking: false, pathQueue: [] };
   return { ...char, activity: null, activityUntil: 0, destNode: nodeId, pathQueue: pts.slice(1), pathIndex: 0, isWalking: true };
 }
 
 export function pickWanderTarget(char: CharState): string {
-  const desk = OfficePath.deskByAgent[char.agentId];
-  if (char.state === 'trading') return desk;
+  const desk = HallPath.deskByAgent[char.agentId];
+  const booth = HallPath.boothByAgent[char.agentId];
   if (char.state === 'panic') return 'scr_ctr';
-  if (char.stress > 60) {
+  if (char.stress > 60) return Math.random() > 0.35 ? booth : 'scr_ctr';
+  if (char.state === 'trading') {
     const r = Math.random();
-    if (r > 0.5) return OfficePath.massageByAgent[char.agentId];
-    if (r > 0.25) return OfficePath.dineByAgent[char.agentId];
-    return OfficePath.pokerByAgent[char.agentId];
-  }
-  if (char.state === 'idle') {
-    const r = Math.random();
-    if (r > 0.7) return OfficePath.boothByAgent[char.agentId];
-    if (r > 0.5) return OfficePath.massageByAgent[char.agentId];
-    if (r > 0.3) return OfficePath.dineByAgent[char.agentId];
-    if (r > 0.15) return OfficePath.pokerByAgent[char.agentId];
+    if (r > 0.65) return booth;
+    if (r > 0.35) return 'scr_ctr';
     return desk;
   }
-  return OfficePath.wanderTargets[Math.floor(Math.random() * OfficePath.wanderTargets.length)];
+  if (char.state === 'scanning') {
+    const r = Math.random();
+    if (r > 0.55) return 'scr_ctr';
+    if (r > 0.3) return booth;
+    return HallPath.hallWander[Math.floor(Math.random() * HallPath.hallWander.length)];
+  }
+  const r = Math.random();
+  if (r > 0.65) return booth;
+  if (r > 0.45) return 'scr_ctr';
+  if (r > 0.25) return 'coffee';
+  return desk;
 }
 
 export function onPathComplete(char: CharState, now: number): CharState {
   const node = char.destNode;
-  if (node === OfficePath.boothByAgent[char.agentId]) return startActivity(char, 'rest', now, 9000);
-  if (node === OfficePath.massageByAgent[char.agentId]) return startActivity(char, 'massage', now, 10000);
-  if (node === OfficePath.dineByAgent[char.agentId]) return startActivity(char, 'dine', now, 9000);
-  if (node === OfficePath.pokerByAgent[char.agentId]) return startActivity(char, 'poker', now, 12000);
+  if (node === HallPath.boothByAgent[char.agentId]) return startActivity(char, 'rest', now, 9000);
   return { ...char, destNode: null, isWalking: false, pathQueue: [] };
 }
 
 function startActivity(char: CharState, activity: CharState['activity'], now: number, dur: number): CharState {
-  const seatMap: Record<string, Record<string, string>> = {
-    rest: OfficePath.boothByAgent, massage: OfficePath.massageByAgent,
-    dine: OfficePath.dineByAgent, poker: OfficePath.pokerByAgent,
-  };
-  const nodeId = seatMap[activity!]?.[char.agentId];
-  const pos = nodeId ? OfficePath.nodes[nodeId] : null;
+  const nodeId = activity === 'rest' ? HallPath.boothByAgent[char.agentId] : null;
+  const pos = nodeId ? HallPath.nodes[nodeId] : null;
   return {
     ...char, activity, activityUntil: now + dur + Math.random() * 5000,
     isWalking: false, pathQueue: [], destNode: null,
     x: pos?.x ?? char.x, z: pos?.z ?? char.z,
-    stress: activity === 'massage' ? Math.max(0, char.stress - 50) :
-            activity === 'dine' ? Math.max(0, char.stress - 30) :
-            activity === 'poker' ? 0 : char.stress,
+    stress: activity === 'rest' ? Math.max(0, char.stress - 20) : char.stress,
   };
 }
