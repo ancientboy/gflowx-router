@@ -4,7 +4,8 @@ import { InstancedBoxes } from '../furniture/InstancedFurniture';
 import { Gugugaga } from '../characters/Gugugaga';
 import { SceneSprite } from '../ui/SceneSprite';
 import { useGameStore } from '../../../store/useGameStore';
-import { HALL_BOOTHS, HALL_COFFEE, HALL_DESKS, agentDisplayZone, LEISURE_SPOTS } from '../../../lib/zones';
+import { HALL_BOOTHS, HALL_COFFEE, HALL_DESKS, CASINO_SEATS, agentDisplayZone, LEISURE_SPOTS } from '../../../lib/zones';
+import { CasinoLounge } from './CasinoLounge';
 import type { CharState } from '../../../lib/constants';
 import type { ZoneId } from '../../../store/useGameStore';
 
@@ -117,14 +118,19 @@ function ZoneAgents({ zone }: { zone: ZoneId }) {
           ? { x: char.x, z: char.z }
           : (LEISURE_SPOTS[zone][char.agentId] ?? { x: 0, z: 0 });
         const meta = char.data;
-        const poseY = char.activity === 'massage' ? 0.45 : char.activity === 'dine' ? 0.15 : char.activity === 'rest' ? 0.1 : 0;
+        const seat = zone === 'casino' ? CASINO_SEATS.find(s => s.id === char.agentId) : null;
+        const poseY = char.activity === 'massage' ? 0.45
+          : char.activity === 'dine' ? 0.15
+          : char.activity === 'rest' ? 0.1
+          : char.activity === 'poker' ? 0.18 : 0;
         const status = char.activity === 'rest' ? '休息中'
+          : char.activity === 'poker' ? '打德州'
           : char.state === 'trading' ? '交易中'
           : char.state === 'scanning' ? '扫描中'
           : char.state === 'panic' ? '熔断'
           : char.activity || '空闲';
         return (
-          <group key={char.agentId} position={[spot.x, poseY, spot.z]}>
+          <group key={char.agentId} position={[spot.x, poseY, spot.z]} rotation={[0, seat?.rotY ?? 0, 0]}>
             {selected === char.agentId && <SceneSprite id="monitor" position={[0, 2.2, 0]} scale={0.38} />}
             {char.stress > 70 && <SceneSprite id="stormCloud" position={[0, 2.4, 0]} scale={0.34} />}
             <Gugugaga
@@ -134,6 +140,7 @@ function ZoneAgents({ zone }: { zone: ZoneId }) {
               stress={char.stress}
               selected={selected === char.agentId}
               activity={char.activity}
+              scale={char.activity === 'poker' ? 0.88 : 1}
               onClick={() => focusAgent(char.agentId)}
             />
             {effectsOn && char.stress > 70 && <pointLight color="#888" intensity={0.3} distance={2} position={[0, 1, 0]} />}
@@ -225,19 +232,10 @@ export function CasinoZone() {
   const selectFacility = useGameStore(s => s.selectFacility);
   return (
     <group>
-      <Floor color="#1e2838" w={20} d={14} />
-      <mesh position={[0, 0.55, 0]} castShadow>
-        <cylinderGeometry args={[1.8, 1.8, 0.12, 24]} />
-        <meshToonMaterial color="#1a5c3a" />
-      </mesh>
-      <SceneSprite id="pokerChips" position={[0, 1.8, 0]} scale={0.5} />
-      <group position={[0, 0, 4]} onClick={(e) => { e.stopPropagation(); selectNpc('dealer'); }}>
-        <SceneSprite id="cards" position={[0, 2.2, 0]} scale={0.4} />
-        <Gugugaga role="dealer" accentColor="#d4af37" label="荷官 Jack" status="德州扑克" onClick={() => selectNpc('dealer')} />
-      </group>
-      <mesh position={[0, 0.5, 0]} onClick={(e) => { e.stopPropagation(); selectFacility('poker'); openModal('poker'); }}>
-        <cylinderGeometry args={[2.5, 2.5, 0.1, 16]} /><meshBasicMaterial visible={false} />
-      </mesh>
+      <CasinoLounge
+        onSelectDealer={() => selectNpc('dealer')}
+        onSelectTable={() => { selectFacility('poker'); openModal('poker'); }}
+      />
       <ZoneAgents zone="casino" />
     </group>
   );

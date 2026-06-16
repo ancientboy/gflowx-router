@@ -59,7 +59,7 @@ function SceneContent() {
   const dayMode = useGameStore(s => s.dayMode);
   const activeZone = useGameStore(s => s.activeZone);
   const bg = activeZone === 'casino'
-    ? '#1e2838'
+    ? '#f0e8dc'
     : (dayMode === 'day' ? '#e8e4dc' : '#2a2838');
 
   return (
@@ -91,7 +91,7 @@ export function GameCanvas() {
   }, [activeZone]);
 
   const bgColor = activeZone === 'casino'
-    ? '#1e2838'
+    ? '#f0e8dc'
     : (dayMode === 'day' ? '#e8e4dc' : '#2a2838');
 
   return (
