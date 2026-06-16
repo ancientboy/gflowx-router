@@ -1,9 +1,10 @@
-import { useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import * as THREE from 'three';
-import { Text } from '@react-three/drei';
 import { ZONES } from '../../lib/pathfinding';
-import { InstancedBoxes, InstancedBeds } from './furniture/InstancedFurniture';
+import { InstancedBoxes } from './furniture/InstancedFurniture';
 import { Gugugaga } from './characters/Gugugaga';
+import { ZoneEffects } from './effects/ZoneEffects';
+import { ZoneLabel } from './ui/ZoneLabel';
 import { useGameStore } from '../../store/useGameStore';
 import type { CharState } from '../../lib/constants';
 
@@ -66,6 +67,16 @@ function BigScreen({ ticker }: { ticker: Record<string, number> }) {
   );
 }
 
+function activityPose(activity: CharState['activity']): { y: number; rotX: number; scale: number } {
+  switch (activity) {
+    case 'massage': return { y: 0.45, rotX: -Math.PI / 2.2, scale: 0.95 };
+    case 'dine': return { y: 0.15, rotX: 0, scale: 0.85 };
+    case 'poker': return { y: 0.2, rotX: 0, scale: 0.9 };
+    case 'rest': return { y: 0.1, rotX: 0, scale: 0.9 };
+    default: return { y: 0, rotX: 0, scale: 1 };
+  }
+}
+
 export function WorldScene() {
   const agents = useGameStore(s => s.agents);
   const ticker = useGameStore(s => s.ticker);
@@ -74,37 +85,28 @@ export function WorldScene() {
   const selectNpc = useGameStore(s => s.selectNpc);
   const selectFacility = useGameStore(s => s.selectFacility);
   const effectsOn = useGameStore(s => s.effectsOn);
+  const openModal = useGameStore(s => s.openModal);
 
   const deskPos: [number, number, number][] = [
     [4.2, 0.5, 5.6], [7, 0.5, 5.6], [9.8, 0.5, 5.6], [12.6, 0.5, 5.6], [15.4, 0.5, 5.6],
   ];
-  const bedPos: [number, number, number][] = [
-    [27, 0.2, 11.8], [30, 0.2, 11.8], [33, 0.2, 11.8],
-  ];
 
   return (
     <group>
-      {/* 地板分区 */}
       {ZONES.map(z => (
         <group key={z.id}>
           <mesh rotation={[-Math.PI / 2, 0, 0]} position={[z.x, 0, z.z]} receiveShadow>
             <planeGeometry args={[z.w, z.d]} />
             <meshToonMaterial color={z.color} />
           </mesh>
-          <Text
-            position={[z.x, 0.05, z.z - z.d / 2 + 0.8]}
-            rotation={[-Math.PI / 2, 0, 0]}
-            fontSize={0.45}
+          <ZoneLabel
+            label={z.label}
+            position={[z.x, 0.5, z.z - z.d / 2 + 1.2]}
             color={z.id === 'casino' ? '#d4af37' : '#6b5e4e'}
-            anchorX="center"
-            fontWeight={700}
-          >
-            {z.label}
-          </Text>
+          />
         </group>
       ))}
 
-      {/* 墙体 */}
       <Wall x={28} z={3.65} w={0.25} d={7.3} />
       <Wall x={28} z={10.15} w={0.25} d={7.3} />
       <Wall x={5.75} z={15} w={11.5} d={0.25} />
@@ -112,24 +114,15 @@ export function WorldScene() {
       <Wall x={42.25} z={15} w={11.5} d={0.25} />
       <Wall x={28} z={23} w={0.25} d={6} />
 
-      {/* 前厅接待台 */}
       <mesh position={[14, 0.6, 25.5]} castShadow>
         <boxGeometry args={[4, 1.2, 1]} />
         <meshToonMaterial color="#d4c8b8" />
       </mesh>
 
       <InstancedBoxes positions={deskPos} />
-      <InstancedBeds positions={bedPos} />
-
-      {/* 德州桌 */}
-      <mesh position={[36, 0.55, 21]} castShadow>
-        <cylinderGeometry args={[1.8, 1.8, 0.12, 24]} />
-        <meshToonMaterial color="#1a5c3a" />
-      </mesh>
-
+      <ZoneEffects />
       <BigScreen ticker={ticker} />
 
-      {/* NPC — 可点击 */}
       <group position={[14, 0, 25]} onClick={(e) => { e.stopPropagation(); selectNpc('reception'); }}>
         <Gugugaga role="reception" accentColor="#d4af37" label="迎宾 Gugu" status="欢迎光临交易人生" onClick={() => selectNpc('reception')} />
       </group>
@@ -143,41 +136,45 @@ export function WorldScene() {
         <Gugugaga role="waiter" accentColor="#e879a9" label="服务员 Lily" status="餐厅服务" scale={1.05} onClick={() => selectNpc('lily')} />
       </group>
 
-      {/* 可点击设施 */}
-      <mesh position={[12, 0.3, 18.5]} onClick={(e) => { e.stopPropagation(); selectFacility('table'); }}>
-        <boxGeometry args={[2, 0.1, 2]} /><meshBasicMaterial visible={false} />
+      <mesh position={[12, 0.5, 18.5]} onClick={(e) => { e.stopPropagation(); selectFacility('table'); openModal('dine'); }}>
+        <boxGeometry args={[2.5, 0.1, 2.5]} />
+        <meshBasicMaterial visible={false} />
       </mesh>
-      <mesh position={[30, 0.3, 11.8]} onClick={(e) => { e.stopPropagation(); selectFacility('bed'); }}>
-        <boxGeometry args={[2, 0.1, 1]} /><meshBasicMaterial visible={false} />
+      <mesh position={[30, 0.5, 11.8]} onClick={(e) => { e.stopPropagation(); selectFacility('bed'); openModal('massage'); }}>
+        <boxGeometry args={[2, 0.1, 1.2]} />
+        <meshBasicMaterial visible={false} />
       </mesh>
-      <mesh position={[36, 0.3, 21]} onClick={(e) => { e.stopPropagation(); selectFacility('poker'); }}>
-        <cylinderGeometry args={[2, 2, 0.1, 16]} /><meshBasicMaterial visible={false} />
+      <mesh position={[36, 0.5, 21]} onClick={(e) => { e.stopPropagation(); selectFacility('poker'); openModal('poker'); }}>
+        <cylinderGeometry args={[2.2, 2.2, 0.1, 16]} />
+        <meshBasicMaterial visible={false} />
       </mesh>
 
-      {/* Agents */}
       {(Object.values(agents) as CharState[]).map(char => {
         const meta = char.data;
-        const status = char.activity === 'massage' ? '按摩中' :
-          char.activity === 'dine' ? '就餐中' :
-          char.activity === 'poker' ? '打德州' :
-          char.activity === 'rest' ? '休息中' :
-          char.state === 'trading' ? '交易中' :
-          char.state === 'panic' ? '熔断!' :
-          char.state === 'scanning' ? '扫描中' : '空闲';
+        const status = char.activity === 'massage' ? '💆 按摩中' :
+          char.activity === 'dine' ? '🍽️ 就餐中' :
+          char.activity === 'poker' ? '🎰 打德州' :
+          char.activity === 'rest' ? '😴 休息中' :
+          char.state === 'trading' ? '📈 交易中' :
+          char.state === 'panic' ? '⚠️ 熔断!' :
+          char.state === 'scanning' ? '🔍 扫描中' : '💤 空闲';
+        const pose = activityPose(char.activity);
         return (
-          <group key={char.agentId} position={[char.x, char.activity === 'massage' ? 0.35 : 0, char.z]}>
+          <group key={char.agentId} position={[char.x, pose.y, char.z]} rotation={[pose.rotX, 0, 0]}>
             <Gugugaga
               accentColor={meta.color}
               label={meta.name}
               status={status + (meta.pnl != null ? ` · ${meta.pnl >= 0 ? '+' : ''}$${Math.round(meta.pnl)}` : '')}
               stress={char.stress}
               selected={selected === char.agentId}
+              scale={pose.scale}
+              activity={char.activity}
               onClick={() => selectAgent(char.agentId)}
             />
             {effectsOn && char.stress > 70 && (
               <pointLight color="#888888" intensity={0.3} distance={2} position={[0, 1, 0]} />
             )}
-            {effectsOn && char.activity && char.stress < 30 && (
+            {effectsOn && char.activity && (
               <pointLight color="#48d093" intensity={0.4} distance={2} position={[0, 1, 0]} />
             )}
           </group>

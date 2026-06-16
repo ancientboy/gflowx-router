@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useGameStore, type ModalId } from '../../store/useGameStore';
 import { AgentWorkshop } from './AgentWorkshop';
 
@@ -19,13 +20,13 @@ export function Modals() {
 
   if (!activeModal) return null;
 
-  const wide = activeModal === 'workshop' || activeModal === 'strategy';
+  const wide = ['workshop', 'strategy', 'dine', 'massage', 'poker'].includes(activeModal);
 
   return (
     <div className="modal-overlay" onClick={closeModal}>
       <div className={`modal-box ${wide ? 'modal-wide' : ''}`} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h2 style={{ fontSize: 17, fontWeight: 700 }}>{TITLES[activeModal]}</h2>
+          <h2 style={{ fontSize: 17, fontWeight: 700, color: '#3d3530' }}>{TITLES[activeModal]}</h2>
           <button className="ui-btn" onClick={closeModal} style={{ padding: '2px 10px' }}>×</button>
         </div>
         <ModalContent id={activeModal} />
@@ -47,77 +48,44 @@ function ModalContent({ id }: { id: Exclude<ModalId, null> }) {
   switch (id) {
     case 'workshop':
       return <AgentWorkshop />;
-
     case 'strategy':
-      return (
-        <div>
-          {d ? (
-            <>
-              <div style={{ marginBottom: 12, padding: 10, background: '#faf6ef', borderRadius: 8 }}>
-                <div style={{ fontWeight: 700 }}>{d.icon} {d.name}</div>
-                <div style={{ fontSize: 12, color: '#8a7e72' }}>{d.strategy} · {d.market} · {d.interval}</div>
-              </div>
-              <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>SOUL 策略文档</div>
-              <pre style={{ padding: 10, background: '#faf6ef', borderRadius: 8, fontSize: 11, lineHeight: 1.5, maxHeight: 200, overflow: 'auto', whiteSpace: 'pre-wrap' }}>
-                {soulMd || '加载中…'}
-              </pre>
-              <p style={{ color: '#8a7e72', fontSize: 12, marginTop: 12 }}>
-                完整拖拽式策略编辑器（React Flow + CodeMirror Lua）将在 Phase 2 接入。
-                当前可通过右侧面板「参数」和「SOUL」标签直接编辑策略配置。
-              </p>
-            </>
-          ) : (
-            <p style={{ color: '#8a7e72' }}>请先在左侧选择一个 Agent</p>
-          )}
+      return d ? (
+        <div style={{ color: '#3d3530' }}>
+          <div style={{ marginBottom: 12, padding: 10, background: '#faf6ef', borderRadius: 8 }}>
+            <div style={{ fontWeight: 700 }}>{d.icon} {d.name}</div>
+            <div style={{ fontSize: 12, color: '#8a7e72' }}>{d.strategy} · {d.market} · {d.interval}</div>
+          </div>
+          <pre style={{ padding: 10, background: '#faf6ef', borderRadius: 8, fontSize: 11, lineHeight: 1.5, maxHeight: 220, overflow: 'auto', whiteSpace: 'pre-wrap' }}>
+            {soulMd || '加载中…'}
+          </pre>
         </div>
-      );
-
+      ) : <p style={{ color: '#8a7e72' }}>请先选择一个 Agent</p>;
     case 'market':
       return (
-        <div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            {[
-              { sym: 'BTC/USDT', key: 'BTCUSDT' },
-              { sym: 'ETH/USDT', key: 'ETHUSDT' },
-              { sym: 'XAU/USDT', key: 'XAUUSDT' },
-              { sym: 'SOL/USDT', key: 'SOLUSDT' },
-            ].map(s => (
-              <div key={s.key} style={{ padding: 12, background: '#faf6ef', borderRadius: 8 }}>
-                <div style={{ fontSize: 11, color: '#9a8b7a' }}>{s.sym}</div>
-                <div style={{ fontWeight: 700, fontSize: 18 }}>
-                  {ticker[s.key] != null
-                    ? (s.key === 'XAUUSDT' ? '$' + ticker[s.key].toFixed(2) : '$' + Math.round(ticker[s.key]).toLocaleString())
-                    : '--'}
-                </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {[{ sym: 'BTC/USDT', key: 'BTCUSDT' }, { sym: 'ETH/USDT', key: 'ETHUSDT' }, { sym: 'XAU/USDT', key: 'XAUUSDT' }, { sym: 'SOL/USDT', key: 'SOLUSDT' }].map(s => (
+            <div key={s.key} style={{ padding: 12, background: '#faf6ef', borderRadius: 8 }}>
+              <div style={{ fontSize: 11, color: '#9a8b7a' }}>{s.sym}</div>
+              <div style={{ fontWeight: 700, fontSize: 18 }}>
+                {ticker[s.key] != null ? (s.key === 'XAUUSDT' ? '$' + ticker[s.key].toFixed(2) : '$' + Math.round(ticker[s.key]).toLocaleString()) : '--'}
               </div>
-            ))}
-          </div>
-          <p style={{ color: '#8a7e72', fontSize: 11, marginTop: 12 }}>K 线图表（Lightweight Charts）Phase 2 接入</p>
+            </div>
+          ))}
         </div>
       );
-
     case 'rank':
       return (
         <div>
-          <div style={{ fontSize: 12, color: '#9a8b7a', marginBottom: 8 }}>Agent 收益排行</div>
-          {Object.values(agents)
-            .sort((a, b) => (b.data.pnl || 0) - (a.data.pnl || 0))
-            .map((a, i) => (
-              <div key={a.agentId} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: '1px dashed #eee8dc' }}>
-                <span style={{ width: 20, textAlign: 'center', color: i < 3 ? '#d4af37' : '#999' }}>{i + 1}</span>
-                <span style={{ fontSize: 20 }}>{a.data.icon}</span>
-                <span style={{ flex: 1, fontWeight: 600 }}>{a.data.name}</span>
-                <span className={(a.data.pnl || 0) >= 0 ? 'profit' : 'loss'}>
-                  {(a.data.pnl || 0) >= 0 ? '+' : ''}${Math.round(a.data.pnl || 0)}
-                </span>
-              </div>
-            ))}
-          <div style={{ marginTop: 12, padding: 8, background: '#faf6ef', borderRadius: 8, fontSize: 12 }}>
-            总盈亏 ${Math.round(overview.total_pnl || 0).toLocaleString()} · 胜率 {overview.total_wr?.toFixed(1) || '--'}%
-          </div>
+          {Object.values(agents).sort((a, b) => (b.data.pnl || 0) - (a.data.pnl || 0)).map((a, i) => (
+            <div key={a.agentId} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: '1px dashed #eee8dc' }}>
+              <span style={{ width: 20, color: i < 3 ? '#d4af37' : '#999' }}>{i + 1}</span>
+              <span style={{ fontSize: 20 }}>{a.data.icon}</span>
+              <span style={{ flex: 1, fontWeight: 600 }}>{a.data.name}</span>
+              <span className={(a.data.pnl || 0) >= 0 ? 'profit' : 'loss'}>{(a.data.pnl || 0) >= 0 ? '+' : ''}${Math.round(a.data.pnl || 0)}</span>
+            </div>
+          ))}
         </div>
       );
-
     case 'settings':
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -125,64 +93,87 @@ function ModalContent({ id }: { id: Exclude<ModalId, null> }) {
           <label>音效 <input type="checkbox" defaultChecked /></label>
         </div>
       );
-
     case 'help':
       return (
         <div style={{ fontSize: 13, lineHeight: 1.6, color: '#6b5e4e' }}>
           <p><b>五大分区：</b>交易大厅 · 前厅接待 · 餐厅 · 按摩 · 德州扑克</p>
-          <p><b>玩法闭环：</b>Agent 自动交易 → 亏损增压 → 休闲区恢复 → 回工位</p>
-          <p><b>操作：</b></p>
-          <ul style={{ paddingLeft: 18 }}>
-            <li>左侧「交易大厅」→ 查看全部 Agent 列表</li>
-            <li>左侧「我的 Agent」→ 打开工坊编辑参数/SOUL</li>
-            <li>左侧「持仓交易」→ 查看所有持仓</li>
-            <li>左侧「交易日志」→ 历史成交记录</li>
-            <li>点击场景角色 → 右侧面板详情</li>
-          </ul>
-          {tradeFeed.length > 0 && <p style={{ marginTop: 8, fontSize: 11, color: '#9a8b7a' }}>最近成交 {tradeFeed.length} 条记录已加载</p>}
+          <p><b>玩法：</b>Agent 交易 → 亏损增压 → 休闲区恢复 → 回工位</p>
+          {tradeFeed.length > 0 && <p style={{ fontSize: 11, color: '#9a8b7a' }}>已加载 {tradeFeed.length} 条成交</p>}
         </div>
       );
-
     case 'dine':
-      return <LeisureModal title="用餐" effect="-30% 恐慌值" cost="50 代币" activity="dine" />;
+      return <LeisureModal type="dine" title="🍽️ 餐厅" items={[
+        { id: 'a', name: '能量套餐 A', desc: '意面 + 果汁', cost: 50, effect: '-30% 恐慌值', icon: '🍝' },
+        { id: 'b', name: '豪华套餐 B', desc: '牛排 + 红酒', cost: 80, effect: '-50% 恐慌值', icon: '🥩' },
+        { id: 'c', name: '甜心下午茶', desc: '蛋糕 + 咖啡', cost: 40, effect: '-20% 压力', icon: '🍰' },
+      ]} />;
     case 'massage':
-      return <LeisureModal title="深度按摩" effect="-50% 压力值" cost="80 代币" activity="massage" />;
+      return <LeisureModal type="massage" title="💆 按摩区" items={[
+        { id: 'a', name: '基础理疗', desc: '30 分钟肩颈', cost: 60, effect: '-30% 压力', icon: '💆' },
+        { id: 'b', name: '深度按摩', desc: '60 分钟全身', cost: 80, effect: '-50% 压力', icon: '🧖' },
+        { id: 'c', name: '精油 SPA', desc: '90 分钟尊享', cost: 120, effect: '-70% 压力', icon: '✨' },
+      ]} />;
     case 'poker':
-      return <LeisureModal title="德州扑克" effect="清空负面情绪" cost="30 代币" activity="poker" />;
+      return <LeisureModal type="poker" title="🎰 德州扑克" items={[
+        { id: 'a', name: '休闲局', desc: '底注 10 代币', cost: 30, effect: '清空负面情绪', icon: '🃏' },
+        { id: 'b', name: '标准局', desc: '底注 50 代币', cost: 80, effect: '清空压力 + 奖金', icon: '♠️' },
+        { id: 'c', name: '高手局', desc: '底注 200 代币', cost: 200, effect: '大幅减压 + 奖金', icon: '👑' },
+      ]} />;
     default:
       return null;
   }
 }
 
-function LeisureModal({ title, effect, cost, activity }: { title: string; effect: string; cost: string; activity: 'dine' | 'massage' | 'poker' }) {
+function LeisureModal({ type, title, items }: {
+  type: 'dine' | 'massage' | 'poker';
+  title: string;
+  items: { id: string; name: string; desc: string; cost: number; effect: string; icon: string }[];
+}) {
   const closeModal = useGameStore(s => s.closeModal);
   const addMessage = useGameStore(s => s.addMessage);
   const selectedAgentId = useGameStore(s => s.selectedAgentId);
   const agents = useGameStore(s => s.agents);
-  const patchChar = useGameStore(s => s.patchChar);
-  const agent = selectedAgentId ? agents[selectedAgentId] : Object.values(agents)[0];
+  const sendAgentToLeisure = useGameStore(s => s.sendAgentToLeisure);
+  const [picked, setPicked] = useState(items[0].id);
+  const [busy, setBusy] = useState(false);
+
+  const agent = selectedAgentId ? agents[selectedAgentId] : Object.values(agents).sort((a, b) => b.stress - a.stress)[0];
+  const item = items.find(i => i.id === picked) || items[0];
 
   return (
-    <div>
-      <p style={{ marginBottom: 8 }}><b>{title}</b> — {effect}</p>
-      <p style={{ color: '#8a7e72', fontSize: 12, marginBottom: 8 }}>消耗 {cost}</p>
-      {agent && (
-        <div style={{ padding: 8, background: '#faf6ef', borderRadius: 8, marginBottom: 12, fontSize: 12 }}>
-          为 <b>{agent.data.icon} {agent.data.name}</b> 提供服务（当前压力 {Math.round(agent.stress)}%）
+    <div style={{ color: '#3d3530' }}>
+      <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
+        <div className={`leisure-preview leisure-${type} ${busy ? 'active' : ''}`}>
+          <span style={{ fontSize: 48 }}>{type === 'dine' ? '🍽️' : type === 'massage' ? '💆' : '🎰'}</span>
         </div>
-      )}
-      <button className="ui-btn" style={{ width: '100%' }} onClick={() => {
-        if (agent) {
-          const stressDelta = activity === 'massage' ? -50 : activity === 'dine' ? -30 : -100;
-          patchChar(agent.agentId, {
-            stress: Math.max(0, agent.stress + stressDelta),
-            activity,
-            activityUntil: performance.now() + 8000,
-          });
-          addMessage(`${agent.data.name} 完成${title} · ${effect}`);
-        }
-        closeModal();
-      }}>确认消费</button>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 700, fontSize: 15 }}>{title}</div>
+          {agent && (
+            <div style={{ marginTop: 8, padding: 8, background: '#faf6ef', borderRadius: 8, fontSize: 12 }}>
+              服务对象：<b>{agent.data.icon} {agent.data.name}</b> · 压力 {Math.round(agent.stress)}%
+            </div>
+          )}
+        </div>
+      </div>
+      {items.map(it => (
+        <button key={it.id} className={`leisure-option ${picked === it.id ? 'selected' : ''}`} onClick={() => setPicked(it.id)}>
+          <span style={{ fontSize: 24 }}>{it.icon}</span>
+          <div style={{ flex: 1, textAlign: 'left' }}>
+            <div style={{ fontWeight: 600 }}>{it.name}</div>
+            <div style={{ fontSize: 11, color: '#8a7e72' }}>{it.desc} · {it.effect}</div>
+          </div>
+          <span style={{ color: '#d4af37', fontWeight: 600, fontSize: 12 }}>{it.cost} 代币</span>
+        </button>
+      ))}
+      <button className="ui-btn" style={{ width: '100%', marginTop: 12, padding: '10px 0' }} disabled={!agent || busy} onClick={() => {
+        if (!agent) return;
+        setBusy(true);
+        sendAgentToLeisure(type, agent.agentId);
+        addMessage(`${agent.data.name} 选择了「${item.name}」· ${item.effect}`);
+        setTimeout(() => { setBusy(false); closeModal(); }, 900);
+      }}>
+        {busy ? 'Agent 正在前往…' : `确认 · ${item.cost} 代币`}
+      </button>
     </div>
   );
 }

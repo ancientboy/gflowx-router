@@ -11,11 +11,15 @@ export interface GugugagaProps {
   status?: string;
   stress?: number;
   selected?: boolean;
+  activity?: 'idle' | 'rest' | 'massage' | 'dine' | 'poker' | null;
   onClick?: () => void;
 }
 
+const MAT_CACHE = new Map<string, THREE.MeshToonMaterial>();
 function toon(color: string | number) {
-  return new THREE.MeshToonMaterial({ color });
+  const key = String(color);
+  if (!MAT_CACHE.has(key)) MAT_CACHE.set(key, new THREE.MeshToonMaterial({ color }));
+  return MAT_CACHE.get(key)!;
 }
 
 export function Gugugaga({
@@ -26,6 +30,7 @@ export function Gugugaga({
   status,
   stress = 0,
   selected,
+  activity,
   onClick,
 }: GugugagaProps) {
   const g = useRef<THREE.Group>(null);
@@ -36,8 +41,12 @@ export function Gugugaga({
   useFrame((_, dt) => {
     t.current += dt;
     if (wingL.current && wingR.current) {
-      wingL.current.rotation.z = 0.5 + Math.sin(t.current * 6) * 0.15;
-      wingR.current.rotation.z = -0.5 - Math.sin(t.current * 6) * 0.15;
+      const flap = activity === 'massage' ? 0.05 : activity === 'dine' ? 0.08 : 0.15;
+      wingL.current.rotation.z = 0.5 + Math.sin(t.current * 6) * flap;
+      wingR.current.rotation.z = -0.5 - Math.sin(t.current * 6) * flap;
+    }
+    if (g.current && activity === 'dine') {
+      g.current.position.y = Math.sin(t.current * 3) * 0.02;
     }
   });
 

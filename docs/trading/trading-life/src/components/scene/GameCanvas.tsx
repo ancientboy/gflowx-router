@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrthographicCamera, PerspectiveCamera, MapControls } from '@react-three/drei';
 import * as THREE from 'three';
@@ -129,8 +129,10 @@ function SceneContent() {
       {effectsOn && quality !== 'low' && (
         <directionalLight position={[-10, 12, -8]} intensity={0.35} color="#ffeedd" />
       )}
-      <CharacterSim simSpeed={simSpeed} />
-      <WorldScene />
+      <Suspense fallback={null}>
+        <CharacterSim simSpeed={simSpeed} />
+        <WorldScene />
+      </Suspense>
     </>
   );
 }
@@ -138,15 +140,17 @@ function SceneContent() {
 export function GameCanvas() {
   const quality = useGameStore(s => s.quality);
   const dayMode = useGameStore(s => s.dayMode);
+  const bgColor = dayMode === 'day' ? '#e8e4dc' : '#2a2838';
 
   return (
     <Canvas
       shadows={quality !== 'low'}
       dpr={quality === 'low' ? 1 : Math.min(window.devicePixelRatio, 2)}
-      gl={{ antialias: quality !== 'low', alpha: false }}
-      style={{ width: '100%', height: '100%' }}
-      onCreated={({ scene }) => {
-        scene.background = new THREE.Color(dayMode === 'day' ? '#e8e4dc' : '#2a2838');
+      gl={{ antialias: quality !== 'low', alpha: false, preserveDrawingBuffer: true }}
+      style={{ width: '100%', height: '100%', background: bgColor }}
+      onCreated={({ scene, gl }) => {
+        scene.background = new THREE.Color(bgColor);
+        gl.setClearColor(new THREE.Color(bgColor), 1);
       }}
     >
       <SceneContent />

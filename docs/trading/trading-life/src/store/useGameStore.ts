@@ -64,6 +64,7 @@ interface GameStore {
   toggleMinimalUi: () => void;
   setSidebarActive: (id: string) => void;
   navigateSidebar: (action: SidebarAction) => void;
+  sendAgentToLeisure: (type: 'dine' | 'massage' | 'poker', agentId?: string) => void;
   openModal: (id: ModalId) => void;
   closeModal: () => void;
   flyToZone: (zone: ZoneId) => void;
@@ -150,13 +151,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
         set({ ...expand, sidebarActive: 'positions', rightTab: 'assets' });
         break;
       case 'restaurant':
-        set({ ...expand, sidebarActive: 'restaurant', cameraFocus: ZONE_CAMERA.restaurant, followAgentId: null });
+        set({ ...expand, sidebarActive: 'restaurant', cameraFocus: ZONE_CAMERA.restaurant, followAgentId: null, activeModal: 'dine' });
         break;
       case 'spa':
-        set({ ...expand, sidebarActive: 'spa', cameraFocus: ZONE_CAMERA.spa, followAgentId: null });
+        set({ ...expand, sidebarActive: 'spa', cameraFocus: ZONE_CAMERA.spa, followAgentId: null, activeModal: 'massage' });
         break;
       case 'casino':
-        set({ ...expand, sidebarActive: 'casino', cameraFocus: ZONE_CAMERA.casino, followAgentId: null });
+        set({ ...expand, sidebarActive: 'casino', cameraFocus: ZONE_CAMERA.casino, followAgentId: null, activeModal: 'poker' });
         break;
       case 'logs':
         set({ ...expand, sidebarActive: 'logs', rightTab: 'messages' });
@@ -174,6 +175,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
   openModal: (id) => set({ activeModal: id }),
   closeModal: () => set({ activeModal: null }),
   flyToZone: (zone) => set({ cameraFocus: ZONE_CAMERA[zone], sidebarActive: zone, followAgentId: null }),
+
+  sendAgentToLeisure: (type, agentId) => {
+    const s = get();
+    const id = agentId || s.selectedAgentId || Object.values(s.agents).sort((a, b) => b.stress - a.stress)[0]?.agentId;
+    if (!id || !s.agents[id]) return;
+    const nodeMap = { dine: OfficePath.dineByAgent, massage: OfficePath.massageByAgent, poker: OfficePath.pokerByAgent };
+    let c = assignPath({ ...s.agents[id], activity: null, activityUntil: 0 }, nodeMap[type][id]);
+    const zoneMap = { dine: 'restaurant' as ZoneId, massage: 'spa' as ZoneId, poker: 'casino' as ZoneId };
+    set({
+      agents: { ...s.agents, [id]: c },
+      selectedAgentId: id,
+      followAgentId: id,
+      cameraFocus: ZONE_CAMERA[zoneMap[type]],
+      rightPanelCollapsed: false,
+    });
+  },
   resetCamera: () => set({ cameraFocus: ZONE_CAMERA.hall, followAgentId: null }),
   setFollowAgent: (id) => set({ followAgentId: id, selectedAgentId: id, rightPanelCollapsed: false }),
 
