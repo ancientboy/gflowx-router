@@ -5,6 +5,8 @@ import { CanvasControls } from '../ui/CanvasControls';
 import { Modals } from '../ui/Modals';
 import { GameCanvas } from '../scene/GameCanvas';
 import { useGameStore } from '../../store/useGameStore';
+import { SIDEBAR_ICONS } from '../icons/sidebarIcons';
+import { NavIcon } from '../icons/AppIcon';
 
 export function AppShell() {
   const leftExpanded = useGameStore(s => s.leftSidebarExpanded);
@@ -28,24 +30,29 @@ export function AppShell() {
       </main>
       <RightPanel />
       <Modals />
-
-      {/* 移动端底部 Tab */}
       <MobileTabBar />
     </div>
   );
 }
 
 function MobileTabBar() {
-  const flyToZone = useGameStore(s => s.flyToZone);
-  const openModal = useGameStore(s => s.openModal);
+  const navigateSidebar = useGameStore(s => s.navigateSidebar);
   const toggleRightPanel = useGameStore(s => s.toggleRightPanel);
+
+  const tabs = [
+    { id: 'hall' as const, pair: SIDEBAR_ICONS.hall, action: () => navigateSidebar('hall') },
+    { id: 'agents' as const, pair: SIDEBAR_ICONS.agents, action: () => navigateSidebar('agents') },
+    { id: 'restaurant' as const, pair: SIDEBAR_ICONS.restaurant, action: () => navigateSidebar('restaurant') },
+    { id: 'panel' as const, pair: SIDEBAR_ICONS.logs, action: toggleRightPanel },
+  ];
 
   return (
     <nav className="mobile-tab-bar">
-      <button className="sidebar-item" onClick={() => flyToZone('hall')}>🏠</button>
-      <button className="sidebar-item" onClick={() => openModal('workshop')}>🐧</button>
-      <button className="sidebar-item" onClick={() => flyToZone('restaurant')}>🍽️</button>
-      <button className="sidebar-item" onClick={toggleRightPanel}>📋</button>
+      {tabs.map(t => (
+        <button key={t.id} className="sidebar-item" onClick={t.action}>
+          <NavIcon outline={t.pair.outline} solid={t.pair.solid} size="sidebar" />
+        </button>
+      ))}
     </nav>
   );
 }

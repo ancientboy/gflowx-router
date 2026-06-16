@@ -1,22 +1,23 @@
-import { useGameStore, type SidebarAction, type ZoneId } from '../../store/useGameStore';
+import { useState } from 'react';
+import { useGameStore, type SidebarAction } from '../../store/useGameStore';
+import { SIDEBAR_ICONS } from '../icons/sidebarIcons';
+import { NavIcon } from '../icons/AppIcon';
 
-const MAIN_ITEMS: { id: SidebarAction; icon: string; label: string; zone?: ZoneId }[] = [
-  { id: 'hall', icon: '🏠', label: '交易大厅', zone: 'hall' },
-  { id: 'agents', icon: '🐧', label: '我的 Agent' },
-  { id: 'strategy', icon: '📊', label: '策略编辑器' },
-  { id: 'positions', icon: '📈', label: '持仓交易' },
+const MAIN: { id: SidebarAction; label: string }[] = [
+  { id: 'hall', label: '交易大厅' },
+  { id: 'agents', label: '我的 Agent' },
+  { id: 'strategy', label: '策略编辑器' },
+  { id: 'positions', label: '持仓交易' },
 ];
-
-const LEISURE_ITEMS: { id: SidebarAction; icon: string; label: string; zone: ZoneId }[] = [
-  { id: 'restaurant', icon: '🍽️', label: '餐厅', zone: 'restaurant' },
-  { id: 'spa', icon: '💆', label: '按摩区', zone: 'spa' },
-  { id: 'casino', icon: '🎰', label: '德州扑克', zone: 'casino' },
+const LEISURE: { id: SidebarAction; label: string }[] = [
+  { id: 'restaurant', label: '餐厅' },
+  { id: 'spa', label: '按摩区' },
+  { id: 'casino', label: '德州扑克' },
 ];
-
-const OTHER_ITEMS: { id: SidebarAction; icon: string; label: string }[] = [
-  { id: 'warehouse', icon: '🎁', label: '资产仓库' },
-  { id: 'social', icon: '👥', label: '社交大厅' },
-  { id: 'logs', icon: '📜', label: '交易日志' },
+const OTHER: { id: SidebarAction; label: string }[] = [
+  { id: 'warehouse', label: '资产仓库' },
+  { id: 'social', label: '社交大厅' },
+  { id: 'logs', label: '交易日志' },
 ];
 
 export function LeftSidebar() {
@@ -26,71 +27,57 @@ export function LeftSidebar() {
   const navigateSidebar = useGameStore(s => s.navigateSidebar);
   const toggleMinimalUi = useGameStore(s => s.toggleMinimalUi);
   const agents = useGameStore(s => s.agents);
+  const [hover, setHover] = useState<string | null>(null);
 
   const leisureActive = Object.values(agents).some(c => c.activity === 'dine' || c.activity === 'massage' || c.activity === 'poker');
 
   return (
-    <aside
-      className="left-sidebar"
-      onMouseEnter={() => setExpanded(true)}
-      onMouseLeave={() => setExpanded(false)}
-    >
+    <aside className="left-sidebar" onMouseEnter={() => setExpanded(true)} onMouseLeave={() => setExpanded(false)}>
       <div style={{ flex: 1, overflowY: 'auto', paddingTop: 8 }}>
-        {MAIN_ITEMS.map(item => (
-          <SidebarBtn
-            key={item.id}
-            icon={item.icon}
-            label={item.label}
-            expanded={expanded}
-            active={active === item.id}
-            onClick={() => navigateSidebar(item.id)}
-          />
+        {MAIN.map(item => (
+          <SidebarBtn key={item.id} id={item.id} label={item.label} expanded={expanded}
+            active={active === item.id} hover={hover === item.id}
+            onHover={setHover} onClick={() => navigateSidebar(item.id)} />
         ))}
-
-        <div style={{ margin: '8px 14px', borderTop: '1px dashed #e0d8cc' }} />
-        <div style={{ fontSize: 10, color: '#9a8b7a', padding: '4px 14px', display: expanded ? 'block' : 'none' }}>休闲传送</div>
-
-        {LEISURE_ITEMS.map(item => (
-          <SidebarBtn
-            key={item.id}
-            icon={item.icon}
-            label={item.label}
-            expanded={expanded}
-            active={active === item.id}
-            badge={leisureActive}
-            onClick={() => navigateSidebar(item.id)}
-          />
+        <div className="sidebar-divider" />
+        <div className="sidebar-section-label" style={{ display: expanded ? 'block' : 'none' }}>休闲传送</div>
+        {LEISURE.map(item => (
+          <SidebarBtn key={item.id} id={item.id} label={item.label} expanded={expanded}
+            active={active === item.id} hover={hover === item.id} badge={leisureActive}
+            onHover={setHover} onClick={() => navigateSidebar(item.id)} />
         ))}
-
-        <div style={{ margin: '8px 14px', borderTop: '1px dashed #e0d8cc' }} />
-
-        {OTHER_ITEMS.map(item => (
-          <SidebarBtn
-            key={item.id}
-            icon={item.icon}
-            label={item.label}
-            expanded={expanded}
-            active={active === item.id}
-            onClick={() => navigateSidebar(item.id)}
-          />
+        <div className="sidebar-divider" />
+        {OTHER.map(item => (
+          <SidebarBtn key={item.id} id={item.id} label={item.label} expanded={expanded}
+            active={active === item.id} hover={hover === item.id}
+            onHover={setHover} onClick={() => navigateSidebar(item.id)} />
         ))}
       </div>
-
       <div style={{ padding: '8px 0', borderTop: '1px dashed #e0d8cc' }}>
-        <SidebarBtn icon="🖥️" label="极简 UI" expanded={expanded} onClick={toggleMinimalUi} />
+        <SidebarBtn id="minimal" label="极简 UI" expanded={expanded} hover={hover === 'minimal'}
+          onHover={setHover} onClick={toggleMinimalUi} icons={SIDEBAR_ICONS.minimal} />
       </div>
     </aside>
   );
 }
 
-function SidebarBtn({ icon, label, expanded, active, badge, onClick }: {
-  icon: string; label: string; expanded: boolean; active?: boolean; badge?: boolean; onClick: () => void;
+function SidebarBtn({ id, label, expanded, active, hover, badge, onHover, onClick, icons }: {
+  id: string; label: string; expanded: boolean; active?: boolean; hover?: boolean; badge?: boolean;
+  onHover: (id: string | null) => void; onClick: () => void;
+  icons?: typeof SIDEBAR_ICONS.hall;
 }) {
+  const pair = icons ?? SIDEBAR_ICONS[id as SidebarAction];
   return (
-    <button className={`sidebar-item ${active ? 'active' : ''}`} onClick={onClick} title={label}>
-      <span className="icon" style={{ position: 'relative' }}>
-        {icon}
-        {badge && <span style={{ position: 'absolute', top: -2, right: -2, width: 6, height: 6, borderRadius: '50%', background: '#48d093' }} />}
+    <button
+      className={`sidebar-item ${active ? 'active' : ''}`}
+      onClick={onClick}
+      title={label}
+      onMouseEnter={() => onHover(id)}
+      onMouseLeave={() => onHover(null)}
+    >
+      <span className="icon-wrap">
+        {pair && <NavIcon outline={pair.outline} solid={pair.solid} active={active} hovered={hover} size="sidebar" />}
+        {badge && <span className="sidebar-badge" />}
       </span>
       {expanded && <span>{label}</span>}
     </button>

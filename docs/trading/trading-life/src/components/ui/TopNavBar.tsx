@@ -1,4 +1,22 @@
+import { WalletIcon } from '@heroicons/react/24/solid';
+import {
+  ChartBarIcon, GiftIcon, TrophyIcon, Cog6ToothIcon, QuestionMarkCircleIcon,
+} from '@heroicons/react/24/outline';
+import {
+  ChartBarIcon as ChartBarSolid, GiftIcon as GiftSolid, TrophyIcon as TrophySolid,
+  Cog6ToothIcon as CogSolid, QuestionMarkCircleIcon as HelpSolid,
+} from '@heroicons/react/24/solid';
+import { useState } from 'react';
 import { useGameStore } from '../../store/useGameStore';
+import { AppIcon, NavIcon } from '../icons/AppIcon';
+
+const NAV_BTNS = [
+  { id: 'market', label: '行情', outline: ChartBarIcon, solid: ChartBarSolid, modal: 'market' as const },
+  { id: 'event', label: '活动', outline: GiftIcon, solid: GiftSolid, modal: 'help' as const },
+  { id: 'rank', label: '排行', outline: TrophyIcon, solid: TrophySolid, modal: 'rank' as const },
+  { id: 'settings', label: '设置', outline: Cog6ToothIcon, solid: CogSolid, modal: 'settings' as const },
+  { id: 'help', label: '帮助', outline: QuestionMarkCircleIcon, solid: HelpSolid, modal: 'help' as const },
+];
 
 export function TopNavBar() {
   const ticker = useGameStore(s => s.ticker);
@@ -6,6 +24,7 @@ export function TopNavBar() {
   const selectedAgentId = useGameStore(s => s.selectedAgentId);
   const agents = useGameStore(s => s.agents);
   const openModal = useGameStore(s => s.openModal);
+  const [hover, setHover] = useState<string | null>(null);
 
   const pnl = overview.total_pnl || 0;
   const capital = overview.total_capital || 0;
@@ -14,21 +33,22 @@ export function TopNavBar() {
 
   return (
     <header className="top-nav">
-      {/* 左：品牌 + 头像 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 200 }}>
-        <div style={{ fontWeight: 700, fontSize: 17, letterSpacing: 0.3 }}>
-          🐧 <span style={{ color: '#3d3530' }}>交易人生</span>
+        <div style={{ fontWeight: 700, fontSize: 17, letterSpacing: 0.3, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span className="brand-mark" aria-hidden>🐧</span>
+          <span style={{ color: '#3d3530' }}>交易人生</span>
         </div>
         <button className="ui-btn" onClick={() => openModal('workshop')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px' }}>
-          <span style={{ fontSize: 22 }}>{mainAgent?.icon || '🐧'}</span>
-          <span style={{ fontSize: 11, color: '#8a7e72' }}>{mainAgent?.name?.split(' ')[0] || 'Agent'}</span>
+          <span style={{ fontSize: 20 }}>{mainAgent?.icon || '🐧'}</span>
+          <span style={{ fontSize: 11, color: '#8A92A0' }}>{mainAgent?.name?.split(' ')[0] || 'Agent'}</span>
         </button>
       </div>
 
-      {/* 中：核心数据卡片 */}
       <div style={{ flex: 1, display: 'flex', justifyContent: 'center', gap: 12 }}>
         <div className="stat-card">
-          <div className="label">总资产</div>
+          <div className="label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <AppIcon icon={WalletIcon} size="mini" color="gold" /> 总资产
+          </div>
           <div className="value mono gold">${Math.round(capital).toLocaleString()}</div>
         </div>
         <div className="stat-card">
@@ -49,24 +69,21 @@ export function TopNavBar() {
         </div>
       </div>
 
-      {/* 右：快捷按钮 */}
-      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-        <NavBtn icon="📊" label="行情" onClick={() => openModal('market')} />
-        <NavBtn icon="🎁" label="活动" onClick={() => openModal('help')} />
-        <NavBtn icon="🏆" label="排行" onClick={() => openModal('rank')} />
-        <NavBtn icon="⚙️" label="设置" onClick={() => openModal('settings')} />
-        <NavBtn icon="❓" label="帮助" onClick={() => openModal('help')} />
-        <a href="/trading/" className="ui-btn" style={{ textDecoration: 'none', marginLeft: 4 }}>Dashboard</a>
+      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+        {NAV_BTNS.map(b => (
+          <button
+            key={b.id}
+            className="ui-btn nav-icon-btn"
+            onClick={() => openModal(b.modal)}
+            onMouseEnter={() => setHover(b.id)}
+            onMouseLeave={() => setHover(null)}
+          >
+            <NavIcon outline={b.outline} solid={b.solid} hovered={hover === b.id} size="nav" />
+            <span className="nav-icon-label">{b.label}</span>
+          </button>
+        ))}
+        <a href="/trading/" className="ui-btn" style={{ textDecoration: 'none', marginLeft: 4, fontSize: 11 }}>Dashboard</a>
       </div>
     </header>
-  );
-}
-
-function NavBtn({ icon, label, onClick }: { icon: string; label: string; onClick: () => void }) {
-  return (
-    <button className="ui-btn" onClick={onClick} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, padding: '4px 8px', minWidth: 48 }}>
-      <span style={{ fontSize: 16 }}>{icon}</span>
-      <span style={{ fontSize: 10, color: '#8a7e72' }}>{label}</span>
-    </button>
   );
 }

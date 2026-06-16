@@ -3,10 +3,10 @@
   --panel: rgba(255, 252, 247, 0.92);
   --border: #e0d8cc;
   --text: #3d3530;
-  --muted: #8a7e72;
-  --profit: #48d093;
-  --loss: #56a3ff;
-  --gold: #d4af37;
+  --muted: #8A92A0;
+  --profit: #48D093;
+  --loss: #56A3FF;
+  --gold: #D4AF37;
   --glass: rgba(255, 255, 255, 0.78);
   --top-h: 60px;
   --sidebar-w: 72px;
@@ -170,7 +170,34 @@ html, body, #root {
 }
 .sidebar-item:hover { background: rgba(255,255,255,0.6); }
 .sidebar-item.active { border-left-color: var(--profit); background: rgba(72,208,147,0.08); }
-.sidebar-item .icon { font-size: 18px; width: 24px; text-align: center; flex-shrink: 0; }
+.sidebar-item .icon-wrap {
+  width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+}
+.sidebar-badge {
+  position: absolute; top: -2px; right: -2px;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--profit);
+}
+.sidebar-divider { margin: 8px 14px; border-top: 1px dashed var(--border); }
+.sidebar-section-label { font-size: 10px; color: var(--muted); padding: 4px 14px; }
+
+.nav-icon-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 4px 8px !important; min-width: 48px;
+}
+.nav-icon-label { font-size: 10px; color: var(--muted); }
+
+.ctl-sep { width: 1px; height: 16px; background: var(--border); margin: 0 2px; }
+.ctl-icon { padding: 4px 8px !important; display: flex; align-items: center; }
+.panel-action { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; }
+.modal-close { padding: 4px !important; display: flex; align-items: center; }
+
+.leisure-preview svg { width: 40px !important; height: 40px !important; }
 
 .panel-tabs {
   display: flex;

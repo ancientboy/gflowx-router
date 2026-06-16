@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
+import { CheckIcon } from '@heroicons/react/24/solid';
 import { useGameStore } from '../../store/useGameStore';
+import { AppIcon } from '../icons/AppIcon';
+import { LucideIcons, MiniLucide } from '../icons/lucideIcons';
 import { fetchAgentProfile, saveAgentConfig, saveAgentSoul } from '../../lib/api';
 import type { CharState } from '../../lib/constants';
 
@@ -104,7 +107,7 @@ export function AgentWorkshop() {
                 <InfoRow k="成交" v={String(d.trades || 0) + ' 笔'} />
                 <InfoRow k="持仓" v={String(d.positions?.length || 0) + ' 个'} />
                 <InfoRow k="风险等级" v={d.risk || '--'} />
-                <InfoRow k="压力值" v={Math.round(current.stress) + '%'} />
+                <InfoRow k="压力值" v={Math.round(current.stress) + '%'} icon={<MiniLucide icon={LucideIcons.debuffStress} color="loss" />} />
                 <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
                   <button className="ui-btn" style={{ flex: 1 }} onClick={() => { setFollowAgent(editId); closeModal(); }}>跟随镜头</button>
                   <button className="ui-btn" style={{ flex: 1 }} onClick={closeModal}>返回场景</button>
@@ -160,10 +163,10 @@ export function AgentWorkshop() {
   );
 }
 
-function InfoRow({ k, v, cls = '' }: { k: string; v: string; cls?: string }) {
+function InfoRow({ k, v, cls = '', icon }: { k: string; v: string; cls?: string; icon?: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px dashed #eee8dc', fontSize: 13 }}>
-      <span style={{ color: '#8a7e72' }}>{k}</span>
+      <span style={{ color: '#8A92A0', display: 'flex', alignItems: 'center', gap: 4 }}>{icon}{k}</span>
       <span className={cls}>{v}</span>
     </div>
   );

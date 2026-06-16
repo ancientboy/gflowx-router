@@ -1,6 +1,9 @@
 import { useState } from 'react';
+import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useGameStore, type ModalId } from '../../store/useGameStore';
 import { AgentWorkshop } from './AgentWorkshop';
+import { AppIcon } from '../icons/AppIcon';
+import { LucideIcons, MiniLucide } from '../icons/lucideIcons';
 
 const TITLES: Record<Exclude<ModalId, null>, string> = {
   workshop: 'Agent 工坊',
@@ -27,7 +30,9 @@ export function Modals() {
       <div className={`modal-box ${wide ? 'modal-wide' : ''}`} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h2 style={{ fontSize: 17, fontWeight: 700, color: '#3d3530' }}>{TITLES[activeModal]}</h2>
-          <button className="ui-btn" onClick={closeModal} style={{ padding: '2px 10px' }}>×</button>
+          <button className="ui-btn modal-close" onClick={closeModal} title="关闭">
+            <AppIcon icon={XMarkIcon} size="modal" color="muted" />
+          </button>
         </div>
         <ModalContent id={activeModal} />
       </div>
@@ -102,32 +107,33 @@ function ModalContent({ id }: { id: Exclude<ModalId, null> }) {
         </div>
       );
     case 'dine':
-      return <LeisureModal type="dine" title="🍽️ 餐厅" items={[
-        { id: 'a', name: '能量套餐 A', desc: '意面 + 果汁', cost: 50, effect: '-30% 恐慌值', icon: '🍝' },
-        { id: 'b', name: '豪华套餐 B', desc: '牛排 + 红酒', cost: 80, effect: '-50% 恐慌值', icon: '🥩' },
-        { id: 'c', name: '甜心下午茶', desc: '蛋糕 + 咖啡', cost: 40, effect: '-20% 压力', icon: '🍰' },
+      return <LeisureModal type="dine" title="餐厅" lucide={LucideIcons.dine} items={[
+        { id: 'a', name: '能量套餐 A', desc: '意面 + 果汁', cost: 50, effect: '-30% 恐慌值' },
+        { id: 'b', name: '豪华套餐 B', desc: '牛排 + 红酒', cost: 80, effect: '-50% 恐慌值' },
+        { id: 'c', name: '甜心下午茶', desc: '蛋糕 + 咖啡', cost: 40, effect: '-20% 压力' },
       ]} />;
     case 'massage':
-      return <LeisureModal type="massage" title="💆 按摩区" items={[
-        { id: 'a', name: '基础理疗', desc: '30 分钟肩颈', cost: 60, effect: '-30% 压力', icon: '💆' },
-        { id: 'b', name: '深度按摩', desc: '60 分钟全身', cost: 80, effect: '-50% 压力', icon: '🧖' },
-        { id: 'c', name: '精油 SPA', desc: '90 分钟尊享', cost: 120, effect: '-70% 压力', icon: '✨' },
+      return <LeisureModal type="massage" title="按摩区" lucide={LucideIcons.massage} items={[
+        { id: 'a', name: '基础理疗', desc: '30 分钟肩颈', cost: 60, effect: '-30% 压力' },
+        { id: 'b', name: '深度按摩', desc: '60 分钟全身', cost: 80, effect: '-50% 压力' },
+        { id: 'c', name: '精油 SPA', desc: '90 分钟尊享', cost: 120, effect: '-70% 压力' },
       ]} />;
     case 'poker':
-      return <LeisureModal type="poker" title="🎰 德州扑克" items={[
-        { id: 'a', name: '休闲局', desc: '底注 10 代币', cost: 30, effect: '清空负面情绪', icon: '🃏' },
-        { id: 'b', name: '标准局', desc: '底注 50 代币', cost: 80, effect: '清空压力 + 奖金', icon: '♠️' },
-        { id: 'c', name: '高手局', desc: '底注 200 代币', cost: 200, effect: '大幅减压 + 奖金', icon: '👑' },
+      return <LeisureModal type="poker" title="德州扑克" lucide={LucideIcons.poker} items={[
+        { id: 'a', name: '休闲局', desc: '底注 10 代币', cost: 30, effect: '清空负面情绪' },
+        { id: 'b', name: '标准局', desc: '底注 50 代币', cost: 80, effect: '清空压力 + 奖金' },
+        { id: 'c', name: '高手局', desc: '底注 200 代币', cost: 200, effect: '大幅减压 + 奖金' },
       ]} />;
     default:
       return null;
   }
 }
 
-function LeisureModal({ type, title, items }: {
+function LeisureModal({ type, title, lucide, items }: {
   type: 'dine' | 'massage' | 'poker';
   title: string;
-  items: { id: string; name: string; desc: string; cost: number; effect: string; icon: string }[];
+  lucide: typeof LucideIcons.dine;
+  items: { id: string; name: string; desc: string; cost: number; effect: string }[];
 }) {
   const closeModal = useGameStore(s => s.closeModal);
   const addMessage = useGameStore(s => s.addMessage);
@@ -144,7 +150,7 @@ function LeisureModal({ type, title, items }: {
     <div style={{ color: '#3d3530' }}>
       <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
         <div className={`leisure-preview leisure-${type} ${busy ? 'active' : ''}`}>
-          <span style={{ fontSize: 48 }}>{type === 'dine' ? '🍽️' : type === 'massage' ? '💆' : '🎰'}</span>
+          <MiniLucide icon={lucide} color="profit" />
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 700, fontSize: 15 }}>{title}</div>
@@ -157,7 +163,7 @@ function LeisureModal({ type, title, items }: {
       </div>
       {items.map(it => (
         <button key={it.id} className={`leisure-option ${picked === it.id ? 'selected' : ''}`} onClick={() => setPicked(it.id)}>
-          <span style={{ fontSize: 24 }}>{it.icon}</span>
+          <MiniLucide icon={lucide} color={picked === it.id ? 'profit' : 'muted'} />
           <div style={{ flex: 1, textAlign: 'left' }}>
             <div style={{ fontWeight: 600 }}>{it.name}</div>
             <div style={{ fontSize: 11, color: '#8a7e72' }}>{it.desc} · {it.effect}</div>

@@ -5,6 +5,7 @@ import { InstancedBoxes } from './furniture/InstancedFurniture';
 import { Gugugaga } from './characters/Gugugaga';
 import { ZoneEffects } from './effects/ZoneEffects';
 import { ZoneLabel } from './ui/ZoneLabel';
+import { SceneSprite } from './ui/SceneSprite';
 import { useGameStore } from '../../store/useGameStore';
 import type { CharState } from '../../lib/constants';
 
@@ -123,16 +124,28 @@ export function WorldScene() {
       <ZoneEffects />
       <BigScreen ticker={ticker} />
 
+      <SceneSprite id="plateCoffee" position={[7, 1.8, 18.5]} scale={0.45} />
+      <SceneSprite id="plateCoffee" position={[12, 1.8, 18.5]} scale={0.45} />
+      <SceneSprite id="plateCoffee" position={[17, 1.8, 18.5]} scale={0.45} />
+      <SceneSprite id="spaBubble" position={[27, 1.6, 11.8]} scale={0.4} />
+      <SceneSprite id="spaBubble" position={[30, 1.6, 11.8]} scale={0.4} />
+      <SceneSprite id="spaBubble" position={[33, 1.6, 11.8]} scale={0.4} />
+      <SceneSprite id="pokerChips" position={[36, 2.2, 21]} scale={0.5} />
+
       <group position={[14, 0, 25]} onClick={(e) => { e.stopPropagation(); selectNpc('reception'); }}>
+        <SceneSprite id="chatBubble" position={[0, 2.2, 0]} scale={0.42} />
         <Gugugaga role="reception" accentColor="#d4af37" label="迎宾 Gugu" status="欢迎光临交易人生" onClick={() => selectNpc('reception')} />
       </group>
       <group position={[30, 0, 8.2]} onClick={(e) => { e.stopPropagation(); selectNpc('masseur'); }}>
+        <SceneSprite id="massageHand" position={[0, 2.2, 0]} scale={0.42} />
         <Gugugaga role="masseur" accentColor="#c8a8e8" label="技师 Gaga" status="按摩放松" scale={1.05} onClick={() => selectNpc('masseur')} />
       </group>
       <group position={[36, 0, 20.4]} onClick={(e) => { e.stopPropagation(); selectNpc('dealer'); }}>
+        <SceneSprite id="cards" position={[0, 2.2, 0]} scale={0.42} />
         <Gugugaga role="dealer" accentColor="#d4af37" label="荷官 Jack" status="德州扑克" scale={1.05} onClick={() => selectNpc('dealer')} />
       </group>
       <group position={[10, 0, 18.5]} onClick={(e) => { e.stopPropagation(); selectNpc('lily'); }}>
+        <SceneSprite id="tray" position={[0, 2.2, 0]} scale={0.42} />
         <Gugugaga role="waiter" accentColor="#e879a9" label="服务员 Lily" status="餐厅服务" scale={1.05} onClick={() => selectNpc('lily')} />
       </group>
 
@@ -161,6 +174,15 @@ export function WorldScene() {
         const pose = activityPose(char.activity);
         return (
           <group key={char.agentId} position={[char.x, pose.y, char.z]} rotation={[pose.rotX, 0, 0]}>
+            {selected === char.agentId && (
+              <SceneSprite id="monitor" position={[0, 2.4, 0]} scale={0.38} />
+            )}
+            {char.stress > 70 && (
+              <SceneSprite id="stormCloud" position={[0, 2.6, 0]} scale={0.36} />
+            )}
+            {char.activity && char.stress < 30 && (
+              <SceneSprite id="healStar" position={[0, 2.5, 0]} scale={0.34} />
+            )}
             <Gugugaga
               accentColor={meta.color}
               label={meta.name}

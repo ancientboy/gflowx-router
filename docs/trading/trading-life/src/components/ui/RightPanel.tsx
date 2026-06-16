@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
+import { PlayCircleIcon, DocumentDuplicateIcon } from '@heroicons/react/24/solid';
 import { useGameStore, type RightTab } from '../../store/useGameStore';
 import { fetchAgentProfile, saveAgentConfig, saveAgentSoul } from '../../lib/api';
 import type { CharState, Position, TradeRecord } from '../../lib/constants';
+import { AppIcon } from '../icons/AppIcon';
+import { ProfitIcon, LossIcon, PieAssetIcon } from '../icons/phosphorIcons';
 
 const TABS: { id: RightTab; label: string }[] = [
   { id: 'hall', label: '交易大厅' },
@@ -95,8 +98,12 @@ export function RightPanel() {
       </div>
 
       <div className="panel-footer">
-        <button className="ui-btn" style={{ flex: 1 }} onClick={() => openModal('strategy')}>回测</button>
-        <button className="ui-btn" style={{ flex: 1 }} onClick={() => openModal('workshop')}>Agent 工坊</button>
+        <button className="ui-btn panel-action" onClick={() => openModal('strategy')}>
+          <AppIcon icon={PlayCircleIcon} size="modal" color="gold" /> 回测
+        </button>
+        <button className="ui-btn panel-action" onClick={() => openModal('workshop')}>
+          <AppIcon icon={DocumentDuplicateIcon} size="modal" color="muted" /> 工坊
+        </button>
       </div>
     </aside>
   );
@@ -107,11 +114,13 @@ export function RightPanel() {
     return (
       <>
         <div style={{ marginBottom: 12, padding: 10, background: '#faf6ef', borderRadius: 8, fontSize: 12 }}>
-          <div style={{ fontWeight: 700, marginBottom: 6 }}>🏠 交易大厅概览</div>
+          <div style={{ fontWeight: 700, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <PieAssetIcon size={16} /> 交易大厅概览
+          </div>
           <Row k="在线 Agent" v={`${agentList.length} 个`} />
           <Row k="运行中" v={`${running} 个`} />
           <Row k="有持仓" v={`${trading} 个`} />
-          <Row k="总盈亏" v={(overview.total_pnl != null ? (overview.total_pnl >= 0 ? '+' : '') + '$' + Math.round(overview.total_pnl).toLocaleString() : '--')} className={(overview.total_pnl || 0) >= 0 ? 'profit' : 'loss'} />
+          <Row k="总盈亏" v={(overview.total_pnl != null ? (overview.total_pnl >= 0 ? '+' : '') + '$' + Math.round(overview.total_pnl).toLocaleString() : '--')} className={(overview.total_pnl || 0) >= 0 ? 'profit' : 'loss'} icon={(overview.total_pnl || 0) >= 0 ? <ProfitIcon /> : <LossIcon />} />
         </div>
         <div style={{ fontSize: 11, color: '#9a8b7a', marginBottom: 8 }}>点击 Agent 查看详情并跟随镜头</div>
         {agentList.map(a => (
@@ -396,10 +405,10 @@ function TradeRow({ agentName, trade, onClick }: { agentName: string; trade: Tra
   );
 }
 
-function Row({ k, v, className = '' }: { k: string; v: string; className?: string }) {
+function Row({ k, v, className = '', icon }: { k: string; v: string; className?: string; icon?: React.ReactNode }) {
   return (
     <div className="detail-row">
-      <span>{k}</span>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>{icon}{k}</span>
       <span className={className}>{v}</span>
     </div>
   );
