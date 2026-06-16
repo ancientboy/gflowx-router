@@ -34,6 +34,7 @@ export function RightPanel() {
   const setRightTab = useGameStore(s => s.setRightTab);
   const selectedAgentId = useGameStore(s => s.selectedAgentId);
   const selectAgent = useGameStore(s => s.selectAgent);
+  const focusAgent = useGameStore(s => s.focusAgent);
   const selectedNpcId = useGameStore(s => s.selectedNpcId);
   const selectedFacility = useGameStore(s => s.selectedFacility);
   const agents = useGameStore(s => s.agents);
@@ -49,6 +50,7 @@ export function RightPanel() {
   const openModal = useGameStore(s => s.openModal);
   const setFollowAgent = useGameStore(s => s.setFollowAgent);
   const flyToZone = useGameStore(s => s.flyToZone);
+  const navigateSidebar = useGameStore(s => s.navigateSidebar);
   const [msg, setMsg] = useState('');
 
   useEffect(() => {
@@ -81,7 +83,10 @@ export function RightPanel() {
 
       <div className="panel-tabs">
         {TABS.map(t => (
-          <button key={t.id} className={`panel-tab ${currentTab === t.id ? 'active' : ''}`} onClick={() => setRightTab(t.id)}>
+          <button key={t.id} className={`panel-tab ${currentTab === t.id ? 'active' : ''}`} onClick={() => {
+            setRightTab(t.id);
+            if (t.id === 'hall') navigateSidebar('hall');
+          }}>
             {t.label}
           </button>
         ))}
@@ -128,9 +133,20 @@ export function RightPanel() {
             key={a.agentId}
             char={a}
             selected={selectedAgentId === a.agentId}
-            onSelect={() => { selectAgent(a.agentId); setFollowAgent(a.agentId); flyToZone('hall'); }}
+            onSelect={() => { focusAgent(a.agentId); flyToZone('hall'); }}
           />
         ))}
+        {selectedAgentId && agents[selectedAgentId] && (
+          <div style={{ marginTop: 12, padding: 10, background: '#eef8f0', borderRadius: 8, border: '1px solid #48D093' }}>
+            <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>{agents[selectedAgentId].data.name} · 已选中</div>
+            <div style={{ fontSize: 11, color: '#8A92A0', marginBottom: 8 }}>
+              压力 {Math.round(agents[selectedAgentId].stress)}% · {STATE_LABEL[agents[selectedAgentId].state]}
+            </div>
+            <button className="ui-btn" style={{ width: '100%', fontSize: 11 }} onClick={() => selectAgent(selectedAgentId)}>
+              查看完整 Agent 详情 →
+            </button>
+          </div>
+        )}
       </>
     );
   }

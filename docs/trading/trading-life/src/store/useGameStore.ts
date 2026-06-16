@@ -54,7 +54,8 @@ interface GameStore {
   setSimSpeed: (s: 1 | 5 | 20) => void;
   togglePause: () => void;
   setDayMode: (d: 'day' | 'night') => void;
-  selectAgent: (id: string | null) => void;
+  focusAgent: (id: string | null) => void;
+  selectAgent: (id: string | null, opts?: { tab?: RightTab }) => void;
   selectNpc: (id: string | null) => void;
   selectFacility: (f: string | null) => void;
   setPanelTab: (t: 'overview' | 'config' | 'soul') => void;
@@ -105,7 +106,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   minimalUi: false,
   sidebarActive: 'hall',
   activeModal: null,
-  cameraFocus: null,
+  cameraFocus: ZONE_CAMERA.hall,
   followAgentId: null,
   agents: {},
   ticker: {},
@@ -122,7 +123,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
   setSimSpeed: (s) => set({ simSpeed: s }),
   togglePause: () => set(s => ({ paused: !s.paused })),
   setDayMode: (d) => set({ dayMode: d }),
-  selectAgent: (id) => set({ selectedAgentId: id, selectedNpcId: null, selectedFacility: null, rightTab: 'agent', panelTab: 'overview', rightPanelCollapsed: false }),
+  selectAgent: (id, opts) => set({
+    selectedAgentId: id,
+    selectedNpcId: null,
+    selectedFacility: null,
+    rightTab: opts?.tab ?? 'agent',
+    panelTab: 'overview',
+    rightPanelCollapsed: false,
+  }),
+  focusAgent: (id) => set({
+    selectedAgentId: id,
+    selectedNpcId: null,
+    selectedFacility: null,
+    followAgentId: id,
+    rightPanelCollapsed: false,
+  }),
   selectNpc: (id) => set({ selectedNpcId: id, selectedAgentId: null, selectedFacility: null, rightTab: 'npc', rightPanelCollapsed: false }),
   selectFacility: (f) => set({ selectedFacility: f, selectedAgentId: null, selectedNpcId: null, rightTab: 'facility', rightPanelCollapsed: false }),
   setPanelTab: (t) => set({ panelTab: t }),
@@ -137,7 +152,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const expand = { rightPanelCollapsed: false };
     switch (action) {
       case 'hall':
-        set({ ...expand, sidebarActive: 'hall', rightTab: 'hall', cameraFocus: ZONE_CAMERA.hall, followAgentId: null });
+        set({ ...expand, sidebarActive: 'hall', rightTab: 'hall', cameraFocus: { ...ZONE_CAMERA.hall }, followAgentId: null, activeModal: null });
         break;
       case 'agents': {
         const firstId = s.selectedAgentId || Object.keys(s.agents)[0] || null;
@@ -174,7 +189,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
   openModal: (id) => set({ activeModal: id }),
   closeModal: () => set({ activeModal: null }),
-  flyToZone: (zone) => set({ cameraFocus: ZONE_CAMERA[zone], sidebarActive: zone, followAgentId: null }),
+  flyToZone: (zone) => set({ cameraFocus: { ...ZONE_CAMERA[zone] }, sidebarActive: zone, followAgentId: null, activeModal: null }),
 
   sendAgentToLeisure: (type, agentId) => {
     const s = get();
@@ -191,7 +206,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       rightPanelCollapsed: false,
     });
   },
-  resetCamera: () => set({ cameraFocus: ZONE_CAMERA.hall, followAgentId: null }),
+  resetCamera: () => set({ cameraFocus: { ...ZONE_CAMERA.hall }, followAgentId: null, sidebarActive: 'hall', rightTab: 'hall', activeModal: null }),
   setFollowAgent: (id) => set({ followAgentId: id, selectedAgentId: id, rightPanelCollapsed: false }),
 
   initAgents: () => {

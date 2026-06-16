@@ -1,3 +1,4 @@
+import { DisclaimerBar } from '../ui/DisclaimerBar';
 import { TopNavBar } from '../ui/TopNavBar';
 import { LeftSidebar } from '../ui/LeftSidebar';
 import { RightPanel } from '../ui/RightPanel';
@@ -22,6 +23,7 @@ export function AppShell() {
 
   return (
     <div className={shellClass}>
+      <DisclaimerBar />
       <TopNavBar />
       <LeftSidebar />
       <main className="main-canvas">

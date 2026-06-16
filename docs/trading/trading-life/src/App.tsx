@@ -3,6 +3,8 @@ import { AppShell } from './components/layout/AppShell';
 import { useGameStore } from './store/useGameStore';
 import { fetchOverview, fetchTicker } from './lib/api';
 
+import { preloadAllSprites } from './lib/spriteTextures';
+
 export default function App() {
   const initAgents = useGameStore(s => s.initAgents);
   const updateFromOverview = useGameStore(s => s.updateFromOverview);
@@ -11,12 +13,13 @@ export default function App() {
 
   useEffect(() => {
     initAgents();
+    preloadAllSprites().catch(() => {});
     const poll = () => fetchOverview().then(data => {
       updateFromOverview(data);
     }).catch(() => {});
     const tick = () => fetchTicker().then(setTicker).catch(() => {});
     poll(); tick();
-    addMessage('欢迎来到交易人生 · 左侧「交易大厅」查看全部 Agent');
+    addMessage('欢迎来到交易人生 · 纯模拟推演，点击左侧「交易大厅」开始');
     const a = setInterval(poll, 5000);
     const b = setInterval(tick, 10000);
     return () => { clearInterval(a); clearInterval(b); };

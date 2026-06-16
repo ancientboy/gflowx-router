@@ -68,13 +68,14 @@ function CameraRig() {
   const { camera } = useThree();
 
   useEffect(() => {
-    if (!cameraFocus || !controlsRef.current) return;
-    controlsRef.current.target.set(cameraFocus.x, 0, cameraFocus.z);
+    if (!controlsRef.current) return;
+    const focus = cameraFocus ?? { x: 14, z: 7.5, zoom: 38 };
+    controlsRef.current.target.set(focus.x, 0, focus.z);
     if ((camera as THREE.OrthographicCamera).isOrthographicCamera) {
-      (camera as THREE.OrthographicCamera).zoom = cameraFocus.zoom;
+      (camera as THREE.OrthographicCamera).zoom = focus.zoom;
       (camera as THREE.OrthographicCamera).updateProjectionMatrix();
     }
-    camera.position.set(cameraFocus.x, 22, cameraFocus.z + 12);
+    camera.position.set(focus.x, 22, focus.z + 12);
     controlsRef.current.update();
   }, [cameraFocus, camera]);
 
@@ -131,8 +132,8 @@ function SceneContent() {
       )}
       <Suspense fallback={null}>
         <CharacterSim simSpeed={simSpeed} />
-        <WorldScene />
       </Suspense>
+      <WorldScene />
     </>
   );
 }
