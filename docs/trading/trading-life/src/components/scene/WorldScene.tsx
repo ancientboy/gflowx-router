@@ -71,6 +71,8 @@ export function WorldScene() {
   const ticker = useGameStore(s => s.ticker);
   const selected = useGameStore(s => s.selectedAgentId);
   const selectAgent = useGameStore(s => s.selectAgent);
+  const selectNpc = useGameStore(s => s.selectNpc);
+  const selectFacility = useGameStore(s => s.selectFacility);
   const effectsOn = useGameStore(s => s.effectsOn);
 
   const deskPos: [number, number, number][] = [
@@ -127,19 +129,30 @@ export function WorldScene() {
 
       <BigScreen ticker={ticker} />
 
-      {/* NPC */}
-      <group position={[14, 0, 25]}>
-        <Gugugaga role="reception" accentColor="#d4af37" label="迎宾 Gugu" status="欢迎光临交易人生" />
+      {/* NPC — 可点击 */}
+      <group position={[14, 0, 25]} onClick={(e) => { e.stopPropagation(); selectNpc('reception'); }}>
+        <Gugugaga role="reception" accentColor="#d4af37" label="迎宾 Gugu" status="欢迎光临交易人生" onClick={() => selectNpc('reception')} />
       </group>
-      <group position={[30, 0, 8.2]}>
-        <Gugugaga role="masseur" accentColor="#c8a8e8" label="技师 Gaga" status="按摩放松" scale={1.05} />
+      <group position={[30, 0, 8.2]} onClick={(e) => { e.stopPropagation(); selectNpc('masseur'); }}>
+        <Gugugaga role="masseur" accentColor="#c8a8e8" label="技师 Gaga" status="按摩放松" scale={1.05} onClick={() => selectNpc('masseur')} />
       </group>
-      <group position={[36, 0, 20.4]}>
-        <Gugugaga role="dealer" accentColor="#d4af37" label="荷官 Jack" status="德州扑克" scale={1.05} />
+      <group position={[36, 0, 20.4]} onClick={(e) => { e.stopPropagation(); selectNpc('dealer'); }}>
+        <Gugugaga role="dealer" accentColor="#d4af37" label="荷官 Jack" status="德州扑克" scale={1.05} onClick={() => selectNpc('dealer')} />
       </group>
-      <group position={[10, 0, 18.5]}>
-        <Gugugaga role="waiter" accentColor="#e879a9" label="服务员 Lily" status="餐厅服务" scale={1.05} />
+      <group position={[10, 0, 18.5]} onClick={(e) => { e.stopPropagation(); selectNpc('lily'); }}>
+        <Gugugaga role="waiter" accentColor="#e879a9" label="服务员 Lily" status="餐厅服务" scale={1.05} onClick={() => selectNpc('lily')} />
       </group>
+
+      {/* 可点击设施 */}
+      <mesh position={[12, 0.3, 18.5]} onClick={(e) => { e.stopPropagation(); selectFacility('table'); }}>
+        <boxGeometry args={[2, 0.1, 2]} /><meshBasicMaterial visible={false} />
+      </mesh>
+      <mesh position={[30, 0.3, 11.8]} onClick={(e) => { e.stopPropagation(); selectFacility('bed'); }}>
+        <boxGeometry args={[2, 0.1, 1]} /><meshBasicMaterial visible={false} />
+      </mesh>
+      <mesh position={[36, 0.3, 21]} onClick={(e) => { e.stopPropagation(); selectFacility('poker'); }}>
+        <cylinderGeometry args={[2, 2, 0.1, 16]} /><meshBasicMaterial visible={false} />
+      </mesh>
 
       {/* Agents */}
       {(Object.values(agents) as CharState[]).map(char => {
