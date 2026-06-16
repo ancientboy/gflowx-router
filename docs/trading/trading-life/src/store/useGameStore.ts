@@ -2,18 +2,17 @@ import { create } from 'zustand';
 import type { AgentData, CameraMode, CharState, QualityTier, TradeRecord } from '../lib/constants';
 import { AGENT_META } from '../lib/constants';
 import { OfficePath } from '../lib/pathfinding';
+import { HALL_AGENT_START, SIDEBAR_TO_ZONE, ZONE_TO_RIGHT_TAB } from '../lib/zones';
 
 export type RightTab = 'hall' | 'object' | 'agent' | 'npc' | 'facility' | 'assets' | 'strategy' | 'messages';
 export type SidebarAction = 'hall' | 'agents' | 'strategy' | 'positions' | 'restaurant' | 'spa' | 'casino' | 'warehouse' | 'social' | 'logs';
 export type ModalId = 'workshop' | 'strategy' | 'market' | 'rank' | 'settings' | 'help' | 'dine' | 'massage' | 'poker' | null;
 export type ZoneId = 'hall' | 'reception' | 'spa' | 'restaurant' | 'casino';
 
-const ZONE_CAMERA: Record<ZoneId, { x: number; z: number; zoom: number }> = {
-  hall: { x: 14, z: 7.5, zoom: 38 },
-  reception: { x: 14, z: 24, zoom: 42 },
-  spa: { x: 42, z: 7.5, zoom: 38 },
-  restaurant: { x: 14, z: 20, zoom: 40 },
-  casino: { x: 42, z: 20, zoom: 40 },
+const LEISURE_FACILITY: Record<'restaurant' | 'spa' | 'casino', string> = {
+  restaurant: 'table',
+  spa: 'bed',
+  casino: 'poker',
 };
 
 interface GameStore {
@@ -32,8 +31,8 @@ interface GameStore {
   leftSidebarExpanded: boolean;
   minimalUi: boolean;
   sidebarActive: string;
+  activeZone: ZoneId;
   activeModal: ModalId;
-  cameraFocus: { x: number; z: number; zoom: number } | null;
   followAgentId: string | null;
   agents: Record<string, CharState>;
   ticker: Record<string, number>;
@@ -84,10 +83,8 @@ interface GameStore {
   addMessage: (text: string) => void;
 }
 
-const starts: Record<string, { x: number; z: number }> = {
-  xau: { x: 4.2, z: 5.6 }, major: { x: 7, z: 5.6 }, altcoin: { x: 9.8, z: 5.6 },
-  newcoin: { x: 12.6, z: 5.6 }, momentum: { x: 15.4, z: 5.6 },
-};
+/** 世界坐标：交易大厅中心约在 (10, 7.5)，与 ZoneAgents 偏移一致 */
+const WORLD_HALL_OFFSET = { x: 10, z: 7.5 };
 
 export const useGameStore = create<GameStore>((set, get) => ({
   cameraMode: 'ortho',
@@ -105,8 +102,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   leftSidebarExpanded: false,
   minimalUi: false,
   sidebarActive: 'hall',
+  activeZone: 'hall',
   activeModal: null,
-  cameraFocus: ZONE_CAMERA.hall,
   followAgentId: null,
   agents: {},
   ticker: {},
@@ -136,6 +133,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     selectedNpcId: null,
     selectedFacility: null,
     followAgentId: id,
+    rightTab: 'hall',
     rightPanelCollapsed: false,
   }),
   selectNpc: (id) => set({ selectedNpcId: id, selectedAgentId: null, selectedFacility: null, rightTab: 'npc', rightPanelCollapsed: false }),
@@ -149,39 +147,41 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   navigateSidebar: (action) => {
     const s = get();
-    const expand = { rightPanelCollapsed: false };
+    const expand = { rightPanelCollapsed: false, activeModal: null as ModalId };
+    const zone = SIDEBAR_TO_ZONE[action];
+    if (zone) {
+      const isLeisure = zone === 'restaurant' || zone === 'spa' || zone === 'casino';
+      set({
+        ...expand,
+        sidebarActive: action,
+        activeZone: zone,
+        rightTab: ZONE_TO_RIGHT_TAB[zone],
+        followAgentId: null,
+        selectedNpcId: null,
+        selectedFacility: isLeisure ? LEISURE_FACILITY[zone] : null,
+      });
+      return;
+    }
     switch (action) {
-      case 'hall':
-        set({ ...expand, sidebarActive: 'hall', rightTab: 'hall', cameraFocus: { ...ZONE_CAMERA.hall }, followAgentId: null, activeModal: null });
-        break;
       case 'agents': {
         const firstId = s.selectedAgentId || Object.keys(s.agents)[0] || null;
-        set({ ...expand, sidebarActive: 'agents', rightTab: 'agent', selectedAgentId: firstId, activeModal: 'workshop' });
+        set({ ...expand, sidebarActive: 'agents', activeZone: 'hall', rightTab: 'agent', selectedAgentId: firstId, activeModal: 'workshop' });
         break;
       }
       case 'strategy':
-        set({ ...expand, sidebarActive: 'strategy', rightTab: 'strategy', activeModal: 'strategy' });
+        set({ ...expand, sidebarActive: 'strategy', activeZone: 'hall', rightTab: 'strategy', activeModal: 'strategy' });
         break;
       case 'positions':
-        set({ ...expand, sidebarActive: 'positions', rightTab: 'assets' });
-        break;
-      case 'restaurant':
-        set({ ...expand, sidebarActive: 'restaurant', cameraFocus: ZONE_CAMERA.restaurant, followAgentId: null, activeModal: 'dine' });
-        break;
-      case 'spa':
-        set({ ...expand, sidebarActive: 'spa', cameraFocus: ZONE_CAMERA.spa, followAgentId: null, activeModal: 'massage' });
-        break;
-      case 'casino':
-        set({ ...expand, sidebarActive: 'casino', cameraFocus: ZONE_CAMERA.casino, followAgentId: null, activeModal: 'poker' });
+        set({ ...expand, sidebarActive: 'positions', activeZone: 'hall', rightTab: 'assets' });
         break;
       case 'logs':
-        set({ ...expand, sidebarActive: 'logs', rightTab: 'messages' });
+        set({ ...expand, sidebarActive: 'logs', activeZone: 'hall', rightTab: 'messages' });
         break;
       case 'warehouse':
-        set({ ...expand, sidebarActive: 'warehouse', rightTab: 'assets' });
+        set({ ...expand, sidebarActive: 'warehouse', activeZone: 'hall', rightTab: 'assets' });
         break;
       case 'social':
-        set({ ...expand, sidebarActive: 'social', rightTab: 'hall' });
+        set({ ...expand, sidebarActive: 'social', activeZone: 'hall', rightTab: 'hall' });
         break;
       default:
         break;
@@ -189,29 +189,64 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
   openModal: (id) => set({ activeModal: id }),
   closeModal: () => set({ activeModal: null }),
-  flyToZone: (zone) => set({ cameraFocus: { ...ZONE_CAMERA[zone] }, sidebarActive: zone, followAgentId: null, activeModal: null }),
+  flyToZone: (zone) => set({
+    activeZone: zone,
+    sidebarActive: zone === 'hall' ? 'hall' : zone,
+    rightTab: ZONE_TO_RIGHT_TAB[zone],
+    followAgentId: null,
+    activeModal: null,
+    selectedFacility: zone === 'restaurant' ? 'table' : zone === 'spa' ? 'bed' : zone === 'casino' ? 'poker' : null,
+  }),
 
   sendAgentToLeisure: (type, agentId) => {
     const s = get();
     const id = agentId || s.selectedAgentId || Object.values(s.agents).sort((a, b) => b.stress - a.stress)[0]?.agentId;
     if (!id || !s.agents[id]) return;
-    const nodeMap = { dine: OfficePath.dineByAgent, massage: OfficePath.massageByAgent, poker: OfficePath.pokerByAgent };
-    let c = assignPath({ ...s.agents[id], activity: null, activityUntil: 0 }, nodeMap[type][id]);
     const zoneMap = { dine: 'restaurant' as ZoneId, massage: 'spa' as ZoneId, poker: 'casino' as ZoneId };
+    const activityMap = { dine: 'dine' as const, massage: 'massage' as const, poker: 'poker' as const };
+    const zone = zoneMap[type];
+    const now = performance.now();
+    const char = s.agents[id];
+    const duration = type === 'poker' ? 12000 : type === 'massage' ? 10000 : 9000;
+    const updated: CharState = {
+      ...char,
+      activity: activityMap[type],
+      activityUntil: now + duration + Math.random() * 3000,
+      isWalking: false,
+      pathQueue: [],
+      pathIndex: 0,
+      destNode: null,
+      stress: type === 'massage' ? Math.max(0, char.stress - 50)
+        : type === 'dine' ? Math.max(0, char.stress - 30)
+        : type === 'poker' ? 0 : char.stress,
+    };
     set({
-      agents: { ...s.agents, [id]: c },
+      agents: { ...s.agents, [id]: updated },
       selectedAgentId: id,
       followAgentId: id,
-      cameraFocus: ZONE_CAMERA[zoneMap[type]],
+      activeZone: zone,
+      sidebarActive: zone,
+      rightTab: 'facility',
+      selectedFacility: LEISURE_FACILITY[zone],
       rightPanelCollapsed: false,
+      activeModal: null,
     });
   },
-  resetCamera: () => set({ cameraFocus: { ...ZONE_CAMERA.hall }, followAgentId: null, sidebarActive: 'hall', rightTab: 'hall', activeModal: null }),
+  resetCamera: () => set({
+    activeZone: 'hall',
+    followAgentId: null,
+    sidebarActive: 'hall',
+    rightTab: 'hall',
+    activeModal: null,
+    selectedNpcId: null,
+    selectedFacility: null,
+  }),
   setFollowAgent: (id) => set({ followAgentId: id, selectedAgentId: id, rightPanelCollapsed: false }),
 
   initAgents: () => {
     const agents: Record<string, CharState> = {};
-    Object.entries(starts).forEach(([id, pos]) => {
+    Object.entries(HALL_AGENT_START).forEach(([id, local]) => {
+      const pos = { x: local.x + WORLD_HALL_OFFSET.x, z: local.z + WORLD_HALL_OFFSET.z };
       agents[id] = {
         agentId: id, x: pos.x, z: pos.z,
         pathQueue: [], pathIndex: 0, isWalking: false, destNode: null,

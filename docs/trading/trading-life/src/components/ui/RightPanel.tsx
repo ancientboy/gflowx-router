@@ -50,7 +50,9 @@ export function RightPanel() {
   const openModal = useGameStore(s => s.openModal);
   const setFollowAgent = useGameStore(s => s.setFollowAgent);
   const flyToZone = useGameStore(s => s.flyToZone);
+  const activeZone = useGameStore(s => s.activeZone);
   const navigateSidebar = useGameStore(s => s.navigateSidebar);
+  const sendAgentToLeisure = useGameStore(s => s.sendAgentToLeisure);
   const [msg, setMsg] = useState('');
 
   useEffect(() => {
@@ -256,18 +258,35 @@ export function RightPanel() {
   }
 
   function renderFacilityPanel() {
-    if (!selectedFacility) return <p style={{ color: '#9a8b7a' }}>点击餐桌 / 按摩床 / 牌桌使用设施</p>;
-    const map: Record<string, { title: string; modal: 'dine' | 'massage' | 'poker' }> = {
-      table: { title: '餐桌', modal: 'dine' },
-      bed: { title: '按摩床', modal: 'massage' },
-      poker: { title: '德州牌桌', modal: 'poker' },
+    const zoneInfo: Record<string, { title: string; desc: string; modal: 'dine' | 'massage' | 'poker'; leisure: 'dine' | 'massage' | 'poker' }> = {
+      table: { title: '餐厅 · 餐桌', desc: '点餐用餐，恢复 Agent 情绪（-30% 压力）', modal: 'dine', leisure: 'dine' },
+      bed: { title: '按摩 · 理疗床', desc: '深度放松，大幅降低压力（-50% 压力）', modal: 'massage', leisure: 'massage' },
+      poker: { title: '德州 · 牌桌', desc: '博弈娱乐，清空负面情绪', modal: 'poker', leisure: 'poker' },
     };
-    const f = map[selectedFacility];
+    const f = selectedFacility ? zoneInfo[selectedFacility] : null;
+    const leisureAgents = (Object.values(agents) as CharState[]).filter(a => {
+      if (activeZone === 'restaurant') return a.activity === 'dine';
+      if (activeZone === 'spa') return a.activity === 'massage';
+      if (activeZone === 'casino') return a.activity === 'poker';
+      return false;
+    });
+    if (!f) return <p style={{ color: '#9a8b7a' }}>点击左侧休闲区进入对应视图</p>;
     return (
       <>
-        <div style={{ fontWeight: 700, marginBottom: 8 }}>{f?.title || selectedFacility}</div>
-        <p style={{ fontSize: 12, color: '#8a7e72', marginBottom: 12 }}>消耗代币使用休闲服务，恢复 Agent 情绪</p>
-        <button className="ui-btn" style={{ width: '100%' }} onClick={() => f && openModal(f.modal)}>使用设施</button>
+        <div style={{ fontWeight: 700, marginBottom: 8 }}>{f.title}</div>
+        <p style={{ fontSize: 12, color: '#8a7e72', marginBottom: 12 }}>{f.desc}</p>
+        {leisureAgents.length > 0 && (
+          <div style={{ marginBottom: 12, padding: 8, background: '#faf6ef', borderRadius: 8, fontSize: 12 }}>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>当前在此的 Agent</div>
+            {leisureAgents.map(a => (
+              <div key={a.agentId} style={{ marginTop: 4 }}>{a.data.icon} {a.data.name}</div>
+            ))}
+          </div>
+        )}
+        <button className="ui-btn" style={{ width: '100%', marginBottom: 8 }} onClick={() => sendAgentToLeisure(f.leisure, selectedAgentId || undefined)}>
+          派遣 Agent 前往
+        </button>
+        <button className="ui-btn" style={{ width: '100%' }} onClick={() => openModal(f.modal)}>打开详细交互</button>
       </>
     );
   }
