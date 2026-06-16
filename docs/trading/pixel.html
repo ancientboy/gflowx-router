@@ -364,22 +364,19 @@ const OfficePath = {
     d_w: { x: 220, y: 980 }, d_xau: { x: 420, y: 980 }, d_maj: { x: 700, y: 980 },
     d_alt: { x: 980, y: 980 }, d_new: { x: 1260, y: 980 }, d_mom: { x: 1540, y: 980 },
     d_e: { x: 2180, y: 980 },
-    // 休息包间 — 门口在上方（连接走廊 y≈980），沙发在内侧
-    booth_door_xau: { x: 420, y: 1055 }, booth_door_maj: { x: 700, y: 1055 },
-    booth_door_alt: { x: 980, y: 1055 }, booth_door_new: { x: 1260, y: 1055 },
-    booth_door_mom: { x: 1540, y: 1055 },
-    booth_xau: { x: 420, y: 1220 }, booth_maj: { x: 700, y: 1220 },
-    booth_alt: { x: 980, y: 1220 }, booth_new: { x: 1260, y: 1220 },
-    booth_mom: { x: 1540, y: 1220 },
+    // 两大休息区 — 门口在上方连接走廊
+    rest_door_l: { x: 560, y: 1055 }, rest_door_r: { x: 1340, y: 1055 },
+    rest_l_1: { x: 420, y: 1265 }, rest_l_2: { x: 560, y: 1278 }, rest_l_3: { x: 700, y: 1265 },
+    rest_r_1: { x: 1240, y: 1265 }, rest_r_2: { x: 1440, y: 1278 },
   },
   deskByAgent: { xau: 'desk_xau', major: 'desk_maj', altcoin: 'desk_alt', newcoin: 'desk_new', momentum: 'desk_mom' },
-  boothByAgent: { xau: 'booth_xau', major: 'booth_maj', altcoin: 'booth_alt', newcoin: 'booth_new', momentum: 'booth_mom' },
-  boothDoorByAgent: { xau: 'booth_door_xau', major: 'booth_door_maj', altcoin: 'booth_door_alt', newcoin: 'booth_door_new', momentum: 'booth_door_mom' },
+  restByAgent: { xau: 'rest_l_1', major: 'rest_l_2', altcoin: 'rest_l_3', newcoin: 'rest_r_1', momentum: 'rest_r_2' },
+  boothByAgent: { xau: 'rest_l_1', major: 'rest_l_2', altcoin: 'rest_l_3', newcoin: 'rest_r_1', momentum: 'rest_r_2' },
   wanderTargets: [
     'desk_xau', 'desk_maj', 'desk_alt', 'desk_new', 'desk_mom',
     'scr_xau', 'scr_maj', 'scr_alt', 'scr_ctr', 'scr_mom',
-    'booth_door_xau', 'booth_door_maj', 'booth_door_alt', 'booth_door_new', 'booth_door_mom',
-    'booth_xau', 'booth_maj', 'booth_alt', 'booth_new', 'booth_mom',
+    'rest_door_l', 'rest_door_r',
+    'rest_l_1', 'rest_l_2', 'rest_l_3', 'rest_r_1', 'rest_r_2',
   ],
   _edges: null,
   _buildEdges() {
@@ -388,11 +385,10 @@ const OfficePath = {
       ['a_w','a_xau'],['a_xau','a_maj'],['a_maj','a_alt'],['a_alt','a_new'],['a_new','a_mom'],['a_mom','a_e'],
       ['u_w','u_xau'],['u_xau','u_maj'],['u_maj','u_alt'],['u_alt','u_new'],['u_new','u_mom'],['u_mom','u_e'],
       ['d_w','d_xau'],['d_xau','d_maj'],['d_maj','d_alt'],['d_alt','d_new'],['d_new','d_mom'],['d_mom','d_e'],
-      ['booth_door_xau','d_xau'],['booth_door_xau','booth_xau'],
-      ['booth_door_maj','d_maj'],['booth_door_maj','booth_maj'],
-      ['booth_door_alt','d_alt'],['booth_door_alt','booth_alt'],
-      ['booth_door_new','d_new'],['booth_door_new','booth_new'],
-      ['booth_door_mom','d_mom'],['booth_door_mom','booth_mom'],
+      ['d_xau','rest_door_l'],['d_maj','rest_door_l'],['d_alt','rest_door_l'],
+      ['d_new','rest_door_r'],['d_mom','rest_door_r'],
+      ['rest_door_l','rest_l_1'],['rest_door_l','rest_l_2'],['rest_door_l','rest_l_3'],
+      ['rest_door_r','rest_r_1'],['rest_door_r','rest_r_2'],
       ['desk_xau','a_xau'],['desk_maj','a_maj'],['desk_alt','a_alt'],['desk_new','a_new'],['desk_mom','a_mom'],
       ['a_xau','u_xau'],['a_maj','u_maj'],['a_alt','u_alt'],['a_new','u_new'],['a_mom','u_mom'],
       ['a_xau','d_xau'],['a_maj','d_maj'],['a_alt','d_alt'],['a_new','d_new'],['a_mom','d_mom'],
@@ -620,6 +616,22 @@ class TradingWorld extends Phaser.Scene {
     tctx.fillRect(12, 4, 8, 6);
     this.textures.addCanvas('furniture_sidetable', tableCanvas);
     
+    var coffeeTableCanvas = document.createElement('canvas');
+    coffeeTableCanvas.width = 88; coffeeTableCanvas.height = 44;
+    var ctctx = coffeeTableCanvas.getContext('2d');
+    ctctx.imageSmoothingEnabled = false;
+    ctctx.fillStyle = '#8b7355';
+    ctctx.fillRect(0, 10, 88, 28);
+    ctctx.fillStyle = '#6b5340';
+    ctctx.fillRect(6, 38, 8, 6);
+    ctctx.fillRect(74, 38, 8, 6);
+    ctctx.fillStyle = '#a08060';
+    ctctx.fillRect(4, 8, 80, 6);
+    ctctx.fillStyle = '#c8a060';
+    ctctx.fillRect(28, 2, 12, 8);
+    ctctx.fillRect(48, 2, 12, 8);
+    this.textures.addCanvas('furniture_coffee_table', coffeeTableCanvas);
+    
     // Coffee machine
     var coffeeCanvas = document.createElement('canvas');
     coffeeCanvas.width = 32; coffeeCanvas.height = 44;
@@ -814,8 +826,8 @@ class TradingWorld extends Phaser.Scene {
     else if (hour >= 17) alpha = 0.1;
     if (this.lightingOverlay) this.lightingOverlay.setAlpha(alpha);
     this.isNight = alpha > 0.2;
-    Object.values(this.booths || {}).forEach(function(b) {
-      if (b.boothLight) b.boothLight.setAlpha(b.boothLightBaseAlpha * (alpha > 0.2 ? 1.6 : 1));
+    Object.values(this.loungeLights || []).forEach(function(l) {
+      if (l.boothLight) l.boothLight.setAlpha(l.boothLightBaseAlpha * (alpha > 0.2 ? 1.6 : 1));
     });
   }
 
@@ -850,22 +862,35 @@ class TradingWorld extends Phaser.Scene {
     
     this.add.rectangle(screenX, screenY + 8, 360 * sc + 24, 108 * sc + 20, 0x2a2a2a).setDepth(1);
     
+    this.tickerPanel = this.add.rectangle(screenX, screenY + 4, 320 * sc, 90 * sc, 0x0a1520, 0.55).setDepth(2.5);
+    
     this.tickerTexts = [];
-    var symbols = ['BTC', 'ETH', 'XAU', 'SOL', 'DOGE'];
-    var spread = 72 * sc;
+    var symbols = [
+      { key: 'BTC/USDT', field: 'BTCUSDT' },
+      { key: 'ETH/USDT', field: 'ETHUSDT' },
+      { key: 'XAU/USDT', field: 'XAUUSDT' },
+      { key: 'SOL/USDT', field: 'SOLUSDT' },
+      { key: 'DOGE/USDT', field: 'DOGEUSDT' }
+    ];
+    var panelLeft = screenX - 130 * sc;
+    var panelRight = screenX + 130 * sc;
+    var lineH = 17 * sc;
+    var startY = screenY - 32 * sc;
     
     for (var i = 0; i < symbols.length; i++) {
-      var text = this.add.text(screenX - spread * 2 + i * spread, screenY - 6, symbols[i] + ': --', {
-        fontSize: Math.round(12 * sc) + 'px', fontFamily: UI_FONT, color: '#b8cce8', fontStyle: 'bold'
-      }).setOrigin(0.5).setDepth(3);
-      this.tickerTexts.push({ text: text, symbol: symbols[i], baseX: screenX - spread * 2 + i * spread });
+      var rowY = startY + i * lineH;
+      var nameText = this.add.text(panelLeft, rowY, symbols[i].key, {
+        fontSize: Math.round(13 * sc) + 'px', fontFamily: UI_FONT, color: '#8aa8c8', fontStyle: 'bold'
+      }).setOrigin(0, 0.5).setDepth(3);
+      var priceText = this.add.text(panelRight, rowY, '--', {
+        fontSize: Math.round(13 * sc) + 'px', fontFamily: UI_FONT, color: '#e8f0ff', fontStyle: 'bold'
+      }).setOrigin(1, 0.5).setDepth(3);
+      this.tickerTexts.push({ symbol: symbols[i].key, field: symbols[i].field, nameText: nameText, priceText: priceText });
     }
     
-    this.add.text(screenX, screenY - 58 * sc, '📊 行情大屏', {
+    this.add.text(screenX, screenY - 58 * sc, '📊 实时行情', {
       fontSize: '14px', fontFamily: UI_FONT, color: '#4a3f35', fontStyle: 'bold'
     }).setOrigin(0.5).setDepth(2);
-    
-    this.tickerScroll = 0;
   }
 
   createTradingDesks() {
@@ -927,71 +952,60 @@ class TradingWorld extends Phaser.Scene {
     });
   }
 
-  drawRestBooth(cx, cy, label, accentColor, agentId) {
-    var w = 172, h = 168, wall = 10;
-    var wallColor = 0xc8baa8;
-    var wallDark = 0xa89880;
-    var innerColor = 0xede5d8;
-    var fs = WORLD.FURN_SCALE;
-    var doorW = 58;
-    var segW = (w - doorW) / 2;
+  drawLargeLounge(cx, cy, w, h, title) {
+    var wall = 10, fs = WORLD.FURN_SCALE;
+    var doorW = 80, segW = (w - doorW) / 2;
+    var furnDepth = 1.05;
+    var wallDepth = 1.2;
     
-    this.add.rectangle(cx, cy + 6, w - 8, h - 8, innerColor).setDepth(0.9);
+    this.add.rectangle(cx, cy + 8, w - 8, h - 8, 0xede5d8).setDepth(0.9);
+    this.add.rectangle(cx, cy + h / 2 - wall / 2, w, wall, 0xa89880).setDepth(wallDepth);
+    this.add.rectangle(cx - w / 2 + wall / 2, cy, wall, h, 0xc8baa8).setDepth(wallDepth);
+    this.add.rectangle(cx + w / 2 - wall / 2, cy, wall, h, 0xc8baa8).setDepth(wallDepth);
+    this.add.rectangle(cx - w / 2 + segW / 2, cy - h / 2 + wall / 2, segW - 2, wall, 0xc8baa8).setDepth(wallDepth);
+    this.add.rectangle(cx + w / 2 - segW / 2, cy - h / 2 + wall / 2, segW - 2, wall, 0xc8baa8).setDepth(wallDepth);
+    this.add.rectangle(cx, cy - h / 2 - 8, doorW, 6, 0xd4c8b8).setDepth(0.95);
     
-    this.add.rectangle(cx - w / 2 + wall / 2, cy, wall, h, wallColor).setDepth(1.25);
-    this.add.rectangle(cx + w / 2 - wall / 2, cy, wall, h, wallColor).setDepth(1.25);
-    this.add.rectangle(cx, cy + h / 2 - wall / 2, w, wall, wallDark).setDepth(1.25);
-    
-    this.add.rectangle(cx - w / 2 + segW / 2, cy - h / 2 + wall / 2, segW - 2, wall, wallColor).setDepth(1.25);
-    this.add.rectangle(cx + w / 2 - segW / 2, cy - h / 2 + wall / 2, segW - 2, wall, wallColor).setDepth(1.25);
-    
-    this.add.rectangle(cx, cy - h / 2 - 10, doorW, 8, 0xd4c8b8).setDepth(0.95);
-    this.add.rectangle(cx, cy - h / 2 - 4, doorW - 12, 4, 0xe8dfd0).setDepth(0.96);
-    
-    var boothLight = this.add.circle(cx, cy - 20, 32, 0xffe8a0, 0.14);
+    var boothLight = this.add.circle(cx, cy - 25, 55, 0xffe8a0, 0.13);
     boothLight.setDepth(0.88);
     
-    var sofa = this.add.image(cx, cy + 34, 'furniture_sofa');
-    sofa.setScale(fs * 0.72);
-    sofa.setDepth(1.1);
+    this.add.image(cx, cy + 18, 'furniture_coffee_table').setScale(fs * 0.95).setDepth(furnDepth);
+    this.add.image(cx - w * 0.27, cy + 46, 'furniture_sofa').setScale(fs * 0.88).setDepth(furnDepth);
+    this.add.image(cx, cy + 52, 'furniture_sofa').setScale(fs * 0.92).setDepth(furnDepth);
+    this.add.image(cx + w * 0.27, cy + 46, 'furniture_sofa').setScale(fs * 0.88).setDepth(furnDepth);
+    this.add.image(cx - w * 0.38, cy + 10, 'furniture_sidetable').setScale(fs * 0.8).setDepth(furnDepth);
+    this.add.image(cx + w * 0.38, cy + 10, 'furniture_sidetable').setScale(fs * 0.8).setDepth(furnDepth);
+    this.add.image(cx - w * 0.42, cy - 35, 'furniture_plant').setScale(fs * 0.8).setDepth(furnDepth + 0.02);
+    this.add.image(cx + w * 0.42, cy - 35, 'furniture_plant').setScale(fs * 0.8).setDepth(furnDepth + 0.02);
     
-    var table = this.add.image(cx - 48, cy + 14, 'furniture_sidetable');
-    table.setScale(fs * 0.85);
-    table.setDepth(1.15);
+    this.add.text(cx, cy - h / 2 + 24, title, {
+      fontSize: '13px', fontFamily: UI_FONT, color: '#6b5e4e',
+      fontStyle: 'bold', backgroundColor: 'rgba(250,246,239,0.92)', padding: { x: 6, y: 3 }
+    }).setOrigin(0.5).setDepth(1.35);
     
-    var plant = this.add.image(cx + 52, cy - 10, 'furniture_plant');
-    plant.setScale(fs * 0.75);
-    plant.setDepth(1.15);
-    
-    this.add.text(cx, cy - h / 2 + 22, label, {
-      fontSize: '12px', fontFamily: UI_FONT, color: accentColor,
-      fontStyle: 'bold', backgroundColor: 'rgba(250,246,239,0.92)', padding: { x: 5, y: 2 }
-    }).setOrigin(0.5).setDepth(1.4);
-    
-    return { cx: cx, cy: cy, seatX: cx, seatY: cy + 38, agentId: agentId, boothLight: boothLight, boothLightBaseAlpha: 0.14 };
+    return { boothLight: boothLight, boothLightBaseAlpha: 0.13 };
   }
 
   createRestArea() {
     this.booths = {};
-    var restY = 1215;
-    var booths = [
-      { id: 'xau', x: 420, label: 'XAU 包间', color: '#FFD700' },
-      { id: 'major', x: 700, label: 'MAJOR 包间', color: '#3B82F6' },
-      { id: 'altcoin', x: 980, label: 'ALTCOIN 包间', color: '#F59E0B' },
-      { id: 'newcoin', x: 1260, label: 'NEWCOIN 包间', color: '#A855F7' },
-      { id: 'momentum', x: 1540, label: 'MOMENTUM 包间', color: '#EF4444' },
-    ];
+    this.loungeLights = [];
+    var restY = 1225;
     
+    this.loungeLights.push(this.drawLargeLounge(560, restY, 520, 200, '☕ 休息区 A'));
+    this.loungeLights.push(this.drawLargeLounge(1340, restY, 520, 200, '☕ 休息区 B'));
+    
+    var seats = {
+      xau: { seatX: 420, seatY: 1260 },
+      major: { seatX: 560, seatY: 1272 },
+      altcoin: { seatX: 700, seatY: 1260 },
+      newcoin: { seatX: 1240, seatY: 1260 },
+      momentum: { seatX: 1440, seatY: 1272 }
+    };
     var self = this;
-    booths.forEach(function(b) {
-      self.booths[b.id] = self.drawRestBooth(b.x, restY, b.label, b.color, b.id);
-    });
+    Object.keys(seats).forEach(function(id) { self.booths[id] = seats[id]; });
     
-    var coffee = this.add.image(200, restY - 80, 'furniture_coffee');
-    coffee.setScale(WORLD.FURN_SCALE);
-    coffee.setDepth(1);
-    
-    this.add.text(this.WORLD_W / 2, 1010, '☕ 休息包间区', {
+    this.add.image(960, 1088, 'furniture_coffee').setScale(WORLD.FURN_SCALE * 1.1).setDepth(1.1);
+    this.add.text(this.WORLD_W / 2, 1010, '☕ 休息区', {
       fontSize: '14px', fontFamily: UI_FONT, color: '#6b5e4e', fontStyle: 'bold'
     }).setOrigin(0.5).setDepth(2);
   }
@@ -1217,18 +1231,19 @@ class TradingWorld extends Phaser.Scene {
 
   updateBigScreenTicker(data) {
     if (!this.tickerTexts || !data) return;
-    var map = {
-      BTC: data.BTCUSDT, ETH: data.ETHUSDT, XAU: data.XAUUSDT,
-      SOL: data.SOLUSDT, DOGE: data.DOGEUSDT
-    };
     this.tickerTexts.forEach(function(t) {
-      var price = map[t.symbol];
-      var label = t.symbol + ': ';
-      if (price == null) label += '--';
-      else if (t.symbol === 'XAU') label += '$' + price.toFixed(2);
-      else if (price >= 1000) label += '$' + price.toLocaleString(undefined, { maximumFractionDigits: 0 });
-      else label += '$' + price.toFixed(2);
-      t.text.setText(label);
+      var price = data[t.field];
+      if (price == null) {
+        t.priceText.setText('--');
+        t.priceText.setColor('#888888');
+        return;
+      }
+      var txt;
+      if (t.field === 'XAUUSDT') txt = '$' + Number(price).toFixed(2);
+      else if (price >= 1000) txt = '$' + Number(price).toLocaleString(undefined, { maximumFractionDigits: 0 });
+      else txt = '$' + Number(price).toFixed(2);
+      t.priceText.setText(txt);
+      t.priceText.setColor('#e8f0ff');
     });
   }
 
@@ -1363,13 +1378,6 @@ class TradingWorld extends Phaser.Scene {
       self.animateCharacter(entry[1], time, delta);
     });
     
-    // Animate ticker scroll
-    this.tickerScroll += 0.3;
-    this.tickerTexts.forEach(function(t) {
-      t.text.x = t.baseX - (self.tickerScroll % 200);
-      if (t.text.x < -100) t.text.x += 200;
-    });
-    
     this.updateDeskScreens(time);
     if (Math.floor(time / 30000) !== this._lastDayNightTick) {
       this._lastDayNightTick = Math.floor(time / 30000);
@@ -1411,6 +1419,7 @@ class TradingWorld extends Phaser.Scene {
       char.isResting = false;
       char.sprite.setAngle(0);
       char.sprite.setScale(WORLD.CHAR_SCALE);
+      this.resetCharDepth(char);
     }
     var pts = OfficePath.pathToNode(char.sprite.x, char.sprite.y, nodeId);
     if (!pts || pts.length < 2) return;
@@ -1429,20 +1438,32 @@ class TradingWorld extends Phaser.Scene {
   }
 
   startResting(char, time) {
-    var booth = this.booths && this.booths[char.agentId];
+    var seat = this.booths && this.booths[char.agentId];
     char.isResting = true;
     char.restUntil = time + 9000 + Math.random() * 8000;
     char.restToggle = time;
     char.restPose = 'sit';
     char.isWalking = false;
     char.pathQueue = [];
-    if (booth) {
-      char.sprite.x = booth.seatX;
-      char.sprite.y = booth.seatY;
+    if (seat) {
+      char.sprite.x = seat.seatX;
+      char.sprite.y = seat.seatY;
     }
-    char.sprite.setDepth(1.05);
+    char.sprite.setDepth(3.2);
+    char.nameTag.setDepth(4.5);
+    char.statusText.setDepth(4.5);
+    char.pnlText.setDepth(4.5);
+    char.bubbleText.setDepth(5);
     char.statusText.setText('休息中');
     char.statusText.setColor('#6b8e6b');
+  }
+
+  resetCharDepth(char) {
+    char.sprite.setDepth(3);
+    char.nameTag.setDepth(4);
+    char.statusText.setDepth(4);
+    char.pnlText.setDepth(4);
+    char.bubbleText.setDepth(5);
   }
 
   pickWanderTarget(char) {
@@ -1549,7 +1570,7 @@ class TradingWorld extends Phaser.Scene {
       char.isResting = false;
       char.sprite.setAngle(0);
       char.sprite.setScale(WORLD.CHAR_SCALE);
-      char.sprite.setDepth(3);
+      this.resetCharDepth(char);
       char.moveTimer = 0;
       char.nextMoveTime = 2000 + Math.random() * 3000;
       this.assignPathTo(char, OfficePath.deskByAgent[char.agentId]);
@@ -1559,23 +1580,27 @@ class TradingWorld extends Phaser.Scene {
       char.restToggle = time;
       char.restPose = char.restPose === 'sit' ? 'lie' : 'sit';
     }
-    var booth = this.booths && this.booths[char.agentId];
-    if (booth) {
-      char.sprite.x = booth.seatX;
-      char.sprite.y = booth.seatY;
+    var seat = this.booths && this.booths[char.agentId];
+    if (seat) {
+      char.sprite.x = seat.seatX;
+      char.sprite.y = seat.seatY;
     }
+    char.sprite.setDepth(3.2);
     if (char.restPose === 'sit') {
       char.sprite.setTexture('char_' + agentId + '_sit');
       char.sprite.setAngle(0);
       char.sprite.setScale(WORLD.CHAR_SCALE * 0.95);
       char.sprite.setFlipX(false);
-      char.sprite.y += Math.sin(char.animTimer / 800) * 0.5;
+      if (seat) char.sprite.y = seat.seatY - 6;
+      char.sprite.y += Math.sin(char.animTimer / 800) * 0.4;
     } else {
       char.sprite.setTexture('char_' + agentId + '_sit');
       char.sprite.setAngle(-90);
-      char.sprite.setScale(WORLD.CHAR_SCALE * 0.9);
-      char.sprite.x += 18;
-      char.sprite.y += 8;
+      char.sprite.setScale(WORLD.CHAR_SCALE * 0.88);
+      if (seat) {
+        char.sprite.x = seat.seatX + 16;
+        char.sprite.y = seat.seatY + 4;
+      }
     }
     this.syncCharLabels(char);
     char.sprite.clearTint();
