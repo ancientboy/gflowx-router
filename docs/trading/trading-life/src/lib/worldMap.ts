@@ -4,12 +4,12 @@ import type { ZoneId } from '../store/useGameStore';
 export const WORLD_MAP = {
   centerX: 28,
   centerZ: 15,
-  /** 默认：交易大厅单区视角 */
-  defaultZoom: 56,
-  zoneZoom: 56,
+  /** 默认：交易大厅单区视角 — 数值越小画面越大 */
+  defaultZoom: 38,
+  zoneZoom: 68,
   overviewZoom: 34,
-  minZoom: 40,
-  maxZoom: 72,
+  minZoom: 32,
+  maxZoom: 88,
   cameraHeight: 42,
   panBounds: { minX: 2, maxX: 52, minZ: 0, maxZ: 28 },
 };

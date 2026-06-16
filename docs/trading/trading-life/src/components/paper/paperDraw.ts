@@ -96,12 +96,12 @@ function drawMiniChart(
   }
 }
 
-/** 角色统一入口 — 根据朝向渲染正/背/侧面 */
+/** 角色统一入口 — 根据朝向渲染正/背/侧面；就座时绘制坐姿 */
 export function drawAgent(
   ctx: CanvasRenderingContext2D, x: number, y: number, color: string,
   opts: {
     selected?: boolean; trading?: boolean; walking?: boolean; t?: number;
-    activity?: AgentActivity; icon?: string; facing?: AgentFacing;
+    activity?: AgentActivity; icon?: string; facing?: AgentFacing; sitting?: boolean;
   },
 ) {
   const act = opts.activity;
@@ -109,10 +109,39 @@ export function drawAgent(
     drawAgentTop(ctx, x, y, color, { ...opts, facing: 's' });
     return;
   }
+  if (opts.sitting || act === 'dine' || act === 'poker' || act === 'rest') {
+    drawAgentSitting(ctx, x, y, color, opts);
+    return;
+  }
   const facing = opts.facing ?? 's';
   if (facing === 'n') drawAgentBack(ctx, x, y, color, opts);
   else if (facing === 's') drawAgentFront(ctx, x, y, color, opts);
   else drawAgentSide(ctx, x, y, color, opts, facing);
+}
+
+function drawAgentSitting(
+  ctx: CanvasRenderingContext2D, x: number, y: number, color: string,
+  opts: {
+    selected?: boolean; t?: number; activity?: AgentActivity; icon?: string; facing?: AgentFacing;
+  },
+) {
+  const t = opts.t ?? 0;
+  const py = y - 4;
+  if (opts.selected) {
+    ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(x, py, 20, 18, 0, 0, Math.PI * 2); ctx.stroke();
+  }
+  dropShadow(ctx, x, py + 8, 30, 24, 0.1);
+  ctx.fillStyle = '#5a5048';
+  rrect(ctx, x - 14, py + 6, 28, 10, 4); ctx.fill();
+  ctx.fillStyle = '#1a1a1a';
+  ctx.beginPath(); ctx.ellipse(x, py - 2, 13, 14, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(x - 4, py - 4, 2, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x + 4, py - 4, 2, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.ellipse(x, py + 4, 11, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+  drawActivityBadge(ctx, x, py, opts.activity, t);
 }
 
 /** 背面 — 圆头 + 后脑围巾横条 */
@@ -350,7 +379,90 @@ export function drawMassageBed(ctx: CanvasRenderingContext2D, x: number, y: numb
 }
 
 export function drawDiningTable(ctx: CanvasRenderingContext2D, x: number, y: number, s: number) {
-  dropShadow(ctx, x, y, 60 * s, 60 * s);
+  dropShadow(ctx, x, y, 70 * s, 70 * s);
   ctx.fillStyle = '#d4c8b8';
-  ctx.beginPath(); ctx.ellipse(x, y, 28 * s, 28 * s, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x, y, 32 * s, 32 * s, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#c0b4a4'; ctx.lineWidth = 1; ctx.stroke();
+}
+
+export function drawChair(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, facing: 'n' | 's' | 'e' | 'w' = 's') {
+  dropShadow(ctx, x, y + 4 * s, 24 * s, 20 * s, 0.08);
+  ctx.fillStyle = '#8b7355';
+  rrect(ctx, x - 10 * s, y - 6 * s, 20 * s, 14 * s, 3 * s); ctx.fill();
+  ctx.fillStyle = '#a08060';
+  const back = facing === 'n' ? -8 : facing === 's' ? 8 : 0;
+  rrect(ctx, x - 10 * s, y + back * s - 4 * s, 20 * s, 6 * s, 2 * s); ctx.fill();
+}
+
+export function drawRestBooth(ctx: CanvasRenderingContext2D, x: number, y: number, s: number) {
+  dropShadow(ctx, x, y, 160 * s, 90 * s, 0.08);
+  ctx.fillStyle = '#d4c8b8';
+  rrect(ctx, x - 70 * s, y - 20 * s, 140 * s, 40 * s, 8 * s); ctx.fill();
+  ctx.fillStyle = '#c8baa8';
+  rrect(ctx, x - 75 * s, y - 28 * s, 30 * s, 56 * s, 6 * s); ctx.fill();
+  rrect(ctx, x + 45 * s, y - 28 * s, 30 * s, 56 * s, 6 * s); ctx.fill();
+  ctx.fillStyle = '#faf6ef';
+  ctx.beginPath(); ctx.ellipse(x, y + 8 * s, 22 * s, 14 * s, 0, 0, Math.PI * 2); ctx.fill();
+}
+
+export function drawPokerTable8(
+  ctx: CanvasRenderingContext2D, x: number, y: number, s: number, t: number,
+) {
+  dropShadow(ctx, x, y, 240 * s, 180 * s, 0.1);
+  ctx.fillStyle = '#2d5a3d';
+  ctx.beginPath(); ctx.ellipse(x, y, 110 * s, 75 * s, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#8b6914'; ctx.lineWidth = 3 * s; ctx.stroke();
+  ctx.fillStyle = '#1a4030';
+  ctx.beginPath(); ctx.ellipse(x, y, 95 * s, 62 * s, 0, 0, Math.PI * 2); ctx.fill();
+  for (let i = 1; i <= 8; i++) {
+    const ang = -Math.PI / 2 + ((i - 1) / 8) * Math.PI * 2;
+    const lx = x + Math.cos(ang) * 62 * s;
+    const ly = y + Math.sin(ang) * 42 * s;
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.beginPath(); ctx.arc(lx, ly, 9 * s, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#3d3530';
+    ctx.font = `700 ${Math.max(8, 10 * s)}px Inter,sans-serif`; ctx.textAlign = 'center';
+    ctx.fillText(String(i), lx, ly + 3 * s);
+  }
+  const cards = ['🂡', '🂱', '🃁', '🃑'];
+  cards.forEach((c, i) => {
+    ctx.font = `${14 * s}px sans-serif`;
+    ctx.fillText(c, x - 24 * s + i * 16 * s, y + Math.sin(t * 2 + i) * 2 * s);
+  });
+  ctx.fillStyle = 'rgba(212,175,55,0.85)';
+  ctx.font = `600 ${Math.max(9, 11 * s)}px Inter,sans-serif`;
+  ctx.fillText('TEXAS HOLD\'EM', x, y + 4 * s);
+}
+
+export function drawNpc(
+  ctx: CanvasRenderingContext2D, x: number, y: number,
+  opts: { emoji: string; color: string; name: string; wave: number },
+) {
+  const bob = Math.sin(opts.wave * 3) * 2;
+  const py = y + bob;
+  dropShadow(ctx, x, py + 6, 34, 38, 0.12);
+  ctx.fillStyle = '#2a2a2a';
+  ctx.beginPath(); ctx.ellipse(x, py + 2, 16, 20, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = opts.color;
+  ctx.beginPath(); ctx.ellipse(x, py + 10, 14, 4, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.font = '18px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(opts.emoji, x, py + 6);
+  ctx.fillStyle = '#3d3530';
+  ctx.font = '600 10px Inter,sans-serif';
+  ctx.fillText(opts.name.split(' ')[0], x, py - 18);
+}
+
+export function drawSpeechBubble(ctx: CanvasRenderingContext2D, x: number, y: number, text: string, s: number) {
+  const maxW = 140 * s;
+  ctx.font = `600 ${Math.max(9, 10 * s)}px Inter,sans-serif`;
+  const tw = Math.min(maxW, ctx.measureText(text).width + 16 * s);
+  const th = 28 * s;
+  ctx.fillStyle = 'rgba(255,252,247,0.96)';
+  ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 1;
+  rrect(ctx, x - tw / 2, y - th - 8 * s, tw, th, 8 * s); ctx.fill(); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x - 6 * s, y - 8 * s); ctx.lineTo(x, y); ctx.lineTo(x + 6 * s, y - 8 * s);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#3d3530'; ctx.textAlign = 'center';
+  ctx.fillText(text.length > 18 ? text.slice(0, 17) + '…' : text, x, y - th + 6 * s);
 }

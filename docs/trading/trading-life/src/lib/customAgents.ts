@@ -5,9 +5,9 @@ import type { AgentMeta } from './constants';
 export const EXTRA_DESK_NODES = ['desk_extra_1', 'desk_extra_2', 'desk_extra_3'] as const;
 const LEISURE_POOL = {
   booth: ['rest_l_1', 'rest_l_2'],
-  massage: ['bed_1', 'bed_2', 'bed_3'],
+  massage: ['bed_1', 'bed_2', 'bed_3', 'bed_4', 'bed_5', 'bed_6'],
   dine: ['dine_1', 'dine_2', 'dine_3'],
-  poker: ['poker_1', 'poker_2', 'poker_3'],
+  poker: ['poker_s1', 'poker_s2', 'poker_s3', 'poker_s4', 'poker_s5', 'poker_s6', 'poker_s7', 'poker_s8'],
 };
 
 const CUSTOM_KEY = 'trading-life-custom-agents';

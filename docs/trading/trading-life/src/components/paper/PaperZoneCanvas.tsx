@@ -2,10 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { tickCharacterSim } from '../../lib/characterSimLoop';
 import { WORLD_MAP, ZONE_CAMERA } from '../../lib/worldMap';
+import { hitTestPaperFacilities, getAgentPaperPos, ZONE_NPCS } from '../../lib/zoneFurniture';
 import { ZONE_LAYOUTS } from '../../lib/zoneLayouts';
 import { PAPER, agentVisibleInZone } from '../../lib/zoneProjection';
 import {
-  makePaperCamera, camToScreen, screenToPaper, renderZone, renderAgents, getFacilityPaperPos,
+  makePaperCamera, camToScreen, screenToPaper, renderZone, renderAgents,
 } from './renderZone';
 
 export function PaperZoneCanvas() {
@@ -26,9 +27,11 @@ export function PaperZoneCanvas() {
   const followAgentId = useGameStore(s => s.followAgentId);
   const paused = useGameStore(s => s.paused);
   const ticker = useGameStore(s => s.ticker);
+  const npcBubble = useGameStore(s => s.npcBubble);
 
   const flyToZone = useGameStore(s => s.flyToZone);
   const selectAgent = useGameStore(s => s.selectAgent);
+  const selectNpc = useGameStore(s => s.selectNpc);
   const sendAgentToFacility = useGameStore(s => s.sendAgentToFacility);
   const panCamera = useGameStore(s => s.panCamera);
   const setCameraZoom = useGameStore(s => s.setCameraZoom);
@@ -67,12 +70,13 @@ export function PaperZoneCanvas() {
       dayMode,
       ticker,
       t,
+      npcBubble: performance.now() < (npcBubble?.until ?? 0) ? npcBubble : null,
     });
     renderAgents(ctx, activeZone, cam, agents, c => agentVisibleInZone(c, activeZone), {
       selectedId: selectedAgentId,
       t,
     });
-  }, [activeZone, agents, selectedAgentId, cameraZoom, dayMode, getPan, hoverFacilityId, ticker]);
+  }, [activeZone, agents, selectedAgentId, cameraZoom, dayMode, getPan, hoverFacilityId, ticker, npcBubble]);
 
   useEffect(() => {
     let last = performance.now();
@@ -120,22 +124,16 @@ export function PaperZoneCanvas() {
       }
     }
 
-    for (const f of layout.facilities) {
-      const fp = getFacilityPaperPos(activeZone, f);
-      if (!fp) continue;
-      if (Math.hypot(paper.x - fp.x, paper.y - fp.y) < f.r) {
-        return { type: 'facility' as const, action: f.action, nodeId: f.nodeId, id: f.id };
-      }
+    const fac = hitTestPaperFacilities(activeZone, { px: paper.x, py: paper.y });
+    if (fac) {
+      return { type: 'facility' as const, action: fac.action, nodeId: fac.nodeId, id: fac.id };
     }
 
     let best: { id: string; d: number } | null = null;
     Object.values(agents).forEach(char => {
       if (!agentVisibleInZone(char, activeZone)) return;
-      const p = {
-        x: PAPER.zoneW / 2 + (char.x - ZONE_CAMERA[activeZone].x) * PAPER.ppu,
-        y: PAPER.zoneH / 2 + (char.z - ZONE_CAMERA[activeZone].z) * PAPER.ppu,
-      };
-      const d = Math.hypot(paper.x - p.x, paper.y - p.y);
+      const ap = getAgentPaperPos(activeZone, char);
+      const d = Math.hypot(paper.x - ap.px, paper.y - ap.py);
       if (d < 22 && (!best || d < best.d)) best = { id: char.agentId, d };
     });
     if (best) return { type: 'agent' as const, id: best.id };

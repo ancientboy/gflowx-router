@@ -25,6 +25,14 @@ export function localToPaper(lx: number, lz: number) {
   };
 }
 
+export function paperToWorld(zone: ZoneId, px: number, py: number) {
+  const cam = ZONE_CAMERA[zone];
+  return {
+    x: cam.x + (px - PAPER.zoneW / 2) / PAPER.ppu,
+    z: cam.z + (py - PAPER.zoneH / 2) / PAPER.ppu,
+  };
+}
+
 const INTENT_ZONE: Record<string, ZoneId> = {
   dine: 'restaurant',
   massage: 'spa',

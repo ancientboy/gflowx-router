@@ -23,9 +23,9 @@ export const OfficePath = {
   } as Record<string, { x: number; z: number }>,
   deskByAgent: { xau:'desk_xau', major:'desk_maj', altcoin:'desk_alt', newcoin:'desk_new', momentum:'desk_mom' } as Record<string,string>,
   boothByAgent: { xau:'rest_l_1', major:'rest_l_2', altcoin:'rest_l_1', newcoin:'rest_l_2', momentum:'rest_l_2' } as Record<string,string>,
-  massageByAgent: { xau:'bed_1', major:'bed_2', altcoin:'bed_3', newcoin:'bed_1', momentum:'bed_2' } as Record<string,string>,
+  massageByAgent: { xau:'bed_1', major:'bed_2', altcoin:'bed_3', newcoin:'bed_4', momentum:'bed_5' } as Record<string,string>,
   dineByAgent: { xau:'dine_1', major:'dine_2', altcoin:'dine_3', newcoin:'dine_1', momentum:'dine_2' } as Record<string,string>,
-  pokerByAgent: { xau:'poker_1', major:'poker_2', altcoin:'poker_3', newcoin:'poker_1', momentum:'poker_2' } as Record<string,string>,
+  pokerByAgent: { xau:'poker_s1', major:'poker_s2', altcoin:'poker_s3', newcoin:'poker_s4', momentum:'poker_s5' } as Record<string,string>,
   wanderTargets: ['desk_xau','desk_maj','scr_ctr','rest_l_1','bed_2','dine_2','poker_2','recv_ctr'],
   _edges: null as Record<string, string[]> | null,
   _buildEdges() {
@@ -37,10 +37,13 @@ export const OfficePath = {
       ['a_xau','d_xau'],['a_maj','d_maj'],['a_alt','d_alt'],
       ['d_xau','booth_a1'],['booth_a1','rest_l_1'],['booth_a1','booth_a2'],
       ['d_maj','booth_b1'],['booth_b1','rest_l_2'],['booth_b1','booth_b2'],
-      ['a_e','door_ts'],['door_ts','spa_c'],['spa_c','spa_d'],['spa_d','bed_1'],['spa_d','bed_2'],['spa_d','bed_3'],
+      ['a_e','door_ts'],['door_ts','spa_c'],['spa_c','spa_d'],
+      ['spa_d','bed_1'],['spa_d','bed_2'],['spa_d','bed_3'],['spa_d','bed_4'],['spa_d','bed_5'],['spa_d','bed_6'],
       ['d_maj','hub_tr'],['hub_tr','door_tr'],['door_tr','rest_d'],['rest_d','rest_c'],
       ['rest_c','dine_1'],['rest_c','dine_2'],['rest_c','dine_3'],
-      ['door_sc','cas_d'],['cas_d','cas_c'],['cas_c','poker_1'],['cas_c','poker_2'],['cas_c','poker_3'],
+      ['door_sc','cas_d'],['cas_d','cas_c'],['cas_c','poker_table'],
+      ['poker_table','poker_s1'],['poker_table','poker_s2'],['poker_table','poker_s3'],['poker_table','poker_s4'],
+      ['poker_table','poker_s5'],['poker_table','poker_s6'],['poker_table','poker_s7'],['poker_table','poker_s8'],
       ['d_xau','recv_ctr'],['recv_ctr','a_xau'],
     ];
     const adj: Record<string, string[]> = {};

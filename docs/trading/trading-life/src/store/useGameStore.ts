@@ -6,6 +6,8 @@ import { OfficePath } from '../lib/pathfinding';
 import { WORLD_MAP, ZONE_CAMERA } from '../lib/worldMap';
 import { SIDEBAR_TO_ZONE, ZONE_TO_RIGHT_TAB } from '../lib/zones';
 import { ensureHallRow2Nodes } from '../lib/hallLayout';
+import { paperToWorld } from '../lib/zoneProjection';
+import { syncFurnitureToPathfinding, getActivitySeatPaper, greetingForActivity, npcForZone } from '../lib/zoneFurniture';
 import {
   loadCustomAgentMeta, saveCustomAgentMeta, registerCustomAgentSlots,
   ensureExtraDeskEdges, nextCustomAgentId, type CustomAgentDraft,
@@ -56,6 +58,7 @@ interface GameStore {
   profileConfig: Record<string, unknown>;
   soulMd: string;
   messages: { text: string; time: string }[];
+  npcBubble: { npcId: string; text: string; until: number } | null;
 
   setCameraMode: (m: CameraMode) => void;
   setQuality: (q: QualityTier) => void;
@@ -96,6 +99,7 @@ interface GameStore {
   setProfile: (schema: GameStore['profileSchema'], config: Record<string, unknown>, soul: string) => void;
   patchChar: (id: string, patch: Partial<CharState>) => void;
   addMessage: (text: string) => void;
+  setNpcBubble: (npcId: string | null, text: string, until: number) => void;
 }
 
 /** 大厅 Agent 使用本地坐标（分区中心为原点） */
@@ -120,7 +124,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   activeModal: null,
   followAgentId: null,
   cameraLookAt: { x: ZONE_CAMERA.hall.x, z: ZONE_CAMERA.hall.z },
-  cameraZoom: WORLD_MAP.defaultZoom,
+  cameraZoom: WORLD_MAP.zoneZoom,
   mapOverview: false,
   agents: {},
   ticker: {},
@@ -130,6 +134,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   profileConfig: {},
   soulMd: '',
   messages: [],
+  npcBubble: null,
 
   setCameraMode: (m) => set({ cameraMode: m }),
   setQuality: (q) => set({ quality: q }),
@@ -337,7 +342,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     selectedNpcId: null,
     selectedFacility: null,
     cameraLookAt: { x: ZONE_CAMERA.hall.x, z: ZONE_CAMERA.hall.z },
-    cameraZoom: WORLD_MAP.defaultZoom,
+    cameraZoom: WORLD_MAP.zoneZoom,
     mapOverview: false,
   }),
   setFollowAgent: (id) => set({ followAgentId: id, selectedAgentId: id, rightPanelCollapsed: false }),
@@ -365,9 +370,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
   initAgents: () => {
     ensureExtraDeskEdges(OfficePath);
     ensureHallRow2Nodes(OfficePath.nodes);
+    syncFurnitureToPathfinding(OfficePath.nodes, 'spa');
+    syncFurnitureToPathfinding(OfficePath.nodes, 'restaurant');
+    syncFurnitureToPathfinding(OfficePath.nodes, 'casino');
+    syncFurnitureToPathfinding(OfficePath.nodes, 'hall');
     const customMeta = loadCustomAgentMeta();
+    const bedPool = ['bed_1', 'bed_2', 'bed_3', 'bed_4', 'bed_5', 'bed_6'];
+    const pokerPool = ['poker_s1', 'poker_s2', 'poker_s3', 'poker_s4', 'poker_s5', 'poker_s6', 'poker_s7', 'poker_s8'];
     Object.entries(customMeta).forEach(([id], i) => {
       if (!OfficePath.deskByAgent[id]) registerCustomAgentSlots(OfficePath, id, i);
+      OfficePath.massageByAgent[id] = bedPool[i % 6];
+      OfficePath.pokerByAgent[id] = pokerPool[i % 8];
     });
 
     const agents: Record<string, CharState> = {};
@@ -441,6 +454,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
   setProfile: (schema, config, soul) => set({ profileSchema: schema, profileConfig: config, soulMd: soul }),
   patchChar: (id, patch) => set(s => ({ agents: { ...s.agents, [id]: { ...s.agents[id], ...patch } } })),
   addMessage: (text) => set(s => ({ messages: [...s.messages.slice(-49), { text, time: new Date().toLocaleTimeString() }] })),
+  setNpcBubble: (npcId, text, until) => set({
+    npcBubble: npcId && text ? { npcId, text, until } : null,
+  }),
 }));
 
 export function assignPath(char: CharState, nodeId: string): CharState {
@@ -503,11 +519,27 @@ function startActivity(char: CharState, activity: CharState['activity'], now: nu
     dine: OfficePath.dineByAgent, poker: OfficePath.pokerByAgent,
   };
   const nodeId = char.destNode || seatMap[activity!]?.[char.agentId];
+  const zoneMap = { dine: 'restaurant' as const, massage: 'spa' as const, poker: 'casino' as const, rest: 'hall' as const };
+  const zone = activity ? zoneMap[activity] : null;
+  const paperSeat = activity && zone ? getActivitySeatPaper(activity, nodeId, char.agentId) : null;
   const pos = nodeId ? OfficePath.nodes[nodeId] : null;
+  let wx = pos?.x ?? char.x, wz = pos?.z ?? char.z;
+  if (paperSeat && zone) {
+    const w = paperToWorld(zone, paperSeat.px, paperSeat.py);
+    wx = w.x; wz = w.z;
+  }
+  const store = useGameStore.getState();
+  if (zone && activity) {
+    const greet = greetingForActivity(zone);
+    const npc = npcForZone(zone);
+    if (greet && npc) store.addMessage(`${npc.emoji} ${npc.name}：${greet}`);
+    store.setNpcBubble(npc?.id ?? null, greet ?? '', now + 4500);
+  }
   return {
     ...char, activity, activityUntil: now + dur + Math.random() * 5000,
-    travelIntent: null, isWalking: false, pathQueue: [], destNode: null,
-    x: pos?.x ?? char.x, z: pos?.z ?? char.z,
+    travelIntent: null, isWalking: false, pathQueue: [], destNode: nodeId,
+    x: wx, z: wz,
+    facing: activity === 'massage' ? 's' : activity === 'poker' ? 'n' : 's',
     stress: activity === 'massage' ? Math.max(0, char.stress - 50)
       : activity === 'dine' ? Math.max(0, char.stress - 30)
       : activity === 'poker' ? 0
