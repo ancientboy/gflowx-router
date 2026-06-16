@@ -32,14 +32,23 @@ body { background: #faf6ef; overflow: hidden; font-family: 'Courier New', monosp
 #agent-detail {
   position: fixed; bottom: 16px; left: 16px; z-index: 100;
   background: rgba(250,246,239,0.97); border: 2px solid #d4c8b8;
-  border-radius: 8px; padding: 12px 16px; min-width: 260px;
+  border-radius: 8px; padding: 14px 16px; min-width: 300px; max-width: 360px;
   display: none; font-size: 12px; color: #6b5e4e;
   box-shadow: 0 4px 16px rgba(0,0,0,0.1);
 }
 #agent-detail.active { display: block; }
-#agent-detail .title { color: #4a3f35; font-weight: bold; font-size: 14px; margin-bottom: 8px; }
-#agent-detail .row { display: flex; justify-content: space-between; margin: 4px 0; }
+#agent-detail .detail-header { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #e8dfd0; }
+#agent-detail #detail-avatar { width: 72px; height: 72px; image-rendering: pixelated; image-rendering: crisp-edges; border: 2px solid #d4c8b8; border-radius: 6px; background: #f5f0e8; flex-shrink: 0; }
+#agent-detail .detail-meta { flex: 1; min-width: 0; }
+#agent-detail .title { color: #4a3f35; font-weight: bold; font-size: 14px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+#agent-detail .desc { color: #8a7a6a; font-size: 11px; line-height: 1.45; }
+#agent-detail .row { display: flex; justify-content: space-between; margin: 4px 0; gap: 8px; }
+#agent-detail .row span:last-child { text-align: right; max-width: 58%; word-break: break-word; }
 #agent-detail .positions { margin-top: 8px; padding-top: 8px; border-top: 1px solid #e8dfd0; }
+#agent-detail .up { color: #16a34a; }
+#agent-detail .down { color: #dc2626; }
+#agent-detail .detail-close { position: absolute; top: 8px; right: 10px; background: none; border: none; color: #9a8b7a; cursor: pointer; font-size: 16px; line-height: 1; padding: 2px 6px; }
+#agent-detail .detail-close:hover { color: #4a3f35; }
 </style>
 </head>
 <body>
@@ -60,11 +69,22 @@ body { background: #faf6ef; overflow: hidden; font-family: 'Courier New', monosp
 </div>
 
 <div id="agent-detail">
-  <div class="title" id="detail-name">--</div>
+  <button class="detail-close" id="detail-close" title="关闭">&times;</button>
+  <div class="detail-header">
+    <canvas id="detail-avatar" width="64" height="64"></canvas>
+    <div class="detail-meta">
+      <div class="title"><span id="detail-icon"></span><span id="detail-name">--</span></div>
+      <div class="desc" id="detail-desc">点击角色查看介绍</div>
+    </div>
+  </div>
   <div class="row"><span>策略</span><span id="detail-strategy">--</span></div>
+  <div class="row"><span>市场</span><span id="detail-market">--</span></div>
+  <div class="row"><span>周期</span><span id="detail-interval">--</span></div>
+  <div class="row"><span>风险</span><span id="detail-risk">--</span></div>
   <div class="row"><span>资金</span><span id="detail-capital">--</span></div>
   <div class="row"><span>盈亏</span><span id="detail-pnl">--</span></div>
   <div class="row"><span>胜率</span><span id="detail-wr">--</span></div>
+  <div class="row"><span>状态</span><span id="detail-status">--</span></div>
   <div class="row"><span>持仓</span><span id="detail-pos">--</span></div>
   <div class="positions" id="detail-positions"></div>
 </div>
@@ -255,11 +275,11 @@ const PixelArt = {
   },
 
   characters: {
-    xau: { name: 'XAU Agent', color: '#FFD700' },
-    major: { name: 'Major Agent', color: '#3B82F6' },
-    altcoin: { name: 'Altcoin Agent', color: '#F59E0B' },
-    newcoin: { name: 'Newcoin Agent', color: '#A855F7' },
-    momentum: { name: 'Momentum Agent', color: '#EF4444' }
+    xau: { name: 'XAU Agent', color: '#FFD700', icon: '🥇', desc: '黄金趋势交易 — 结构突破 + EMA 趋势跟踪', strategy: '趋势跟踪', market: '黄金(XAUUSDT)', interval: '15m/1h/4h', risk: '中' },
+    major: { name: 'Major Agent', color: '#3B82F6', icon: '₿', desc: '主流币趋势交易 — BTC/ETH 等大市值币种的趋势跟踪与反转', strategy: '趋势跟踪 + 反转', market: 'BTC/ETH 等主流币', interval: '1h/4h', risk: '中' },
+    altcoin: { name: 'Altcoin Agent', color: '#F59E0B', icon: '🪙', desc: '山寨币波段交易 — 中等市值 alt 的动量与均值回归', strategy: '波段 + 动量', market: 'Alt 山寨币', interval: '15m/1h', risk: '中高' },
+    newcoin: { name: 'Newcoin Agent', color: '#A855F7', icon: '🚀', desc: '新币猎手 — 新上线代币的早期趋势捕捉', strategy: '趋势突破', market: '新上线代币', interval: '5m/15m', risk: '高' },
+    momentum: { name: 'Momentum Agent', color: '#EF4444', icon: '⚡', desc: '动量策略 — 强势品种追涨杀跌，快进快出', strategy: '动量追踪', market: '高波动品种', interval: '5m/15m', risk: '高' }
   }
 };
 
@@ -267,7 +287,7 @@ const PixelArt = {
 // ============================================================
 // OFFICE PATH NETWORK — 角色只能沿路径行走
 // ============================================================
-const WORLD = { W: 2400, H: 1350, CHAR_SCALE: 1.28, PIXEL_SCALE: 4, WALK_SPEED: 52, FURN_SCALE: 1.65, SCREEN_SCALE: 2.4 };
+const WORLD = { W: 2400, H: 1350, CHAR_SCALE: 1.28, PIXEL_SCALE: 4, WALK_SPEED: 78, FURN_SCALE: 1.65, SCREEN_SCALE: 2.4 };
 
 const OfficePath = {
   nodes: {
@@ -740,6 +760,21 @@ class TradingWorld extends Phaser.Scene {
       monitor.setScale(fs);
       monitor.setDepth(2);
       
+      var screenContainer = self.add.container(agent.x, deskY - 36);
+      screenContainer.setDepth(2.6);
+      screenContainer.setScale(fs * 0.62);
+      var screenBars = [];
+      for (var bi = 0; bi < 7; bi++) {
+        var bar = self.add.rectangle(-24 + bi * 8, 2, 4, 8 + Math.random() * 10, 0x4a90c8);
+        bar.setOrigin(0.5, 1);
+        screenContainer.add(bar);
+        screenBars.push({ rect: bar, phase: Math.random() * Math.PI * 2, speed: 0.002 + Math.random() * 0.003 });
+      }
+      var scanLine = self.add.rectangle(0, -10, 52, 2, 0x88ccff, 0.35);
+      screenContainer.add(scanLine);
+      var screenCursor = self.add.rectangle(-26, -6, 2, 2, 0xffffff);
+      screenContainer.add(screenCursor);
+      
       var label = self.add.text(agent.x, deskY - 72, agent.label, {
         fontSize: '12px', fontFamily: 'Courier New', color: agent.color,
         fontStyle: 'bold', backgroundColor: '#faf6ef', padding: { x: 5, y: 3 }
@@ -750,7 +785,10 @@ class TradingWorld extends Phaser.Scene {
       
       self.desks[agent.id] = { 
         desk: desk, chair: chair, monitor: monitor, label: label, light: light,
-        baseX: agent.x, baseY: deskY
+        baseX: agent.x, baseY: deskY,
+        screenContainer: screenContainer, screenBars: screenBars,
+        scanLine: scanLine, screenCursor: screenCursor,
+        agentRunning: false, agentTrading: false
       };
     });
   }
@@ -826,44 +864,48 @@ class TradingWorld extends Phaser.Scene {
     
     var self = this;
     agents.forEach(function(agent) {
+      var meta = PixelArt.characters[agent.id];
       var sprite = self.add.sprite(agent.x, agent.y, 'char_' + agent.id + '_idle');
       sprite.setScale(WORLD.CHAR_SCALE);
       sprite.setDepth(3);
-      sprite.setInteractive({ cursor: 'pointer' });
+      var hitR = 40;
+      sprite.setInteractive(new Phaser.Geom.Circle(0, 0, hitR), Phaser.Geom.Circle.Contains);
+      sprite.input.cursor = 'pointer';
       
-      // Name tag
-      var nameTag = self.add.text(agent.x, agent.y - 42, PixelArt.characters[agent.id].name, {
-        fontSize: '11px', fontFamily: 'Courier New', color: PixelArt.characters[agent.id].color,
+      var hitZone = self.add.zone(agent.x, agent.y, hitR * 2.2, hitR * 2.8);
+      hitZone.setDepth(3);
+      hitZone.setInteractive({ cursor: 'pointer' });
+      
+      var nameTag = self.add.text(agent.x, agent.y - 42, meta.name, {
+        fontSize: '11px', fontFamily: 'Courier New', color: meta.color,
         backgroundColor: '#faf6ef', padding: { x: 4, y: 2 }
       }).setOrigin(0.5).setDepth(4);
       
-      // Status indicator
       var statusText = self.add.text(agent.x, agent.y + 28, 'IDLE', {
         fontSize: '9px', fontFamily: 'Courier New', color: '#999'
       }).setOrigin(0.5).setDepth(4);
       
-      // PNL indicator
       var pnlText = self.add.text(agent.x, agent.y + 40, 'PNL: --', {
         fontSize: '9px', fontFamily: 'Courier New', color: '#888'
       }).setOrigin(0.5).setDepth(4);
       
       self.characters[agent.id] = {
-        sprite: sprite, nameTag: nameTag, statusText: statusText, pnlText: pnlText,
+        sprite: sprite, hitZone: hitZone, nameTag: nameTag, statusText: statusText, pnlText: pnlText,
         agentId: agent.id, baseX: agent.x, baseY: agent.y,
         pathQueue: [], pathIndex: 0, isWalking: false,
         state: 'idle', animTimer: 0, walkFrame: 0,
         moveTimer: 0, nextMoveTime: 4000 + Math.random() * 6000,
-        data: null
+        data: Object.assign({ id: agent.id }, meta)
       };
       
-      // Click handler
-      sprite.on('pointerdown', function() {
+      function onCharClick(pointer) {
+        if (pointer && pointer.event) pointer.event.stopPropagation();
         self.showAgentDetail(agent.id);
-      });
+      }
+      sprite.on('pointerdown', onCharClick);
+      hitZone.on('pointerdown', onCharClick);
       nameTag.setInteractive({ cursor: 'pointer' });
-      nameTag.on('pointerdown', function() {
-        self.showAgentDetail(agent.id);
-      });
+      nameTag.on('pointerdown', onCharClick);
     });
   }
 
@@ -882,31 +924,81 @@ class TradingWorld extends Phaser.Scene {
 
   setupInput() {
     var self = this;
-    this.input.on('pointerdown', function(pointer) {
-      var clickedChar = false;
-      Object.values(self.characters).forEach(function(c) {
-        if (Phaser.Math.Distance.Between(pointer.x, pointer.y, c.sprite.x, c.sprite.y) < 50) {
-          clickedChar = true;
-        }
+    this.selectedAgentId = null;
+    
+    document.getElementById('detail-close').addEventListener('click', function() {
+      document.getElementById('agent-detail').classList.remove('active');
+      self.selectedAgentId = null;
+    });
+    
+    this.input.on('pointerdown', function(pointer, currentlyOver) {
+      if (currentlyOver && currentlyOver.length > 0) {
+        var hitChar = currentlyOver.some(function(obj) {
+          return Object.values(self.characters).some(function(c) {
+            return c.sprite === obj || c.hitZone === obj || c.nameTag === obj;
+          });
+        });
+        if (hitChar) return;
+      }
+      var wx = pointer.worldX, wy = pointer.worldY;
+      var clickedChar = Object.values(self.characters).some(function(c) {
+        return Phaser.Math.Distance.Between(wx, wy, c.sprite.x, c.sprite.y) < 48;
       });
       if (!clickedChar) {
         document.getElementById('agent-detail').classList.remove('active');
+        self.selectedAgentId = null;
       }
     });
   }
 
-  showAgentDetail(agentId) {
+  drawDetailAvatar(agentId) {
+    var canvas = document.getElementById('detail-avatar');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#f5f0e8';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    var tex = this.textures.get('char_' + agentId + '_idle');
+    if (tex && tex.getSourceImage) {
+      var img = tex.getSourceImage();
+      var scale = Math.min(canvas.width / img.width, canvas.height / img.height) * 0.92;
+      var dw = img.width * scale, dh = img.height * scale;
+      ctx.drawImage(img, (canvas.width - dw) / 2, (canvas.height - dh) / 2, dw, dh);
+    }
+  }
+
+  showAgentDetail(agentId, options) {
+    options = options || {};
     var char = this.characters[agentId];
-    if (!char || !char.data) return;
+    if (!char) return;
     
-    var d = char.data;
-    document.getElementById('detail-name').textContent = d.name || PixelArt.characters[agentId].name;
-    document.getElementById('detail-strategy').textContent = d.strategy || '--';
-    document.getElementById('detail-capital').textContent = d.capital ? '$' + d.capital.toLocaleString() : '--';
+    this.selectedAgentId = agentId;
+    var meta = PixelArt.characters[agentId] || {};
+    var d = char.data || meta;
+    
+    this.drawDetailAvatar(agentId);
+    document.getElementById('detail-icon').textContent = d.icon || meta.icon || '';
+    document.getElementById('detail-name').textContent = d.name || meta.name || agentId;
+    document.getElementById('detail-desc').textContent = d.desc || meta.desc || '';
+    document.getElementById('detail-strategy').textContent = d.strategy || meta.strategy || '--';
+    document.getElementById('detail-market').textContent = d.market || meta.market || '--';
+    document.getElementById('detail-interval').textContent = d.interval || meta.interval || '--';
+    document.getElementById('detail-risk').textContent = d.risk || meta.risk || '--';
+    document.getElementById('detail-capital').textContent = d.capital != null ? '$' + Number(d.capital).toLocaleString() : '--';
+    
     var pnlEl = document.getElementById('detail-pnl');
-    pnlEl.textContent = d.pnl ? '$' + d.pnl.toLocaleString() + ' (' + (d.pnl_pct ? d.pnl_pct.toFixed(1) : '0') + '%)' : '--';
-    pnlEl.className = d.pnl > 0 ? 'up' : d.pnl < 0 ? 'down' : '';
-    document.getElementById('detail-wr').textContent = d.win_rate ? d.win_rate.toFixed(1) + '% (' + d.wins + '/' + d.trades + ')' : '--';
+    var pnl = d.pnl || 0;
+    pnlEl.textContent = d.pnl != null ? (pnl > 0 ? '+' : '') + '$' + Number(pnl).toLocaleString() + ' (' + (d.pnl_pct != null ? d.pnl_pct.toFixed(1) : '0') + '%)' : '--';
+    pnlEl.className = pnl > 0 ? 'up' : pnl < 0 ? 'down' : '';
+    
+    document.getElementById('detail-wr').textContent = d.win_rate != null ? d.win_rate.toFixed(1) + '% (' + (d.wins || 0) + '/' + (d.trades || 0) + ')' : '--';
+    
+    var status = d.is_circuit_break ? '熔断保护' : d.running ? '运行中' : '离线';
+    var statusEl = document.getElementById('detail-status');
+    statusEl.textContent = status;
+    statusEl.className = d.is_circuit_break ? 'down' : d.running ? 'up' : '';
+    
     document.getElementById('detail-pos').textContent = (d.positions ? d.positions.length : 0) + ' 个';
     
     var posDiv = document.getElementById('detail-positions');
@@ -920,6 +1012,13 @@ class TradingWorld extends Phaser.Scene {
     }
     
     document.getElementById('agent-detail').classList.add('active');
+    if (!options.refresh) {
+      char.sprite.setTint(0xffffcc);
+      var self = this;
+      this.time.delayedCall(180, function() {
+        if (self.characters[agentId]) self.characters[agentId].sprite.clearTint();
+      });
+    }
   }
 
   startDataPolling() {
@@ -994,8 +1093,12 @@ class TradingWorld extends Phaser.Scene {
         var lightColor = agent.is_circuit_break ? 0xdc2626 :
                           agent.running ? 0x16a34a : 0x999999;
         desk.light.setFillStyle(lightColor);
+        desk.agentRunning = !!agent.running;
+        desk.agentTrading = !!(agent.positions && agent.positions.length > 0);
         if (agent.running) {
           desk.light.setAlpha(0.5 + Math.sin(self.time.now / 200) * 0.5);
+        } else {
+          desk.light.setAlpha(1);
         }
       }
       
@@ -1013,6 +1116,10 @@ class TradingWorld extends Phaser.Scene {
         self.emitPnlParticles(char.sprite.x, char.sprite.y, pnl > 0);
       }
     });
+    
+    if (self.selectedAgentId) {
+      self.showAgentDetail(self.selectedAgentId, { refresh: true });
+    }
   }
 
   updateRiskIndicator(risk) {
@@ -1048,6 +1155,37 @@ class TradingWorld extends Phaser.Scene {
     this.tickerTexts.forEach(function(t) {
       t.text.x = t.baseX - (self.tickerScroll % 200);
       if (t.text.x < -100) t.text.x += 200;
+    });
+    
+    this.updateDeskScreens(time);
+  }
+
+  updateDeskScreens(time) {
+    Object.values(this.desks).forEach(function(desk) {
+      if (!desk.screenBars) return;
+      desk.screenBars.forEach(function(bar, i) {
+        var h = 6 + Math.abs(Math.sin(time * bar.speed + bar.phase)) * 14;
+        if (desk.agentTrading) h += 4 + Math.sin(time * 0.008 + i) * 3;
+        bar.rect.setSize(4, h);
+        bar.rect.y = 2;
+        var color;
+        if (desk.agentTrading) {
+          color = i % 2 === 0 ? 0x16a34a : 0xdc2626;
+        } else if (desk.agentRunning) {
+          color = 0x4a90c8;
+        } else {
+          color = 0x3a5060;
+        }
+        bar.rect.setFillStyle(color);
+      });
+      if (desk.scanLine) {
+        desk.scanLine.y = -10 + ((time * 0.04) % 24);
+        desk.scanLine.setAlpha(desk.agentRunning ? 0.45 : 0.15);
+      }
+      if (desk.screenCursor) {
+        desk.screenCursor.setAlpha(desk.agentRunning && Math.floor(time / 400) % 2 === 0 ? 1 : 0.2);
+        desk.screenCursor.x = -26 + ((time * 0.02) % 52);
+      }
     });
   }
 
@@ -1130,6 +1268,8 @@ class TradingWorld extends Phaser.Scene {
 
     char.nameTag.x = char.sprite.x;
     char.nameTag.y = char.sprite.y - 42;
+    char.hitZone.x = char.sprite.x;
+    char.hitZone.y = char.sprite.y;
     char.statusText.x = char.sprite.x;
     char.statusText.y = char.sprite.y + 28;
     char.pnlText.x = char.sprite.x;
