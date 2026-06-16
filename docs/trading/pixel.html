@@ -347,30 +347,24 @@ const PixelArt = {
   },
 
   generateCharacterSit(mainColor) {
-    const skin = '#f5d0a9';
-    const eyeWhite = '#ffffff';
-    const eyeBlack = '#1a1a1a';
+    const pixels = this.generateCharacter(mainColor).slice();
     const shoe = '#4a3f35';
     const pants = '#3a3530';
     const t = 'transparent';
-    return [
-      t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,
-      t,t,t,t,t,skin,skin,skin,skin,skin,skin,t,t,t,t,t,
-      t,t,t,t,skin,skin,skin,skin,skin,skin,skin,skin,t,t,t,t,
-      t,t,t,skin,skin,eyeWhite,skin,skin,skin,skin,eyeWhite,skin,skin,t,t,t,
-      t,t,t,skin,skin,eyeBlack,skin,skin,skin,skin,eyeBlack,skin,skin,t,t,t,
-      t,t,t,t,skin,skin,skin,skin,skin,skin,skin,skin,t,t,t,t,
-      t,t,t,t,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,t,t,t,t,
-      t,t,t,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,t,t,t,
-      t,t,skin,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,skin,t,t,
-      t,t,t,pants,pants,pants,pants,pants,pants,pants,pants,t,t,t,t,
-      t,t,pants,pants,t,t,t,t,t,t,pants,pants,t,t,t,t,
-      t,t,shoe,shoe,t,t,t,t,t,t,shoe,shoe,t,t,t,t,
-      t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,
-      t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,
-      t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,
-      t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,
+    var seatedRows = [
+      [t,t,t,t,pants,pants,pants,pants,pants,pants,pants,pants,t,t,t,t],
+      [t,t,t,pants,pants,t,t,t,t,t,t,pants,pants,t,t,t,t],
+      [t,t,t,shoe,shoe,t,t,t,t,t,t,shoe,shoe,t,t,t,t],
+      [t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t],
+      [t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t],
+      [t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t],
     ];
+    for (var r = 0; r < 6; r++) {
+      for (var c = 0; c < 16; c++) {
+        pixels[(10 + r) * 16 + c] = seatedRows[r][c];
+      }
+    }
+    return pixels;
   },
 
   characters: {
