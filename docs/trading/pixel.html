@@ -2,20 +2,26 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>Trading Agent - Pixel World</title>
-<script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+<title>Trading Agent - 3D World</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<link rel="preconnect" href="https://fonts.googleapis.com">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #faf6ef; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; -webkit-font-smoothing: antialiased; }
+body { background: #e8e4dc; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; -webkit-font-smoothing: antialiased; }
 #game-container { width: 100vw; height: 100vh; touch-action: none; }
+#game-container canvas { display: block; }
 #ui-overlay {
   position: fixed; top: 0; left: 0; right: 0; padding: 8px 16px;
   display: flex; gap: 12px; align-items: center; z-index: 100;
   background: rgba(250,246,239,0.94); border-bottom: 2px solid #e8dfd0;
-  font-size: 13px; color: #4a3f35;
-  pointer-events: auto;
+  font-size: 13px; color: #4a3f35; pointer-events: auto;
 }
 #ui-overlay .stat { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
 #ui-overlay .stat .label { color: #7a6e62; font-size: 11px; font-weight: 500; }
@@ -48,7 +54,7 @@ body { background: #faf6ef; overflow: hidden; font-family: -apple-system, BlinkM
 }
 #agent-detail.active { display: block; }
 #agent-detail .detail-header { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #e8dfd0; }
-#agent-detail #detail-avatar { width: 72px; height: 72px; image-rendering: pixelated; border: 2px solid #d4c8b8; border-radius: 8px; background: #f5f0e8; flex-shrink: 0; }
+#agent-detail #detail-avatar { width: 72px; height: 72px; border: 2px solid #d4c8b8; border-radius: 12px; background: linear-gradient(135deg,#f5f0e8,#e8dfd0); flex-shrink: 0; }
 #agent-detail .detail-meta { flex: 1; min-width: 0; }
 #agent-detail .title { color: #2d2520; font-weight: 700; font-size: 15px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
 #agent-detail .desc { color: #6b5e4e; font-size: 12px; line-height: 1.5; }
@@ -70,30 +76,23 @@ body { background: #faf6ef; overflow: hidden; font-family: -apple-system, BlinkM
 #agent-detail .tab-panel.active { display: block; }
 #agent-detail .cfg-field { margin: 8px 0; }
 #agent-detail .cfg-field label { display: block; font-size: 11px; color: #7a6e62; margin-bottom: 3px; font-weight: 600; }
-#agent-detail .cfg-field input, #agent-detail .cfg-field select {
-  width: 100%; padding: 6px 8px; border: 1px solid #d4c8b8; border-radius: 6px;
-  font-size: 13px; font-family: inherit; background: #fff;
-}
-#agent-detail #soul-editor {
-  width: 100%; min-height: 160px; padding: 8px; border: 1px solid #d4c8b8; border-radius: 6px;
-  font-size: 12px; font-family: 'SF Mono', Consolas, monospace; line-height: 1.45; resize: vertical;
-}
-#agent-detail .save-btn {
-  margin-top: 10px; width: 100%; padding: 8px; border: none; border-radius: 6px;
-  background: #4a3f35; color: #faf6ef; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
-}
+#agent-detail .cfg-field input { width: 100%; padding: 6px 8px; border: 1px solid #d4c8b8; border-radius: 6px; font-size: 13px; font-family: inherit; background: #fff; }
+#agent-detail #soul-editor { width: 100%; min-height: 160px; padding: 8px; border: 1px solid #d4c8b8; border-radius: 6px; font-size: 12px; font-family: 'SF Mono', Consolas, monospace; line-height: 1.45; resize: vertical; }
+#agent-detail .save-btn { margin-top: 10px; width: 100%; padding: 8px; border: none; border-radius: 6px; background: #4a3f35; color: #faf6ef; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
 #agent-detail .save-btn:hover { background: #3a322c; }
 #agent-detail .save-msg { margin-top: 6px; font-size: 11px; color: #16a34a; min-height: 16px; }
 #agent-detail .save-hint { font-size: 11px; color: #9a8b7a; margin-top: 4px; line-height: 1.4; }
+.char-label {
+  padding: 3px 8px; border-radius: 8px; font-size: 11px; font-weight: 600;
+  background: rgba(255,252,247,0.95); border: 1px solid rgba(212,200,184,0.8);
+  color: #4a3f35; text-align: center; white-space: nowrap; pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.char-label .status { display: block; font-size: 10px; color: #888; font-weight: 500; margin-top: 1px; }
 @media (max-width: 768px) {
   #ui-overlay { flex-wrap: wrap; gap: 6px 10px; padding: 6px 10px; font-size: 12px; }
-  #ui-overlay .stat .value { font-size: 12px; }
   #ui-overlay .hint { display: none; }
-  #agent-detail {
-    left: 8px; right: 8px; bottom: 8px; max-width: none; min-width: 0;
-    max-height: 55vh; overflow-y: auto;
-  }
-  #back-btn { bottom: auto; top: auto; right: 8px; bottom: 8px; padding: 8px 12px; font-size: 12px; }
+  #agent-detail { left: 8px; right: 8px; bottom: 8px; max-width: none; min-width: 0; max-height: 55vh; }
   #cam-hint { bottom: 56px; font-size: 10px; max-width: 90vw; text-align: center; }
 }
 </style>
@@ -112,13 +111,13 @@ body { background: #faf6ef; overflow: hidden; font-family: -apple-system, BlinkM
   <div class="divider"></div>
   <div class="stat"><span class="label">状态</span><span class="value" id="runner-status">--</span></div>
   <div style="flex:1"></div>
-  <div class="stat hint">拖拽平移 · 滚轮缩放 · 四区通行 · 点击角色编辑 SOUL/参数</div>
+  <div class="stat hint">拖拽旋转 · 滚轮缩放 · 点击 Gugugaga 编辑 SOUL/参数</div>
 </div>
 
 <div id="agent-detail">
   <button class="detail-close" id="detail-close" title="关闭">&times;</button>
   <div class="detail-header">
-    <canvas id="detail-avatar" width="64" height="64"></canvas>
+    <canvas id="detail-avatar" width="128" height="128"></canvas>
     <div class="detail-meta">
       <div class="title"><span id="detail-icon"></span><span id="detail-name">--</span></div>
       <div class="desc" id="detail-desc">点击角色查看介绍</div>
@@ -130,16 +129,16 @@ body { background: #faf6ef; overflow: hidden; font-family: -apple-system, BlinkM
     <button type="button" class="tab-btn" data-tab="soul">SOUL</button>
   </div>
   <div id="tab-overview" class="tab-panel active">
-  <div class="row"><span>策略</span><span id="detail-strategy">--</span></div>
-  <div class="row"><span>市场</span><span id="detail-market">--</span></div>
-  <div class="row"><span>周期</span><span id="detail-interval">--</span></div>
-  <div class="row"><span>风险</span><span id="detail-risk">--</span></div>
-  <div class="row"><span>资金</span><span id="detail-capital">--</span></div>
-  <div class="row"><span>盈亏</span><span id="detail-pnl">--</span></div>
-  <div class="row"><span>胜率</span><span id="detail-wr">--</span></div>
-  <div class="row"><span>状态</span><span id="detail-status">--</span></div>
-  <div class="row"><span>持仓</span><span id="detail-pos">--</span></div>
-  <div class="positions" id="detail-positions"></div>
+    <div class="row"><span>策略</span><span id="detail-strategy">--</span></div>
+    <div class="row"><span>市场</span><span id="detail-market">--</span></div>
+    <div class="row"><span>周期</span><span id="detail-interval">--</span></div>
+    <div class="row"><span>风险</span><span id="detail-risk">--</span></div>
+    <div class="row"><span>资金</span><span id="detail-capital">--</span></div>
+    <div class="row"><span>盈亏</span><span id="detail-pnl">--</span></div>
+    <div class="row"><span>胜率</span><span id="detail-wr">--</span></div>
+    <div class="row"><span>状态</span><span id="detail-status">--</span></div>
+    <div class="row"><span>持仓</span><span id="detail-pos">--</span></div>
+    <div class="positions" id="detail-positions"></div>
   </div>
   <div id="tab-config" class="tab-panel">
     <div class="save-hint">量化参数写入 config.json，重启 Agent 后完全生效</div>
@@ -156,290 +155,61 @@ body { background: #faf6ef; overflow: hidden; font-family: -apple-system, BlinkM
 </div>
 
 <a href="/trading/" id="back-btn">&larr; 返回 Dashboard</a>
-<div id="cam-hint">单指拖拽平移 · 双指/滚轮缩放</div>
+<div id="cam-hint">拖拽旋转视角 · 滚轮缩放 · 右键平移</div>
 <div id="game-container"></div>
 
-<script>
-// ============================================================
-// GLOBAL UI
-// ============================================================
-const UI_FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif";
-const UI_TEXT = { fontFamily: UI_FONT, resolution: 2 };
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 
-// ============================================================
-// PIXEL ART GENERATOR - Procedural sprite generation
-// ============================================================
-const PixelArt = {
-  // Create a pixel texture from a color grid
-  createTexture(scene, key, width, height, pixels, scale) {
-    scale = scale || WORLD.PIXEL_SCALE || 4;
-    const canvas = document.createElement('canvas');
-    canvas.width = width * scale;
-    canvas.height = height * scale;
-    const ctx = canvas.getContext('2d');
-    ctx.imageSmoothingEnabled = false;
-    
-    if (!pixels || pixels.length !== width * height) {
-      console.error('Invalid pixels array for', key, 'expected', width * height, 'got', pixels ? pixels.length : 'null');
-      ctx.fillStyle = '#ff0000';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      scene.textures.addCanvas(key, canvas);
-      return key;
-    }
-    
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const color = pixels[y * width + x];
-        if (color && color !== 'transparent') {
-          ctx.fillStyle = color;
-          ctx.fillRect(x * scale, y * scale, scale, scale);
-          if (scale >= 3) {
-            ctx.fillStyle = 'rgba(255,255,255,0.12)';
-            ctx.fillRect(x * scale, y * scale, scale, 1);
-            ctx.fillRect(x * scale, y * scale, 1, scale);
-            ctx.fillStyle = 'rgba(0,0,0,0.1)';
-            ctx.fillRect(x * scale, y * scale + scale - 1, scale, 1);
-            ctx.fillRect(x * scale + scale - 1, y * scale, 1, scale);
-          }
-        }
-      }
-    }
-    
-    scene.textures.addCanvas(key, canvas);
-    return key;
-  },
+const S = 0.01;
+const WALK_SPEED = 2.8;
+const WORLD = { W: 48, H: 27, MID_X: 24, MID_Y: 13.5 };
 
-  fillPixel(ctx, x, y, size, color) {
-    ctx.fillStyle = color;
-    ctx.fillRect(x * size, y * size, size, size);
-  },
-
-  // Generate a 16x16 pixel character with head, body, limbs, eyes
-  generateCharacter(mainColor) {
-    const skin = '#f5d0a9';
-    const skinDark = '#e0b890';
-    const eyeWhite = '#ffffff';
-    const eyeBlack = '#1a1a1a';
-    const shoe = '#4a3f35';
-    const pants = '#3a3530';
-    const t = 'transparent';
-    
-    // 16x16 grid - each row
-    return [
-      // Row 0-1: empty
-      t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,
-      t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,
-      // Row 2-3: head top
-      t,t,t,t,t,skin,skin,skin,skin,skin,skin,t,t,t,t,t,
-      t,t,t,t,skin,skin,skin,skin,skin,skin,skin,skin,t,t,t,t,
-      // Row 4-5: head mid (eyes)
-      t,t,t,skin,skin,eyeWhite,skin,skin,skin,skin,eyeWhite,skin,skin,t,t,t,
-      t,t,t,skin,skin,eyeBlack,skin,skin,skin,skin,eyeBlack,skin,skin,t,t,t,
-      // Row 6: mouth
-      t,t,t,skin,skin,skin,skin,skinDark,skinDark,skin,skin,skin,skin,t,t,t,
-      // Row 7: neck
-      t,t,t,t,skin,skin,skin,skin,skin,skin,skin,skin,t,t,t,t,
-      // Row 8-9: body (shirt)
-      t,t,t,t,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,t,t,t,t,
-      t,t,t,t,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,t,t,t,t,
-      // Row 10: body bottom / arms start
-      t,t,skin,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,skin,t,t,t,
-      // Row 11: arms
-      t,t,skin,skin,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,skin,skin,t,t,
-      // Row 12: hands / pants top
-      t,t,t,t,pants,pants,mainColor,mainColor,mainColor,mainColor,pants,pants,t,t,t,t,
-      // Row 13: pants
-      t,t,t,t,pants,pants,pants,pants,pants,pants,pants,pants,t,t,t,t,
-      // Row 14: legs
-      t,t,t,t,pants,pants,t,t,t,t,pants,pants,t,t,t,t,
-      // Row 15: shoes
-      t,t,t,t,shoe,shoe,t,t,t,t,shoe,shoe,t,t,t,t,
-    ];
-  },
-
-  // Walking frame 1 (left leg forward)
-  generateCharacterWalk1(mainColor) {
-    const skin = '#f5d0a9';
-    const skinDark = '#e0b890';
-    const eyeWhite = '#ffffff';
-    const eyeBlack = '#1a1a1a';
-    const shoe = '#4a3f35';
-    const pants = '#3a3530';
-    const t = 'transparent';
-    
-    return [
-      t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,
-      t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,
-      t,t,t,t,t,skin,skin,skin,skin,skin,skin,t,t,t,t,t,
-      t,t,t,t,skin,skin,skin,skin,skin,skin,skin,skin,t,t,t,t,
-      t,t,t,skin,skin,eyeWhite,skin,skin,skin,skin,eyeWhite,skin,skin,t,t,t,
-      t,t,t,skin,skin,eyeBlack,skin,skin,skin,skin,eyeBlack,skin,skin,t,t,t,
-      t,t,t,skin,skin,skin,skin,skinDark,skinDark,skin,skin,skin,skin,t,t,t,
-      t,t,t,t,skin,skin,skin,skin,skin,skin,skin,skin,t,t,t,t,
-      t,t,t,t,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,t,t,t,t,
-      t,t,t,t,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,t,t,t,t,
-      t,t,skin,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,skin,t,t,t,
-      t,t,skin,skin,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,skin,skin,t,t,
-      t,t,t,t,pants,pants,mainColor,mainColor,mainColor,mainColor,pants,pants,t,t,t,t,
-      t,t,t,t,pants,pants,pants,pants,pants,pants,pants,pants,t,t,t,t,
-      t,t,t,pants,pants,t,t,t,t,t,t,pants,pants,t,t,t,
-      t,t,shoe,shoe,t,t,t,t,t,t,t,t,shoe,shoe,t,t,
-    ];
-  },
-
-  // Walking frame 2 (right leg forward)
-  generateCharacterWalk2(mainColor) {
-    const skin = '#f5d0a9';
-    const skinDark = '#e0b890';
-    const eyeWhite = '#ffffff';
-    const eyeBlack = '#1a1a1a';
-    const shoe = '#4a3f35';
-    const pants = '#3a3530';
-    const t = 'transparent';
-    
-    return [
-      t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,
-      t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,
-      t,t,t,t,t,skin,skin,skin,skin,skin,skin,t,t,t,t,t,
-      t,t,t,t,skin,skin,skin,skin,skin,skin,skin,skin,t,t,t,t,
-      t,t,t,skin,skin,eyeWhite,skin,skin,skin,skin,eyeWhite,skin,skin,t,t,t,
-      t,t,t,skin,skin,eyeBlack,skin,skin,skin,skin,eyeBlack,skin,skin,t,t,t,
-      t,t,t,skin,skin,skin,skin,skinDark,skinDark,skin,skin,skin,skin,t,t,t,
-      t,t,t,t,skin,skin,skin,skin,skin,skin,skin,skin,t,t,t,t,
-      t,t,t,t,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,t,t,t,t,
-      t,t,t,t,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,t,t,t,t,
-      t,t,skin,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,skin,t,t,t,
-      t,t,skin,skin,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,skin,skin,t,t,
-      t,t,t,t,pants,pants,mainColor,mainColor,mainColor,mainColor,pants,pants,t,t,t,t,
-      t,t,t,t,pants,pants,pants,pants,pants,pants,pants,pants,t,t,t,t,
-      t,t,t,t,t,pants,pants,t,t,t,t,t,pants,pants,t,t,
-      t,t,t,t,t,t,shoe,shoe,t,t,shoe,shoe,t,t,t,t,
-    ];
-  },
-
-  // Trading/panic frame (arms up)
-  generateCharacterExcited(mainColor) {
-    const skin = '#f5d0a9';
-    const skinDark = '#e0b890';
-    const eyeWhite = '#ffffff';
-    const eyeBlack = '#1a1a1a';
-    const shoe = '#4a3f35';
-    const pants = '#3a3530';
-    const t = 'transparent';
-    
-    return [
-      t,t,skin,skin,t,t,t,t,t,t,t,t,skin,skin,t,t,
-      t,t,skin,skin,t,t,t,t,t,t,t,t,skin,skin,t,t,
-      t,t,t,t,t,skin,skin,skin,skin,skin,skin,t,t,t,t,t,
-      t,t,t,t,skin,skin,skin,skin,skin,skin,skin,skin,t,t,t,t,
-      t,t,t,skin,skin,eyeWhite,skin,skin,skin,skin,eyeWhite,skin,skin,t,t,t,
-      t,t,t,skin,skin,eyeBlack,skin,skin,skin,skin,eyeBlack,skin,skin,t,t,t,
-      t,t,t,skin,skin,skin,skin,skinDark,skinDark,skin,skin,skin,skin,t,t,t,
-      t,t,t,t,skin,skin,skin,skin,skin,skin,skin,skin,t,t,t,t,
-      t,t,t,t,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,t,t,t,t,
-      t,t,t,t,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,t,t,t,t,
-      t,t,skin,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,skin,t,t,t,
-      t,t,skin,skin,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,skin,skin,t,t,
-      t,t,t,t,pants,pants,mainColor,mainColor,mainColor,mainColor,pants,pants,t,t,t,t,
-      t,t,t,t,pants,pants,pants,pants,pants,pants,pants,pants,t,t,t,t,
-      t,t,t,t,pants,pants,t,t,t,t,pants,pants,t,t,t,t,
-      t,t,t,t,shoe,shoe,t,t,t,t,shoe,shoe,t,t,t,t,
-    ];
-  },
-
-  generateCharacterSit(mainColor) {
-    const pixels = this.generateCharacter(mainColor).slice();
-    const shoe = '#4a3f35';
-    const pants = '#3a3530';
-    const t = 'transparent';
-    var seatedRows = [
-      [t,t,t,t,pants,pants,pants,pants,pants,pants,pants,pants,t,t,t,t],
-      [t,t,t,pants,pants,t,t,t,t,t,t,pants,pants,t,t,t,t],
-      [t,t,t,shoe,shoe,t,t,t,t,t,t,shoe,shoe,t,t,t,t],
-      [t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t],
-      [t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t],
-      [t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t],
-    ];
-    for (var r = 0; r < 6; r++) {
-      for (var c = 0; c < 16; c++) {
-        pixels[(10 + r) * 16 + c] = seatedRows[r][c];
-      }
-    }
-    return pixels;
-  },
-
-  characters: {
-    xau: { name: 'XAU Agent', color: '#FFD700', icon: '🥇', desc: '黄金趋势交易 — 结构突破 + EMA 趋势跟踪', strategy: '趋势跟踪', market: '黄金(XAUUSDT)', interval: '15m/1h/4h', risk: '中' },
-    major: { name: 'Major Agent', color: '#3B82F6', icon: '₿', desc: '主流币趋势交易 — BTC/ETH 等大市值币种的趋势跟踪与反转', strategy: '趋势跟踪 + 反转', market: 'BTC/ETH 等主流币', interval: '1h/4h', risk: '中' },
-    altcoin: { name: 'Altcoin Agent', color: '#F59E0B', icon: '🪙', desc: '山寨币波段交易 — 中等市值 alt 的动量与均值回归', strategy: '波段 + 动量', market: 'Alt 山寨币', interval: '15m/1h', risk: '中高' },
-    newcoin: { name: 'Newcoin Agent', color: '#A855F7', icon: '🚀', desc: '新币猎手 — 新上线代币的早期趋势捕捉', strategy: '趋势突破', market: '新上线代币', interval: '5m/15m', risk: '高' },
-    momentum: { name: 'Momentum Agent', color: '#EF4444', icon: '⚡', desc: '动量策略 — 强势品种追涨杀跌，快进快出', strategy: '动量追踪', market: '高波动品种', interval: '5m/15m', risk: '高' }
-  }
+const AGENTS = {
+  xau: { name: 'XAU Agent', color: '#FFD700', icon: '🥇', desc: '黄金趋势交易 — 结构突破 + EMA 趋势跟踪', strategy: '趋势跟踪', market: '黄金(XAUUSDT)', interval: '15m/1h/4h', risk: '中' },
+  major: { name: 'Major Agent', color: '#3B82F6', icon: '₿', desc: '主流币趋势交易 — BTC/ETH 等大市值币种', strategy: '趋势跟踪 + 反转', market: 'BTC/ETH 等主流币', interval: '1h/4h', risk: '中' },
+  altcoin: { name: 'Altcoin Agent', color: '#F59E0B', icon: '🪙', desc: '山寨币波段交易 — 动量与均值回归', strategy: '波段 + 动量', market: 'Alt 山寨币', interval: '15m/1h', risk: '中高' },
+  newcoin: { name: 'Newcoin Agent', color: '#A855F7', icon: '🚀', desc: '新币猎手 — 新上线代币的早期趋势捕捉', strategy: '趋势突破', market: '新上线代币', interval: '5m/15m', risk: '高' },
+  momentum: { name: 'Momentum Agent', color: '#EF4444', icon: '⚡', desc: '动量策略 — 强势品种追涨杀跌', strategy: '动量追踪', market: '高波动品种', interval: '5m/15m', risk: '高' },
 };
 
-
-// ============================================================
-// OFFICE PATH NETWORK — 角色只能沿路径行走
-// ============================================================
-const WORLD = { W: 4800, H: 2700, CHAR_SCALE: 1.28, PIXEL_SCALE: 4, WALK_SPEED: 88, FURN_SCALE: 1.65, SCREEN_SCALE: 2.4 };
-const ZONE = { MID_X: 2400, MID_Y: 1350, WALL: 12 };
+function p2(x, y) { return { x: x * S, z: y * S }; }
 
 const OfficePath = {
   nodes: {
-    // 主走廊 (y≈780)
-    a_w: { x: 220, y: 780 }, a_xau: { x: 420, y: 780 }, a_maj: { x: 700, y: 780 },
-    a_alt: { x: 980, y: 780 }, a_new: { x: 1260, y: 780 }, a_mom: { x: 1540, y: 780 },
-    a_e: { x: 2180, y: 780 },
-    // 工位前
-    desk_xau: { x: 420, y: 560 }, desk_maj: { x: 700, y: 560 }, desk_alt: { x: 980, y: 560 },
-    desk_new: { x: 1260, y: 560 }, desk_mom: { x: 1540, y: 560 },
-    // 大屏区走廊 (y≈420)
-    u_w: { x: 220, y: 420 }, u_xau: { x: 420, y: 420 }, u_maj: { x: 700, y: 420 },
-    u_alt: { x: 980, y: 420 }, u_new: { x: 1260, y: 420 }, u_mom: { x: 1540, y: 420 },
-    u_e: { x: 2180, y: 420 },
-    // 大屏前
-    scr_xau: { x: 420, y: 170 }, scr_maj: { x: 700, y: 170 }, scr_alt: { x: 980, y: 170 },
-    scr_new: { x: 1260, y: 170 }, scr_mom: { x: 1540, y: 170 }, scr_ctr: { x: 1200, y: 130 },
-    // 休息区走廊 (y≈980)
-    d_w: { x: 220, y: 980 }, d_xau: { x: 420, y: 980 }, d_maj: { x: 700, y: 980 },
-    d_alt: { x: 980, y: 980 }, d_new: { x: 1260, y: 980 }, d_mom: { x: 1540, y: 980 },
-    d_e: { x: 2180, y: 980 },
-    // 两大休息区
-    rest_door_l: { x: 560, y: 1055 }, rest_door_r: { x: 1340, y: 1055 },
-    rest_l_1: { x: 420, y: 1265 }, rest_l_2: { x: 560, y: 1278 }, rest_l_3: { x: 700, y: 1265 },
-    rest_r_1: { x: 1240, y: 1265 }, rest_r_2: { x: 1440, y: 1278 },
-    // 跨区域门
-    door_ts: { x: 2390, y: 780 }, door_tr: { x: 1200, y: 1350 }, door_sc: { x: 3600, y: 1350 },
-    door_rc: { x: 2390, y: 2000 }, hub_tr: { x: 1200, y: 1160 }, v_sc: { x: 3600, y: 1080 },
-    h_rc: { x: 1920, y: 2000 },
-    // 按摩区 (右上)
-    spa_w: { x: 2580, y: 780 }, spa_c: { x: 3000, y: 780 }, spa_e: { x: 3420, y: 780 },
-    spa_d: { x: 3000, y: 1050 },
-    bed_1: { x: 2700, y: 1180 }, bed_2: { x: 3000, y: 1180 }, bed_3: { x: 3300, y: 1180 },
-    bed_4: { x: 2850, y: 980 }, bed_5: { x: 3150, y: 980 },
-    // 餐厅 (左下)
-    rest_w: { x: 480, y: 1480 }, rest_c: { x: 1200, y: 1480 }, rest_e: { x: 1920, y: 1480 },
-    rest_d: { x: 1200, y: 1580 },
-    dine_1: { x: 700, y: 1850 }, dine_2: { x: 1200, y: 1850 }, dine_3: { x: 1700, y: 1850 },
-    dine_4: { x: 700, y: 2150 }, dine_5: { x: 1700, y: 2150 },
-    // 赌场 (右下)
-    cas_w: { x: 2880, y: 1480 }, cas_c: { x: 3600, y: 1480 }, cas_e: { x: 4320, y: 1480 },
-    cas_d: { x: 3600, y: 1580 },
-    poker_1: { x: 3300, y: 2050 }, poker_2: { x: 3600, y: 2180 }, poker_3: { x: 3900, y: 2050 },
-    poker_4: { x: 3420, y: 2320 }, poker_5: { x: 3780, y: 2320 },
+    a_w: p2(220,780), a_xau: p2(420,780), a_maj: p2(700,780), a_alt: p2(980,780),
+    a_new: p2(1260,780), a_mom: p2(1540,780), a_e: p2(2180,780),
+    desk_xau: p2(420,560), desk_maj: p2(700,560), desk_alt: p2(980,560),
+    desk_new: p2(1260,560), desk_mom: p2(1540,560),
+    u_w: p2(220,420), u_xau: p2(420,420), u_maj: p2(700,420), u_alt: p2(980,420),
+    u_new: p2(1260,420), u_mom: p2(1540,420), u_e: p2(2180,420),
+    scr_xau: p2(420,170), scr_maj: p2(700,170), scr_alt: p2(980,170),
+    scr_new: p2(1260,170), scr_mom: p2(1540,170), scr_ctr: p2(1200,130),
+    d_w: p2(220,980), d_xau: p2(420,980), d_maj: p2(700,980), d_alt: p2(980,980),
+    d_new: p2(1260,980), d_mom: p2(1540,980), d_e: p2(2180,980),
+    rest_door_l: p2(560,1055), rest_door_r: p2(1340,1055),
+    rest_l_1: p2(420,1265), rest_l_2: p2(560,1278), rest_l_3: p2(700,1265),
+    rest_r_1: p2(1240,1265), rest_r_2: p2(1440,1278),
+    door_ts: p2(2390,780), door_tr: p2(1200,1350), door_sc: p2(3600,1350),
+    door_rc: p2(2390,2000), hub_tr: p2(1200,1160), v_sc: p2(3600,1080), h_rc: p2(1920,2000),
+    spa_w: p2(2580,780), spa_c: p2(3000,780), spa_e: p2(3420,780), spa_d: p2(3000,1050),
+    bed_1: p2(2700,1180), bed_2: p2(3000,1180), bed_3: p2(3300,1180),
+    bed_4: p2(2850,980), bed_5: p2(3150,980),
+    rest_w: p2(480,1480), rest_c: p2(1200,1480), rest_e: p2(1920,1480), rest_d: p2(1200,1580),
+    dine_1: p2(700,1850), dine_2: p2(1200,1850), dine_3: p2(1700,1850),
+    dine_4: p2(700,2150), dine_5: p2(1700,2150),
+    cas_w: p2(2880,1480), cas_c: p2(3600,1480), cas_e: p2(4320,1480), cas_d: p2(3600,1580),
+    poker_1: p2(3300,2050), poker_2: p2(3600,2180), poker_3: p2(3900,2050),
+    poker_4: p2(3420,2320), poker_5: p2(3780,2320),
   },
-  deskByAgent: { xau: 'desk_xau', major: 'desk_maj', altcoin: 'desk_alt', newcoin: 'desk_new', momentum: 'desk_mom' },
-  restByAgent: { xau: 'rest_l_1', major: 'rest_l_2', altcoin: 'rest_l_3', newcoin: 'rest_r_1', momentum: 'rest_r_2' },
-  boothByAgent: { xau: 'rest_l_1', major: 'rest_l_2', altcoin: 'rest_l_3', newcoin: 'rest_r_1', momentum: 'rest_r_2' },
-  massageByAgent: { xau: 'bed_1', major: 'bed_2', altcoin: 'bed_3', newcoin: 'bed_4', momentum: 'bed_5' },
-  dineByAgent: { xau: 'dine_1', major: 'dine_2', altcoin: 'dine_3', newcoin: 'dine_4', momentum: 'dine_5' },
-  pokerByAgent: { xau: 'poker_1', major: 'poker_2', altcoin: 'poker_3', newcoin: 'poker_4', momentum: 'poker_5' },
-  wanderTargets: [
-    'desk_xau', 'desk_maj', 'desk_alt', 'desk_new', 'desk_mom',
-    'scr_xau', 'scr_maj', 'scr_alt', 'scr_ctr', 'scr_mom',
-    'rest_door_l', 'rest_door_r', 'rest_l_1', 'rest_l_2', 'rest_l_3', 'rest_r_1', 'rest_r_2',
-    'bed_1', 'bed_2', 'bed_3', 'dine_1', 'dine_2', 'dine_3', 'poker_1', 'poker_2', 'poker_3',
-  ],
+  deskByAgent: { xau:'desk_xau', major:'desk_maj', altcoin:'desk_alt', newcoin:'desk_new', momentum:'desk_mom' },
+  boothByAgent: { xau:'rest_l_1', major:'rest_l_2', altcoin:'rest_l_3', newcoin:'rest_r_1', momentum:'rest_r_2' },
+  massageByAgent: { xau:'bed_1', major:'bed_2', altcoin:'bed_3', newcoin:'bed_4', momentum:'bed_5' },
+  dineByAgent: { xau:'dine_1', major:'dine_2', altcoin:'dine_3', newcoin:'dine_4', momentum:'dine_5' },
+  pokerByAgent: { xau:'poker_1', major:'poker_2', altcoin:'poker_3', newcoin:'poker_4', momentum:'poker_5' },
+  wanderTargets: ['desk_xau','desk_maj','desk_alt','scr_ctr','rest_l_1','bed_1','dine_2','poker_3'],
   _edges: null,
   _buildEdges() {
     if (this._edges) return this._edges;
@@ -456,10 +226,8 @@ const OfficePath = {
       ['a_xau','d_xau'],['a_maj','d_maj'],['a_alt','d_alt'],['a_new','d_new'],['a_mom','d_mom'],
       ['u_xau','scr_xau'],['u_maj','scr_maj'],['u_alt','scr_alt'],['u_new','scr_new'],['u_mom','scr_mom'],
       ['u_maj','scr_ctr'],['u_alt','scr_ctr'],['u_new','scr_ctr'],
-      // 跨区域
       ['a_e','door_ts'],['door_ts','spa_w'],['spa_w','spa_c'],['spa_c','spa_e'],
-      ['spa_c','spa_d'],['spa_d','bed_1'],['spa_d','bed_2'],['spa_d','bed_3'],
-      ['spa_e','bed_4'],['spa_e','bed_5'],
+      ['spa_c','spa_d'],['spa_d','bed_1'],['spa_d','bed_2'],['spa_d','bed_3'],['spa_e','bed_4'],['spa_e','bed_5'],
       ['d_maj','hub_tr'],['d_alt','hub_tr'],['d_xau','hub_tr'],['hub_tr','door_tr'],
       ['door_tr','rest_d'],['rest_d','rest_c'],['rest_w','rest_c'],['rest_c','rest_e'],
       ['rest_c','dine_1'],['rest_c','dine_2'],['rest_c','dine_3'],['rest_w','dine_4'],['rest_e','dine_5'],
@@ -470,16 +238,14 @@ const OfficePath = {
     ];
     const adj = {};
     Object.keys(this.nodes).forEach(k => { adj[k] = []; });
-    pairs.forEach(([a,b]) => {
-      if (adj[a] && adj[b]) { adj[a].push(b); adj[b].push(a); }
-    });
+    pairs.forEach(([a,b]) => { if (adj[a] && adj[b]) { adj[a].push(b); adj[b].push(a); } });
     this._edges = adj;
     return adj;
   },
-  nearestNode(x, y) {
+  nearestNode(x, z) {
     let best = null, bestD = Infinity;
     Object.entries(this.nodes).forEach(([id, n]) => {
-      const d = (n.x - x) ** 2 + (n.y - y) ** 2;
+      const d = (n.x - x) ** 2 + (n.z - z) ** 2;
       if (d < bestD) { bestD = d; best = id; }
     });
     return best;
@@ -487,1088 +253,621 @@ const OfficePath = {
   findPath(fromId, toId) {
     if (fromId === toId) return [this.nodes[toId]];
     const adj = this._buildEdges();
-    const q = [[fromId]];
-    const seen = new Set([fromId]);
+    const q = [[fromId]], seen = new Set([fromId]);
     while (q.length) {
-      const path = q.shift();
-      const cur = path[path.length - 1];
+      const path = q.shift(), cur = path[path.length - 1];
       for (const nb of adj[cur] || []) {
         if (seen.has(nb)) continue;
         seen.add(nb);
         const np = path.concat([nb]);
-        if (nb === toId) {
-          return np.map(id => ({ x: this.nodes[id].x, y: this.nodes[id].y }));
-        }
+        if (nb === toId) return np.map(id => ({ x: this.nodes[id].x, z: this.nodes[id].z }));
         q.push(np);
       }
     }
     return [this.nodes[toId]];
   },
-  pathBetween(x1, y1, x2, y2) {
-    const from = this.nearestNode(x1, y1);
-    const to = this.nearestNode(x2, y2);
-    return this.findPath(from, to);
-  },
-  pathToNode(x, y, nodeId) {
-    const from = this.nearestNode(x, y);
-    return this.findPath(from, nodeId);
-  },
-  corridorSegments() {
-    return [
-      { x: 200, y: 768, w: 2020, h: 28 },
-      { x: 200, y: 408, w: 2020, h: 28 },
-      { x: 200, y: 968, w: 2020, h: 28 },
-      { x: 408, y: 408, w: 28, h: 380 }, { x: 688, y: 408, w: 28, h: 380 },
-      { x: 968, y: 408, w: 28, h: 380 }, { x: 1248, y: 408, w: 28, h: 380 },
-      { x: 1528, y: 408, w: 28, h: 380 },
-      { x: 408, y: 768, w: 28, h: 220 }, { x: 688, y: 768, w: 28, h: 220 },
-      { x: 968, y: 768, w: 28, h: 220 }, { x: 1248, y: 768, w: 28, h: 220 },
-      { x: 1528, y: 768, w: 28, h: 220 },
-      { x: 408, y: 150, w: 28, h: 280 }, { x: 688, y: 150, w: 28, h: 280 },
-      { x: 968, y: 150, w: 28, h: 280 }, { x: 1248, y: 150, w: 28, h: 280 },
-      { x: 1528, y: 150, w: 28, h: 280 },
-      { x: 1188, y: 110, w: 28, h: 330 },
-    ];
+  pathToNode(x, z, nodeId) {
+    return this.findPath(this.nearestNode(x, z), nodeId);
   },
 };
 
-// ============================================================
-// MAIN GAME SCENE
-// ============================================================
-class TradingWorld extends Phaser.Scene {
-  constructor() { super({ key: 'TradingWorld' }); }
+// ── Gugugaga 粘土风 Chibi 企鹅二创 ──
+function clayMat(color, roughness = 0.78, metalness = 0.04) {
+  return new THREE.MeshStandardMaterial({ color, roughness, metalness });
+}
 
-  preload() {
-    // Generate character textures (idle, walk1, walk2, excited)
-    const self = this;
-    Object.entries(PixelArt.characters).forEach(function(entry) {
-      var key = entry[0];
-      var char = entry[1];
-      var idlePixels = PixelArt.generateCharacter(char.color);
-      console.log(key, 'idle pixels:', idlePixels.length);
-      PixelArt.createTexture(self, 'char_' + key + '_idle', 16, 16, idlePixels, WORLD.PIXEL_SCALE);
-      PixelArt.createTexture(self, 'char_' + key + '_walk1', 16, 16, PixelArt.generateCharacterWalk1(char.color), WORLD.PIXEL_SCALE);
-      PixelArt.createTexture(self, 'char_' + key + '_walk2', 16, 16, PixelArt.generateCharacterWalk2(char.color), WORLD.PIXEL_SCALE);
-      PixelArt.createTexture(self, 'char_' + key + '_excited', 16, 16, PixelArt.generateCharacterExcited(char.color), WORLD.PIXEL_SCALE);
-      PixelArt.createTexture(self, 'char_' + key + '_sit', 16, 16, PixelArt.generateCharacterSit(char.color), WORLD.PIXEL_SCALE);
+function createGugugaga(accentColor) {
+  const g = new THREE.Group();
+  g.name = 'gugugaga';
+
+  const skin = clayMat(0xffdfc8);
+  const black = clayMat(0x1a1a1a);
+  const white = clayMat(0xf8f8f8);
+  const yellow = clayMat(0xffc832, 0.65);
+  const silver = clayMat(0xc0c8d0, 0.35, 0.55);
+  const blueEye = clayMat(0x4a9eff, 0.4, 0.1);
+  const amberEye = clayMat(0xffaa33, 0.4, 0.1);
+  const accent = clayMat(new THREE.Color(accentColor));
+
+  // 企鹅连体衣 — 白色圆肚
+  const belly = new THREE.Mesh(new THREE.SphereGeometry(0.42, 28, 28), white);
+  belly.scale.set(1, 1.05, 0.88);
+  belly.position.y = 0.52;
+  belly.castShadow = true;
+  g.add(belly);
+
+  // 黑色背部/企鹅帽
+  const back = new THREE.Mesh(new THREE.SphereGeometry(0.44, 28, 28, 0, Math.PI * 2, 0, Math.PI * 0.62), black);
+  back.position.set(0, 0.58, -0.06);
+  back.rotation.x = 0.15;
+  back.castShadow = true;
+  g.add(back);
+
+  // 企鹅帽尖 + 黄色小冠
+  const hoodTip = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.22, 12), black);
+  hoodTip.position.set(0, 1.05, -0.08);
+  hoodTip.rotation.x = -0.3;
+  g.add(hoodTip);
+  const crown = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 12), yellow);
+  crown.position.set(0, 1.18, -0.06);
+  g.add(crown);
+
+  // 脸部（从帽口露出）
+  const face = new THREE.Mesh(new THREE.SphereGeometry(0.28, 24, 24), skin);
+  face.position.set(0, 0.82, 0.18);
+  face.castShadow = true;
+  g.add(face);
+
+  // 黑色短发
+  const hairL = new THREE.Mesh(new THREE.SphereGeometry(0.14, 16, 16), black);
+  hairL.position.set(-0.22, 0.95, 0.08);
+  hairL.scale.set(0.8, 1, 0.7);
+  g.add(hairL);
+  const hairR = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), black);
+  hairR.position.set(0.2, 0.98, 0.05);
+  hairR.scale.set(0.7, 0.9, 0.6);
+  g.add(hairR);
+  const bangs = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.08, 0.12), black);
+  bangs.position.set(0, 1.02, 0.22);
+  bangs.rotation.x = 0.2;
+  g.add(bangs);
+
+  // 银色发夹
+  const clip = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.03, 0.04), silver);
+  clip.position.set(0.18, 1.0, 0.2);
+  clip.rotation.z = -0.3;
+  g.add(clip);
+
+  // 异色瞳 — 左蓝右琥珀
+  const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 12), blueEye);
+  eyeL.position.set(-0.09, 0.84, 0.38);
+  g.add(eyeL);
+  const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 12), amberEye);
+  eyeR.position.set(0.09, 0.84, 0.38);
+  g.add(eyeR);
+  const pupilL = new THREE.Mesh(new THREE.SphereGeometry(0.02, 8, 8), black);
+  pupilL.position.set(-0.09, 0.84, 0.42);
+  g.add(pupilL);
+  const pupilR = new THREE.Mesh(new THREE.SphereGeometry(0.02, 8, 8), black);
+  pupilR.position.set(0.09, 0.84, 0.42);
+  g.add(pupilR);
+
+  // 黄色鸟喙
+  const beak = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.14, 10), yellow);
+  beak.position.set(0, 0.76, 0.42);
+  beak.rotation.x = Math.PI / 2;
+  g.add(beak);
+
+  // 腮红
+  const blushMat = clayMat(0xffb0b0, 0.9);
+  [[-0.16, 0.78], [0.16, 0.78]].forEach(([bx, by]) => {
+    const blush = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), blushMat);
+    blush.position.set(bx, by, 0.36);
+    blush.scale.set(1.2, 0.7, 0.5);
+    g.add(blush);
+  });
+
+  // Agent 色标徽章
+  const badge = new THREE.Mesh(new THREE.CircleGeometry(0.08, 16), accent);
+  badge.position.set(0, 0.55, 0.38);
+  g.add(badge);
+
+  // 短手臂（企鹅翅）
+  const wingL = new THREE.Mesh(new THREE.CapsuleGeometry(0.07, 0.18, 6, 10), black);
+  wingL.position.set(-0.42, 0.55, 0.05);
+  wingL.rotation.z = 0.5;
+  g.add(wingL);
+  const wingR = new THREE.Mesh(new THREE.CapsuleGeometry(0.07, 0.18, 6, 10), black);
+  wingR.position.set(0.42, 0.55, 0.05);
+  wingR.rotation.z = -0.5;
+  g.add(wingR);
+
+  // 黄色蹼足
+  const footL = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 12), yellow);
+  footL.position.set(-0.14, 0.06, 0.06);
+  footL.scale.set(1.3, 0.35, 1.5);
+  footL.castShadow = true;
+  g.add(footL);
+  const footR = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 12), yellow);
+  footR.position.set(0.14, 0.06, 0.06);
+  footR.scale.set(1.3, 0.35, 1.5);
+  footR.castShadow = true;
+  g.add(footR);
+
+  g.userData.parts = { wingL, wingR, belly, footL, footR };
+  return g;
+}
+
+function makeLabel(name, color) {
+  const el = document.createElement('div');
+  el.className = 'char-label';
+  el.innerHTML = '<span style="color:' + color + '">' + name + '</span><span class="status">空闲</span>';
+  return new CSS2DObject(el);
+}
+
+function addBox(parent, w, h, d, color, x, y, z, rx = 0) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), clayMat(color));
+  m.position.set(x, y, z);
+  m.rotation.y = rx;
+  m.castShadow = true;
+  m.receiveShadow = true;
+  parent.add(m);
+  return m;
+}
+
+function addZoneLabel(text, x, z, color = '#4a3f35') {
+  const el = document.createElement('div');
+  el.style.cssText = 'padding:6px 14px;border-radius:10px;font-size:13px;font-weight:700;background:rgba(255,252,247,0.92);color:' + color + ';border:1px solid #d4c8b8;pointer-events:none;';
+  el.textContent = text;
+  const obj = new CSS2DObject(el);
+  obj.position.set(x, 3.5, z);
+  return obj;
+}
+
+// ── Agent Profile UI ──
+const AgentProfile = {
+  API: location.origin + '/trading',
+  currentAgent: null, schema: [], config: {},
+  init() {
+    document.querySelectorAll('#agent-detail .tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => this.switchTab(btn.dataset.tab));
     });
-    
-    // Generate floor tiles
-    this.generateFloorTextures();
-    
-    // Generate furniture textures
-    this.generateFurnitureTextures();
-    
-    // Generate particle texture
-    this.generateParticleTexture();
-  }
-
-  generateFloorTextures() {
-    var tileColors = {
-      floor: ['#f5f0e8', '#f0ebe0', '#ede8dc', '#ebe5d8'],
-      floor_light: ['#faf6ef', '#f7f2e8', '#f5f0e3', '#f3ede0'],
-      floor_dark: ['#e8dfd0', '#e5dcd0', '#e2d9c8', '#ded4c4'],
-    };
-    
-    var self = this;
-    Object.entries(tileColors).forEach(function(entry) {
-      var key = entry[0];
-      var colors = entry[1];
-      var canvas = document.createElement('canvas');
-      canvas.width = 48; canvas.height = 48;
-      var ctx = canvas.getContext('2d');
-      ctx.imageSmoothingEnabled = false;
-      
-      for (var y = 0; y < 48; y += 2) {
-        for (var x = 0; x < 48; x += 2) {
-          ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
-          ctx.fillRect(x, y, 2, 2);
-        }
-      }
-      
-      ctx.strokeStyle = 'rgba(200,190,170,0.15)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      for (var i = 0; i <= 48; i += 8) {
-        ctx.moveTo(i, 0); ctx.lineTo(i, 48);
-        ctx.moveTo(0, i); ctx.lineTo(48, i);
-      }
-      ctx.stroke();
-      
-      self.textures.addCanvas('tile_' + key, canvas);
+    document.getElementById('config-save').addEventListener('click', () => this.saveConfig());
+    document.getElementById('soul-save').addEventListener('click', () => this.saveSoul());
+    document.getElementById('detail-close').addEventListener('click', () => {
+      document.getElementById('agent-detail').classList.remove('active');
+      world.selectedAgentId = null;
     });
+  },
+  switchTab(tab) {
+    document.querySelectorAll('#agent-detail .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    ['overview','config','soul'].forEach(t => document.getElementById('tab-' + t).classList.toggle('active', t === tab));
+  },
+  load(agentId) {
+    this.currentAgent = agentId;
+    this.switchTab('overview');
+    document.getElementById('config-msg').textContent = '';
+    document.getElementById('soul-msg').textContent = '';
+    fetch(this.API + '/api/agent/' + agentId + '/profile')
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) return;
+        this.schema = (data.schema && data.schema.fields) || [];
+        this.config = data.config || {};
+        document.getElementById('soul-editor').value = data.soul_md || '';
+        this.renderConfigForm();
+      }).catch(() => {});
+  },
+  renderConfigForm() {
+    const form = document.getElementById('config-form');
+    if (!this.schema.length) { form.innerHTML = '<div style="color:#999;padding:8px 0">该 Agent 暂无可编辑的量化参数</div>'; return; }
+    form.innerHTML = this.schema.map(f => {
+      const val = this.config[f.key] != null ? this.config[f.key] : '';
+      const attrs = [f.step ? ' step="' + f.step + '"' : '', f.min != null ? ' min="' + f.min + '"' : '', f.max != null ? ' max="' + f.max + '"' : ''].join('');
+      return '<div class="cfg-field"><label>' + f.label + '</label><input type="number" name="' + f.key + '" value="' + val + '"' + attrs + '></div>';
+    }).join('');
+  },
+  saveConfig() {
+    if (!this.currentAgent) return;
+    const body = { config: {} };
+    this.schema.forEach(f => { const inp = document.querySelector('#config-form input[name="' + f.key + '"]'); if (inp && inp.value !== '') body.config[f.key] = inp.value; });
+    document.getElementById('config-save').disabled = true;
+    fetch(this.API + '/api/agent/' + this.currentAgent + '/config', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) })
+      .then(r => r.json()).then(data => {
+        document.getElementById('config-save').disabled = false;
+        document.getElementById('config-msg').textContent = data.message || (data.ok ? '已保存' : data.error || '失败');
+        document.getElementById('config-msg').style.color = data.ok ? '#16a34a' : '#dc2626';
+        if (data.config) this.config = data.config;
+      }).catch(() => { document.getElementById('config-save').disabled = false; });
+  },
+  saveSoul() {
+    if (!this.currentAgent) return;
+    document.getElementById('soul-save').disabled = true;
+    fetch(this.API + '/api/agent/' + this.currentAgent + '/soul', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ content: document.getElementById('soul-editor').value }) })
+      .then(r => r.json()).then(data => {
+        document.getElementById('soul-save').disabled = false;
+        document.getElementById('soul-msg').textContent = data.message || (data.ok ? '已保存' : data.error || '失败');
+        document.getElementById('soul-msg').style.color = data.ok ? '#16a34a' : '#dc2626';
+      }).catch(() => { document.getElementById('soul-save').disabled = false; });
   }
+};
 
-  generateFurnitureTextures() {
-    
-    // Desk — 48x28 pixel grid
-    var deskCanvas = document.createElement('canvas');
-    deskCanvas.width = 96; deskCanvas.height = 56;
-    var dctx = deskCanvas.getContext('2d');
-    dctx.imageSmoothingEnabled = false;
-    dctx.fillStyle = '#6b5340';
-    dctx.fillRect(0, 12, 96, 44);
-    dctx.fillStyle = '#9a7858';
-    dctx.fillRect(0, 0, 96, 16);
-    dctx.fillStyle = '#5a4635';
-    dctx.fillRect(4, 18, 88, 34);
-    dctx.fillStyle = '#7a6048';
-    dctx.fillRect(6, 20, 84, 4);
-    dctx.fillStyle = '#4a3828';
-    dctx.fillRect(8, 48, 10, 8);
-    dctx.fillRect(78, 48, 10, 8);
-    this.textures.addCanvas('furniture_desk', deskCanvas);
-    
-    // Chair
-    var chairCanvas = document.createElement('canvas');
-    chairCanvas.width = 36; chairCanvas.height = 48;
-    var cctx = chairCanvas.getContext('2d');
-    cctx.imageSmoothingEnabled = false;
-    cctx.fillStyle = '#4a3a2a';
-    cctx.fillRect(4, 28, 28, 18);
-    cctx.fillStyle = '#5a4a3a';
-    cctx.fillRect(6, 0, 24, 30);
-    cctx.fillStyle = '#6b5a48';
-    cctx.fillRect(8, 4, 20, 20);
-    cctx.fillStyle = '#3a2a1a';
-    cctx.fillRect(10, 32, 6, 14);
-    cctx.fillRect(20, 32, 6, 14);
-    this.textures.addCanvas('furniture_chair', chairCanvas);
-    
-    // Monitor
-    var monCanvas = document.createElement('canvas');
-    monCanvas.width = 56; monCanvas.height = 48;
-    var mctx = monCanvas.getContext('2d');
-    mctx.imageSmoothingEnabled = false;
-    mctx.fillStyle = '#2a2a2a';
-    mctx.fillRect(4, 0, 48, 34);
-    mctx.fillStyle = '#1a2535';
-    mctx.fillRect(8, 4, 40, 26);
-    mctx.fillStyle = '#2a4060';
-    mctx.fillRect(10, 6, 36, 22);
-    mctx.fillStyle = '#3a6080';
-    for (var i = 0; i < 5; i++) {
-      mctx.fillRect(12 + i * 7, 10 + (i % 3) * 4, 5, 8);
-    }
-    mctx.fillStyle = '#3a3a3a';
-    mctx.fillRect(22, 34, 12, 10);
-    mctx.fillStyle = '#2a2a2a';
-    mctx.fillRect(16, 44, 24, 4);
-    this.textures.addCanvas('furniture_monitor', monCanvas);
-    
-    // Sofa
-    var sofaCanvas = document.createElement('canvas');
-    sofaCanvas.width = 120; sofaCanvas.height = 54;
-    var sctx = sofaCanvas.getContext('2d');
-    sctx.imageSmoothingEnabled = false;
-    sctx.fillStyle = '#4a6a4a';
-    sctx.fillRect(0, 12, 120, 42);
-    sctx.fillStyle = '#5a7a5a';
-    sctx.fillRect(0, 0, 120, 18);
-    sctx.fillStyle = '#6b8e6b';
-    sctx.fillRect(6, 16, 108, 32);
-    sctx.fillStyle = '#7a9a7a';
-    sctx.fillRect(10, 20, 44, 24);
-    sctx.fillRect(66, 20, 44, 24);
-    sctx.fillStyle = '#4a6a4a';
-    sctx.fillRect(0, 8, 8, 46);
-    sctx.fillRect(112, 8, 8, 46);
-    this.textures.addCanvas('furniture_sofa', sofaCanvas);
-    
-    // Side table (包间小桌)
-    var tableCanvas = document.createElement('canvas');
-    tableCanvas.width = 32; tableCanvas.height = 32;
-    var tctx = tableCanvas.getContext('2d');
-    tctx.imageSmoothingEnabled = false;
-    tctx.fillStyle = '#8b7355';
-    tctx.fillRect(2, 8, 28, 12);
-    tctx.fillStyle = '#6b5340';
-    tctx.fillRect(6, 20, 4, 10);
-    tctx.fillRect(22, 20, 4, 10);
-    tctx.fillStyle = '#c8a060';
-    tctx.fillRect(12, 4, 8, 6);
-    this.textures.addCanvas('furniture_sidetable', tableCanvas);
-    
-    var coffeeTableCanvas = document.createElement('canvas');
-    coffeeTableCanvas.width = 88; coffeeTableCanvas.height = 44;
-    var ctctx = coffeeTableCanvas.getContext('2d');
-    ctctx.imageSmoothingEnabled = false;
-    ctctx.fillStyle = '#8b7355';
-    ctctx.fillRect(0, 10, 88, 28);
-    ctctx.fillStyle = '#6b5340';
-    ctctx.fillRect(6, 38, 8, 6);
-    ctctx.fillRect(74, 38, 8, 6);
-    ctctx.fillStyle = '#a08060';
-    ctctx.fillRect(4, 8, 80, 6);
-    ctctx.fillStyle = '#c8a060';
-    ctctx.fillRect(28, 2, 12, 8);
-    ctctx.fillRect(48, 2, 12, 8);
-    this.textures.addCanvas('furniture_coffee_table', coffeeTableCanvas);
-    
-    // Coffee machine
-    var coffeeCanvas = document.createElement('canvas');
-    coffeeCanvas.width = 32; coffeeCanvas.height = 44;
-    var cofctx = coffeeCanvas.getContext('2d');
-    cofctx.imageSmoothingEnabled = false;
-    cofctx.fillStyle = '#3a3a3a';
-    cofctx.fillRect(6, 0, 20, 36);
-    cofctx.fillStyle = '#2a2a2a';
-    cofctx.fillRect(8, 4, 16, 20);
-    cofctx.fillStyle = '#5a5a5a';
-    cofctx.fillRect(10, 32, 12, 6);
-    cofctx.fillStyle = '#8b6914';
-    cofctx.fillRect(12, 24, 8, 4);
-    this.textures.addCanvas('furniture_coffee', coffeeCanvas);
-    
-    // Plant
-    var plantCanvas = document.createElement('canvas');
-    plantCanvas.width = 28; plantCanvas.height = 40;
-    var pctx = plantCanvas.getContext('2d');
-    pctx.imageSmoothingEnabled = false;
-    pctx.fillStyle = '#8b6914';
-    pctx.fillRect(8, 22, 12, 16);
-    pctx.fillStyle = '#6b5010';
-    pctx.fillRect(10, 24, 8, 12);
-    pctx.fillStyle = '#3a6a3a';
-    pctx.fillRect(4, 0, 20, 10);
-    pctx.fillStyle = '#4a7a4a';
-    pctx.fillRect(0, 6, 28, 12);
-    pctx.fillStyle = '#5a8a5a';
-    pctx.fillRect(6, 12, 16, 14);
-    this.textures.addCanvas('furniture_plant', plantCanvas);
-    
-    // Big screen — 180x54 pixel grid
-    var screenCanvas = document.createElement('canvas');
-    screenCanvas.width = 360; screenCanvas.height = 108;
-    var scctx = screenCanvas.getContext('2d');
-    scctx.imageSmoothingEnabled = false;
-    scctx.fillStyle = '#2a2a2a';
-    scctx.fillRect(0, 0, 360, 108);
-    scctx.fillStyle = '#1a1a1a';
-    scctx.fillRect(6, 6, 348, 96);
-    scctx.fillStyle = '#0a1520';
-    scctx.fillRect(12, 12, 336, 84);
-    scctx.fillStyle = '#1a3050';
-    for (var sy = 0; sy < 6; sy++) {
-      for (var sx = 0; sx < 14; sx++) {
-        if ((sx + sy) % 3 !== 0) {
-          scctx.fillStyle = (sx + sy) % 2 === 0 ? '#2a5080' : '#1a4060';
-          scctx.fillRect(16 + sx * 22, 16 + sy * 12, 18, 8);
-        }
-      }
-    }
-    scctx.fillStyle = '#16a34a';
-    scctx.fillRect(280, 20, 60, 4);
-    scctx.fillStyle = '#dc2626';
-    scctx.fillRect(280, 30, 40, 4);
-    scctx.fillStyle = '#3a3a3a';
-    scctx.fillRect(160, 100, 40, 8);
-    this.textures.addCanvas('furniture_bigscreen', screenCanvas);
-
-    // Massage bed
-    var bedCanvas = document.createElement('canvas');
-    bedCanvas.width = 140; bedCanvas.height = 70;
-    var bctx = bedCanvas.getContext('2d');
-    bctx.imageSmoothingEnabled = false;
-    bctx.fillStyle = '#e8dfd0';
-    bctx.fillRect(0, 18, 140, 44);
-    bctx.fillStyle = '#d4c8b8';
-    bctx.fillRect(4, 22, 132, 36);
-    bctx.fillStyle = '#c8baa8';
-    bctx.fillRect(0, 10, 28, 52);
-    bctx.fillStyle = '#f5f0e8';
-    bctx.fillRect(8, 26, 124, 28);
-    bctx.fillStyle = '#8b7355';
-    bctx.fillRect(6, 58, 12, 10);
-    bctx.fillRect(122, 58, 12, 10);
-    this.textures.addCanvas('furniture_massage_bed', bedCanvas);
-
-    // Dining table
-    var dineCanvas = document.createElement('canvas');
-    dineCanvas.width = 96; dineCanvas.height = 96;
-    var dnctx = dineCanvas.getContext('2d');
-    dnctx.imageSmoothingEnabled = false;
-    dnctx.fillStyle = '#8b7355';
-    dnctx.fillRect(16, 16, 64, 64);
-    dnctx.fillStyle = '#a08060';
-    dnctx.fillRect(20, 20, 56, 56);
-    dnctx.fillStyle = '#faf6ef';
-    dnctx.fillRect(38, 38, 20, 20);
-    dnctx.fillStyle = '#6b5340';
-    for (var ci = 0; ci < 4; ci++) {
-      var ang = ci * Math.PI / 2 + Math.PI / 4;
-      dnctx.fillRect(48 + Math.cos(ang) * 38 - 6, 48 + Math.sin(ang) * 38 - 6, 12, 12);
-    }
-    this.textures.addCanvas('furniture_dining_table', dineCanvas);
-
-    // Poker table
-    var pokerCanvas = document.createElement('canvas');
-    pokerCanvas.width = 200; pokerCanvas.height = 140;
-    var pkctx = pokerCanvas.getContext('2d');
-    pkctx.imageSmoothingEnabled = false;
-    pkctx.fillStyle = '#1a5c3a';
-    pkctx.beginPath();
-    pkctx.ellipse(100, 70, 92, 58, 0, 0, Math.PI * 2);
-    pkctx.fill();
-    pkctx.fillStyle = '#2a7a4a';
-    pkctx.beginPath();
-    pkctx.ellipse(100, 70, 78, 46, 0, 0, Math.PI * 2);
-    pkctx.fill();
-    pkctx.fillStyle = '#c8a060';
-    pkctx.fillRect(92, 58, 16, 24);
-    pkctx.fillStyle = '#dc2626';
-    pkctx.fillRect(96, 62, 8, 12);
-    this.textures.addCanvas('furniture_poker_table', pokerCanvas);
-  }
-
-  generateParticleTexture() {
-    var canvas = document.createElement('canvas');
-    canvas.width = 8; canvas.height = 8;
-    var ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#16a34a';
-    ctx.fillRect(2, 2, 4, 4);
-    this.textures.addCanvas('particle_up', canvas);
-    
-    var canvas2 = document.createElement('canvas');
-    canvas2.width = 8; canvas2.height = 8;
-    var ctx2 = canvas2.getContext('2d');
-    ctx2.fillStyle = '#dc2626';
-    ctx2.fillRect(2, 2, 4, 4);
-    this.textures.addCanvas('particle_down', canvas2);
-  }
-
-  create() {
-    this.WORLD_W = WORLD.W;
-    this.WORLD_H = WORLD.H;
-    this.W = this.WORLD_W;
-    this.H = this.WORLD_H;
-
-    console.log('TradingWorld create', this.WORLD_W, this.WORLD_H);
-
-    this.cameras.main.setBounds(0, 0, this.WORLD_W, this.WORLD_H);
-    this.fitCamera();
-
-    this.createFloor();
-    this.lightingOverlay = this.add.rectangle(this.WORLD_W / 2, this.WORLD_H / 2, this.WORLD_W, this.WORLD_H, 0x1a2040, 0);
-    this.lightingOverlay.setDepth(50);
-    
-    this.createBigScreenArea();
-    this.createTradingDesks();
-    this.createRestArea();
-    this.createZoneWalls();
-    this.createMassageArea();
-    this.createRestaurantArea();
-    this.createCasinoArea();
-    this.createNPCs();
-    
-    // Create characters
-    this.createCharacters();
-    
-    // Create particles system
-    this.createParticles();
-    
-    // Setup camera
-    this.cameras.main.setBackgroundColor('#faf6ef');
-    console.log('Camera bg set to #faf6ef');
-    
-    // Start data polling
-    this.startDataPolling();
-    
-    // Setup input
+// ── 3D World ──
+class TradingWorld3D {
+  constructor(container) {
+    this.container = container;
+    this.clock = new THREE.Clock();
+    this.characters = {};
+    this.selectedAgentId = null;
+    this.tickerCanvas = document.createElement('canvas');
+    this.tickerCanvas.width = 512;
+    this.tickerCanvas.height = 256;
+    this.tickerCtx = this.tickerCanvas.getContext('2d');
+    this.tickerTexture = new THREE.CanvasTexture(this.tickerCanvas);
+    this.initScene();
+    this.buildWorld();
+    this.spawnAgents();
+    this.spawnNPCs();
     this.setupInput();
-    this.setupCameraControls();
-    this.watchUiOverlay();
-    this.updateDayNight();
-    var hint = document.getElementById('cam-hint');
-    if (hint) setTimeout(function() { hint.classList.add('hidden'); }, 9000);
+    AgentProfile.init();
+    this.fetchData();
+    this.fetchTicker();
+    setInterval(() => this.fetchData(), 5000);
+    setInterval(() => this.fetchTicker(), 10000);
+    setTimeout(() => document.getElementById('cam-hint').classList.add('hidden'), 9000);
+    this.animate();
   }
 
+  initScene() {
+    this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(0xe8e4dc);
+    this.scene.fog = new THREE.Fog(0xe8e4dc, 35, 80);
 
-  fitCamera() {
-    var overlay = document.getElementById('ui-overlay');
-    var topInset = overlay ? overlay.getBoundingClientRect().height + 4 : 0;
-    var vw = this.scale.width;
-    var vh = Math.max(240, this.scale.height - topInset);
-    this.uiTopInset = topInset;
-    this.cameras.main.setViewport(0, topInset, vw, vh);
-    var zoom = Math.min(vw / this.WORLD_W, vh / this.WORLD_H) * 0.97;
-    this.baseZoom = zoom;
-    this.minZoom = zoom * 0.55;
-    this.maxZoom = zoom * 1.45;
-    this.cameras.main.setZoom(zoom);
-    this.cameras.main.centerOn(1200, 700);
+    const aspect = window.innerWidth / window.innerHeight;
+    this.camera = new THREE.PerspectiveCamera(42, aspect, 0.1, 200);
+    this.camera.position.set(12, 16, 22);
+
+    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.05;
+    this.container.appendChild(this.renderer.domElement);
+
+    this.labelRenderer = new CSS2DRenderer();
+    this.labelRenderer.setSize(window.innerWidth, window.innerHeight);
+    this.labelRenderer.domElement.style.position = 'absolute';
+    this.labelRenderer.domElement.style.top = '0';
+    this.labelRenderer.domElement.style.pointerEvents = 'none';
+    this.container.appendChild(this.labelRenderer.domElement);
+
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.06;
+    this.controls.target.set(12, 0, 7);
+    this.controls.maxPolarAngle = Math.PI / 2.1;
+    this.controls.minDistance = 8;
+    this.controls.maxDistance = 55;
+
+    // 摄影棚柔光
+    this.scene.add(new THREE.AmbientLight(0xfff5ee, 0.55));
+    const hemi = new THREE.HemisphereLight(0xfff8f0, 0xd8d0c8, 0.65);
+    this.scene.add(hemi);
+    const key = new THREE.DirectionalLight(0xffffff, 1.1);
+    key.position.set(15, 25, 12);
+    key.castShadow = true;
+    key.shadow.mapSize.set(2048, 2048);
+    key.shadow.camera.near = 1;
+    key.shadow.camera.far = 60;
+    key.shadow.camera.left = -30;
+    key.shadow.camera.right = 30;
+    key.shadow.camera.top = 30;
+    key.shadow.camera.bottom = -30;
+    this.scene.add(key);
+    const fill = new THREE.DirectionalLight(0xffeedd, 0.35);
+    fill.position.set(-10, 12, -8);
+    this.scene.add(fill);
+    const rim = new THREE.DirectionalLight(0xc8d8ff, 0.25);
+    rim.position.set(0, 8, -20);
+    this.scene.add(rim);
+
+    window.addEventListener('resize', () => this.onResize());
+    this.watchUiOverlay();
+  }
+
+  getUiTopInset() {
+    const overlay = document.getElementById('ui-overlay');
+    return overlay ? overlay.getBoundingClientRect().height + 4 : 0;
   }
 
   watchUiOverlay() {
-    var self = this;
-    var overlay = document.getElementById('ui-overlay');
-    if (!overlay || typeof ResizeObserver === 'undefined') return;
-    if (this._uiOverlayObserver) this._uiOverlayObserver.disconnect();
-    this._uiOverlayObserver = new ResizeObserver(function() {
-      self.fitCamera();
-    });
-    this._uiOverlayObserver.observe(overlay);
+    const overlay = document.getElementById('ui-overlay');
+    if (!overlay || !window.ResizeObserver) return;
+    new ResizeObserver(() => this.onResize()).observe(overlay);
   }
 
-  setupCameraControls() {
-    var self = this;
-    var cam = this.cameras.main;
-    this.camDragging = false;
-    this.camDidDrag = false;
-    this.camDragStart = { x: 0, y: 0 };
-    this.camScrollStart = { x: 0, y: 0 };
-    this.lastPinchDist = 0;
-
-    this.input.on('wheel', function(pointer, over, deltaX, deltaY) {
-      var z = cam.zoom - deltaY * 0.0012;
-      cam.zoom = Phaser.Math.Clamp(z, self.minZoom || 0.3, self.maxZoom || 1.5);
-    });
-
-    this.input.on('pointerdown', function(pointer) {
-      if (pointer.pointerType === 'touch' && self.input.pointer1.isDown && self.input.pointer2.isDown) {
-        self.lastPinchDist = Phaser.Math.Distance.Between(
-          self.input.pointer1.x, self.input.pointer1.y,
-          self.input.pointer2.x, self.input.pointer2.y
-        );
-      }
-    });
-
-    this.input.on('pointermove', function(pointer) {
-      if (self.input.pointer1.isDown && self.input.pointer2.isDown) {
-        var dist = Phaser.Math.Distance.Between(
-          self.input.pointer1.x, self.input.pointer1.y,
-          self.input.pointer2.x, self.input.pointer2.y
-        );
-        if (self.lastPinchDist > 0) {
-          cam.zoom = Phaser.Math.Clamp(cam.zoom * (dist / self.lastPinchDist), self.minZoom || 0.3, self.maxZoom || 1.5);
-        }
-        self.lastPinchDist = dist;
-        return;
-      }
-      if (!self.camDragging || !pointer.isDown) return;
-      var dx = pointer.x - self.camDragStart.x;
-      var dy = pointer.y - self.camDragStart.y;
-      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) self.camDidDrag = true;
-      cam.scrollX = self.camScrollStart.x - dx / cam.zoom;
-      cam.scrollY = self.camScrollStart.y - dy / cam.zoom;
-    });
-
-    this.input.on('pointerup', function() {
-      self.camDragging = false;
-      self.lastPinchDist = 0;
-      self.time.delayedCall(50, function() { self.camDidDrag = false; });
-    });
+  onResize() {
+    const top = this.getUiTopInset();
+    const w = window.innerWidth, h = window.innerHeight;
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(w, h);
+    this.renderer.setViewport(0, top, w, h - top);
+    this.labelRenderer.setSize(w, h);
+    this.labelRenderer.domElement.style.top = top + 'px';
+    this.labelRenderer.domElement.style.height = (h - top) + 'px';
   }
 
-  beginCameraDrag(pointer) {
-    this.camDragging = true;
-    this.camDidDrag = false;
-    this.camDragStart = { x: pointer.x, y: pointer.y };
-    this.camScrollStart = { x: this.cameras.main.scrollX, y: this.cameras.main.scrollY };
-  }
+  buildWorld() {
+    const root = new THREE.Group();
+    this.scene.add(root);
 
-  updateDayNight() {
-    var hour = new Date().getHours();
-    var alpha = 0;
-    if (hour >= 21 || hour < 6) alpha = 0.38;
-    else if (hour >= 19) alpha = 0.22;
-    else if (hour >= 17) alpha = 0.1;
-    if (this.lightingOverlay) this.lightingOverlay.setAlpha(alpha);
-    this.isNight = alpha > 0.2;
-    Object.values(this.loungeLights || []).forEach(function(l) {
-      if (l.boothLight) l.boothLight.setAlpha(l.boothLightBaseAlpha * (alpha > 0.2 ? 1.6 : 1));
-    });
-  }
-
-
-  createFloor() {
-    var tileSize = 48;
-    var cols = Math.ceil(this.WORLD_W / tileSize);
-    var rows = Math.ceil(this.WORLD_H / tileSize);
-    var mx = ZONE.MID_X, my = ZONE.MID_Y;
-
-    var rt = this.add.renderTexture(0, 0, this.WORLD_W, this.WORLD_H).setOrigin(0, 0).setDepth(0);
-    for (var y = 0; y < rows; y++) {
-      for (var x = 0; x < cols; x++) {
-        var px = x * tileSize + tileSize / 2;
-        var py = y * tileSize + tileSize / 2;
-        var key = 'tile_floor';
-        if (px < mx && py < my) {
-          key = py < 200 ? 'tile_floor_light' : 'tile_floor';
-        } else if (px >= mx && py < my) {
-          key = 'tile_floor'; // spa - warm
-        } else if (px < mx && py >= my) {
-          key = 'tile_floor_dark'; // restaurant
-        } else {
-          key = 'tile_floor_dark'; // casino dark tiles
-        }
-        rt.draw(key, px, py);
-      }
-    }
-    this.floorRT = rt;
-  }
-
-  createBigScreenArea() {
-    var screenX = this.WORLD_W / 2;
-    var screenY = 110;
-    var sc = WORLD.SCREEN_SCALE;
-    
-    this.bigScreen = this.add.image(screenX, screenY, 'furniture_bigscreen');
-    this.bigScreen.setScale(sc);
-    this.bigScreen.setDepth(2);
-    
-    this.add.rectangle(screenX, screenY + 8, 360 * sc + 24, 108 * sc + 20, 0x2a2a2a).setDepth(1);
-    
-    this.tickerPanel = this.add.rectangle(screenX, screenY + 4, 320 * sc, 90 * sc, 0x0a1520, 0.55).setDepth(2.5);
-    
-    this.tickerTexts = [];
-    var symbols = [
-      { key: 'BTC/USDT', field: 'BTCUSDT' },
-      { key: 'ETH/USDT', field: 'ETHUSDT' },
-      { key: 'XAU/USDT', field: 'XAUUSDT' },
-      { key: 'SOL/USDT', field: 'SOLUSDT' },
-      { key: 'DOGE/USDT', field: 'DOGEUSDT' }
+    // 四区地板
+    const floors = [
+      { x: 12, z: 6.75, w: 24, d: 13.5, color: 0xf5f0e8, label: '📈 交易大厅' },
+      { x: 36, z: 6.75, w: 24, d: 13.5, color: 0xfff0f5, label: '💆 休闲按摩区' },
+      { x: 12, z: 20.25, w: 24, d: 13.5, color: 0xfff8eb, label: '🍽️ 餐厅' },
+      { x: 36, z: 20.25, w: 24, d: 13.5, color: 0x1a1520, label: '🎰 赌场 · 德州扑克' },
     ];
-    var panelLeft = screenX - 130 * sc;
-    var panelRight = screenX + 130 * sc;
-    var lineH = 17 * sc;
-    var startY = screenY - 32 * sc;
-    
-    for (var i = 0; i < symbols.length; i++) {
-      var rowY = startY + i * lineH;
-      var nameText = this.add.text(panelLeft, rowY, symbols[i].key, {
-        fontSize: Math.round(13 * sc) + 'px', fontFamily: UI_FONT, color: '#8aa8c8', fontStyle: 'bold'
-      }).setOrigin(0, 0.5).setDepth(3);
-      var priceText = this.add.text(panelRight, rowY, '--', {
-        fontSize: Math.round(13 * sc) + 'px', fontFamily: UI_FONT, color: '#e8f0ff', fontStyle: 'bold'
-      }).setOrigin(1, 0.5).setDepth(3);
-      this.tickerTexts.push({ symbol: symbols[i].key, field: symbols[i].field, nameText: nameText, priceText: priceText });
-    }
-    
-    this.add.text(screenX, screenY - 58 * sc, '📊 实时行情', {
-      fontSize: '14px', fontFamily: UI_FONT, color: '#4a3f35', fontStyle: 'bold'
-    }).setOrigin(0.5).setDepth(2);
-  }
+    floors.forEach(f => {
+      const geo = new THREE.PlaneGeometry(f.w, f.d);
+      const mat = clayMat(f.color, 0.85);
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.set(f.x, 0, f.z);
+      mesh.receiveShadow = true;
+      root.add(mesh);
+      const lbl = addZoneLabel(f.label, f.x, f.z - f.d / 2 + 0.8, f.color === 0x1a1520 ? '#d4af37' : '#4a3f35');
+      root.add(lbl);
+    });
 
-  createTradingDesks() {
+    // 墙体 + 门洞
+    const wallMat = clayMat(0xc8baa8, 0.9);
+    const wallH = 1.8, wallT = 0.25;
+    const walls = [
+      [24, 3.65, 0.25, 7.3, wallH, wallT], [24, 10.15, 0.25, 7.3, wallH, wallT], [24, 16.65, 0.25, 7.3, wallH, wallT],
+      [5.75, 13.5, 11.5, 0.25, wallH, wallT], [18.25, 13.5, 11.5, 0.25, wallH, wallT], [42.25, 13.5, 11.5, 0.25, wallH, wallT],
+    ];
+    walls.forEach(([x, z, w, d]) => {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, wallH, d), wallMat);
+      m.position.set(x, wallH / 2, z);
+      m.castShadow = true;
+      root.add(m);
+    });
+
+    // 交易大屏
+    const screenGroup = new THREE.Group();
+    screenGroup.position.set(12, 0, 1.3);
+    addBox(screenGroup, 6, 2.2, 0.15, 0x2a2a2a, 0, 1.1, 0);
+    const screenPlane = new THREE.Mesh(new THREE.PlaneGeometry(5.4, 1.8), new THREE.MeshBasicMaterial({ map: this.tickerTexture }));
+    screenPlane.position.set(0, 1.1, 0.09);
+    screenGroup.add(screenPlane);
+    root.add(screenGroup);
+    this.drawTicker({});
+
+    // 5 工位
+    const desks = [
+      { id:'xau', x:4.2, z:5.6 }, { id:'major', x:7, z:5.6 }, { id:'altcoin', x:9.8, z:5.6 },
+      { id:'newcoin', x:12.6, z:5.6 }, { id:'momentum', x:15.4, z:5.6 },
+    ];
     this.desks = {};
-    var deskY = 520;
-    var fs = WORLD.FURN_SCALE;
-    var agents = [
-      { id: 'xau', x: 420, label: 'XAU', color: '#FFD700' },
-      { id: 'major', x: 700, label: 'MAJOR', color: '#3B82F6' },
-      { id: 'altcoin', x: 980, label: 'ALTCOIN', color: '#F59E0B' },
-      { id: 'newcoin', x: 1260, label: 'NEWCOIN', color: '#A855F7' },
-      { id: 'momentum', x: 1540, label: 'MOMENTUM', color: '#EF4444' },
-    ];
-    
-    var self = this;
-    agents.forEach(function(agent) {
-      var desk = self.add.image(agent.x, deskY, 'furniture_desk');
-      desk.setScale(fs);
-      desk.setDepth(1);
-      
-      var chair = self.add.image(agent.x, deskY + 52, 'furniture_chair');
-      chair.setScale(fs);
-      chair.setDepth(1);
-      
-      var monitor = self.add.image(agent.x, deskY - 28, 'furniture_monitor');
-      monitor.setScale(fs);
-      monitor.setDepth(2);
-      
-      var screenContainer = self.add.container(agent.x, deskY - 36);
-      screenContainer.setDepth(2.6);
-      screenContainer.setScale(fs * 0.62);
-      var screenBars = [];
-      for (var bi = 0; bi < 7; bi++) {
-        var bar = self.add.rectangle(-24 + bi * 8, 2, 4, 8 + Math.random() * 10, 0x4a90c8);
-        bar.setOrigin(0.5, 1);
-        screenContainer.add(bar);
-        screenBars.push({ rect: bar, phase: Math.random() * Math.PI * 2, speed: 0.002 + Math.random() * 0.003 });
-      }
-      var scanLine = self.add.rectangle(0, -10, 52, 2, 0x88ccff, 0.35);
-      screenContainer.add(scanLine);
-      var screenCursor = self.add.rectangle(-26, -6, 2, 2, 0xffffff);
-      screenContainer.add(screenCursor);
-      
-      var label = self.add.text(agent.x, deskY - 72, agent.label, {
-        fontSize: '13px', fontFamily: UI_FONT, color: agent.color,
-        fontStyle: 'bold', backgroundColor: '#faf6ef', padding: { x: 6, y: 3 }
-      }).setOrigin(0.5).setDepth(3);
-      
-      var light = self.add.circle(agent.x + 58, deskY - 72, 5, 0x999999);
-      light.setDepth(3);
-      
-      self.desks[agent.id] = { 
-        desk: desk, chair: chair, monitor: monitor, label: label, light: light,
-        baseX: agent.x, baseY: deskY,
-        screenContainer: screenContainer, screenBars: screenBars,
-        scanLine: scanLine, screenCursor: screenCursor,
-        agentRunning: false, agentTrading: false
-      };
+    desks.forEach(d => {
+      const g = new THREE.Group();
+      g.position.set(d.x, 0, d.z);
+      addBox(g, 1.2, 0.08, 0.6, 0x8b7355, 0, 0.5, 0);
+      addBox(g, 0.5, 0.5, 0.04, 0x1a2535, 0, 0.85, -0.15);
+      addBox(g, 0.35, 0.35, 0.35, 0x5a4a3a, 0, 0.25, 0.45);
+      const light = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 12), clayMat(0x999999, 0.3, 0.2));
+      light.position.set(0.5, 0.9, 0);
+      g.add(light);
+      root.add(g);
+      this.desks[d.id] = { group: g, light };
     });
-  }
 
-  drawLargeLounge(cx, cy, w, h, title) {
-    var wall = 10, fs = WORLD.FURN_SCALE;
-    var doorW = 80, segW = (w - doorW) / 2;
-    var furnDepth = 1.05;
-    var wallDepth = 1.2;
-    
-    this.add.rectangle(cx, cy + 8, w - 8, h - 8, 0xede5d8).setDepth(0.9);
-    this.add.rectangle(cx, cy + h / 2 - wall / 2, w, wall, 0xa89880).setDepth(wallDepth);
-    this.add.rectangle(cx - w / 2 + wall / 2, cy, wall, h, 0xc8baa8).setDepth(wallDepth);
-    this.add.rectangle(cx + w / 2 - wall / 2, cy, wall, h, 0xc8baa8).setDepth(wallDepth);
-    this.add.rectangle(cx - w / 2 + segW / 2, cy - h / 2 + wall / 2, segW - 2, wall, 0xc8baa8).setDepth(wallDepth);
-    this.add.rectangle(cx + w / 2 - segW / 2, cy - h / 2 + wall / 2, segW - 2, wall, 0xc8baa8).setDepth(wallDepth);
-    this.add.rectangle(cx, cy - h / 2 - 8, doorW, 6, 0xd4c8b8).setDepth(0.95);
-    
-    var boothLight = this.add.circle(cx, cy - 25, 55, 0xffe8a0, 0.13);
-    boothLight.setDepth(0.88);
-    
-    this.add.image(cx, cy + 18, 'furniture_coffee_table').setScale(fs * 0.95).setDepth(furnDepth);
-    this.add.image(cx - w * 0.27, cy + 46, 'furniture_sofa').setScale(fs * 0.88).setDepth(furnDepth);
-    this.add.image(cx, cy + 52, 'furniture_sofa').setScale(fs * 0.92).setDepth(furnDepth);
-    this.add.image(cx + w * 0.27, cy + 46, 'furniture_sofa').setScale(fs * 0.88).setDepth(furnDepth);
-    this.add.image(cx - w * 0.38, cy + 10, 'furniture_sidetable').setScale(fs * 0.8).setDepth(furnDepth);
-    this.add.image(cx + w * 0.38, cy + 10, 'furniture_sidetable').setScale(fs * 0.8).setDepth(furnDepth);
-    this.add.image(cx - w * 0.42, cy - 35, 'furniture_plant').setScale(fs * 0.8).setDepth(furnDepth + 0.02);
-    this.add.image(cx + w * 0.42, cy - 35, 'furniture_plant').setScale(fs * 0.8).setDepth(furnDepth + 0.02);
-    
-    this.add.text(cx, cy - h / 2 + 24, title, {
-      fontSize: '13px', fontFamily: UI_FONT, color: '#6b5e4e',
-      fontStyle: 'bold', backgroundColor: 'rgba(250,246,239,0.92)', padding: { x: 6, y: 3 }
-    }).setOrigin(0.5).setDepth(1.35);
-    
-    return { boothLight: boothLight, boothLightBaseAlpha: 0.13 };
-  }
+    // 休息区沙发
+    [[5.6, 12.25], [13.4, 12.25]].forEach(([x, z]) => {
+      addBox(root, 3.5, 0.5, 1.2, 0x5a7a5a, x, 0.25, z);
+      addBox(root, 1.2, 0.35, 0.8, 0x6b8e6b, x - 1, 0.2, z + 0.3);
+      addBox(root, 1.2, 0.35, 0.8, 0x6b8e6b, x + 1, 0.2, z + 0.3);
+    });
 
-  createRestArea() {
-    this.booths = {};
-    this.loungeLights = [];
-    var restY = 1225;
-    
-    this.loungeLights.push(this.drawLargeLounge(560, restY, 520, 200, '☕ 休息区 A'));
-    this.loungeLights.push(this.drawLargeLounge(1340, restY, 520, 200, '☕ 休息区 B'));
-    
-    var seats = {
-      xau: { seatX: 420, seatY: 1260 },
-      major: { seatX: 560, seatY: 1272 },
-      altcoin: { seatX: 700, seatY: 1260 },
-      newcoin: { seatX: 1240, seatY: 1260 },
-      momentum: { seatX: 1440, seatY: 1272 }
+    // 按摩床
+    [[27, 11.8], [30, 11.8], [33, 11.8], [28.5, 9.8], [31.5, 9.8]].forEach(([x, z]) => {
+      addBox(root, 1.6, 0.35, 0.7, 0xf0ebe3, x, 0.2, z);
+      addBox(root, 1.4, 0.08, 0.6, 0xffffff, x, 0.42, z);
+    });
+
+    // 餐桌
+    [[7, 18.5], [12, 18.5], [17, 18.5], [7, 21.5], [17, 21.5]].forEach(([x, z]) => {
+      addBox(root, 0.9, 0.06, 0.9, 0x8b7355, x, 0.55, z);
+      addBox(root, 0.08, 0.5, 0.08, 0x6b5340, x, 0.25, z);
+    });
+
+    // 德州桌
+    const pokerTable = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.8, 0.12, 32), clayMat(0x1a5c3a, 0.7));
+    pokerTable.position.set(36, 0.55, 21);
+    pokerTable.castShadow = true;
+    root.add(pokerTable);
+    addBox(root, 0.15, 0.02, 0.2, 0xffd700, 36, 0.65, 21);
+
+    this.seats = {
+      xau: { x:4.2, z:12.65 }, major: { x:5.6, z:12.78 }, altcoin: { x:7, z:12.65 },
+      newcoin: { x:12.4, z:12.65 }, momentum: { x:14.4, z:12.78 },
+      bed_xau: { x:27, z:11.8 }, bed_major: { x:30, z:11.8 }, bed_altcoin: { x:33, z:11.8 },
+      bed_newcoin: { x:28.5, z:9.8 }, bed_momentum: { x:31.5, z:9.8 },
+      dine_xau: { x:7, z:18.3 }, dine_major: { x:12, z:18.3 }, dine_altcoin: { x:17, z:18.3 },
+      dine_newcoin: { x:7, z:21.3 }, dine_momentum: { x:17, z:21.3 },
+      poker_xau: { x:33, z:20.5 }, poker_major: { x:36, z:21.8 }, poker_altcoin: { x:39, z:20.5 },
+      poker_newcoin: { x:34.2, z:23.2 }, poker_momentum: { x:37.8, z:23.2 },
     };
-    var self = this;
-    Object.keys(seats).forEach(function(id) { self.booths[id] = seats[id]; });
-    
-    this.add.image(960, 1088, 'furniture_coffee').setScale(WORLD.FURN_SCALE * 1.1).setDepth(1.1);
-    this.add.text(this.WORLD_W / 2, 1010, '☕ 休息区', {
-      fontSize: '14px', fontFamily: UI_FONT, color: '#6b5e4e', fontStyle: 'bold'
-    }).setOrigin(0.5).setDepth(2);
-    this.add.text(1200, 48, '📈 交易大厅', {
-      fontSize: '16px', fontFamily: UI_FONT, color: '#4a3f35', fontStyle: 'bold',
-      backgroundColor: 'rgba(250,246,239,0.9)', padding: { x: 10, y: 4 }
-    }).setOrigin(0.5).setDepth(2);
+    this.onResize();
   }
 
-  drawWallSegment(x, y, w, h) {
-    this.add.rectangle(x, y, w, h, 0xa89880).setDepth(1.18);
-    this.add.rectangle(x, y, w - 4, h - 4, 0xc8baa8).setDepth(1.17);
-  }
-
-  drawDoorMarker(x, y, w, h) {
-    this.add.rectangle(x, y, w, h, 0xd4c8b8).setDepth(1.16);
-    this.add.text(x, y - h / 2 - 10, '门', {
-      fontSize: '10px', fontFamily: UI_FONT, color: '#8a7a68', fontStyle: 'bold'
-    }).setOrigin(0.5).setDepth(1.25);
-  }
-
-  createZoneWalls() {
-    var mx = ZONE.MID_X, my = ZONE.MID_Y, ww = ZONE.WALL;
-    var W = this.WORLD_W, H = this.WORLD_H;
-    // 垂直墙 x=2400，门洞 y=730-830 与 y=1920-2020
-    this.drawWallSegment(mx, 365, ww, 730);
-    this.drawWallSegment(mx, 1375, ww, 1090);
-    this.drawWallSegment(mx, 2360, ww, 680);
-    this.drawDoorMarker(mx, 780, 90, ww + 8);
-    this.drawDoorMarker(mx, 2000, 90, ww + 8);
-    // 水平墙 y=1350，门洞 x=1150-1250 与 x=3550-3650
-    this.drawWallSegment(575, my, 1150, ww);
-    this.drawWallSegment(2400, my, 2300, ww);
-    this.drawWallSegment(4225, my, 1150, ww);
-    this.drawDoorMarker(1200, my, 90, ww + 8);
-    this.drawDoorMarker(3600, my, 90, ww + 8);
-  }
-
-  createMassageArea() {
-    this.massageBeds = {};
-    var fs = WORLD.FURN_SCALE;
-    var cx = 3000, cy = 650;
-    this.add.rectangle(cx, cy + 40, 920, 520, 0xf0ebe3).setDepth(0.85);
-    this.add.text(cx, 48, '💆 休闲按摩区', {
-      fontSize: '16px', fontFamily: UI_FONT, color: '#6b4a5a', fontStyle: 'bold',
-      backgroundColor: 'rgba(255,240,245,0.92)', padding: { x: 10, y: 4 }
-    }).setOrigin(0.5).setDepth(2);
-    var beds = [
-      { id: 'bed_1', x: 2700, y: 1180, agent: 'xau' },
-      { id: 'bed_2', x: 3000, y: 1180, agent: 'major' },
-      { id: 'bed_3', x: 3300, y: 1180, agent: 'altcoin' },
-      { id: 'bed_4', x: 2850, y: 980, agent: 'newcoin' },
-      { id: 'bed_5', x: 3150, y: 980, agent: 'momentum' },
+  drawTicker(data) {
+    const ctx = this.tickerCtx, w = this.tickerCanvas.width, h = this.tickerCanvas.height;
+    ctx.fillStyle = '#0a1520';
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#4a90c8';
+    ctx.font = 'bold 22px sans-serif';
+    ctx.fillText('📊 实时行情', 16, 32);
+    const syms = [
+      { k:'BTC/USDT', f:'BTCUSDT' }, { k:'ETH/USDT', f:'ETHUSDT' }, { k:'XAU/USDT', f:'XAUUSDT' },
+      { k:'SOL/USDT', f:'SOLUSDT' }, { k:'DOGE/USDT', f:'DOGEUSDT' },
     ];
-    var self = this;
-    beds.forEach(function(b) {
-      self.add.image(b.x, b.y, 'furniture_massage_bed').setScale(fs * 0.95).setDepth(1.05);
-      self.massageBeds[b.agent] = { bedX: b.x, bedY: b.y - 8 };
+    syms.forEach((s, i) => {
+      const y = 62 + i * 36;
+      ctx.fillStyle = '#8aa8c8';
+      ctx.font = '18px sans-serif';
+      ctx.fillText(s.k, 16, y);
+      ctx.fillStyle = '#e8f0ff';
+      ctx.font = 'bold 18px sans-serif';
+      const p = data[s.f];
+      let txt = '--';
+      if (p != null) txt = s.f === 'XAUUSDT' ? '$' + Number(p).toFixed(2) : '$' + Number(p).toLocaleString(undefined, { maximumFractionDigits: 0 });
+      ctx.fillText(txt, w - 16 - ctx.measureText(txt).width, y);
     });
-    this.add.circle(3000, 520, 80, 0xffe0f0, 0.12).setDepth(0.88);
-    this.add.image(3000, 900, 'furniture_plant').setScale(fs).setDepth(1.05);
-    this.add.image(2700, 900, 'furniture_plant').setScale(fs * 0.9).setDepth(1.05);
-    this.add.image(3300, 900, 'furniture_plant').setScale(fs * 0.9).setDepth(1.05);
+    this.tickerTexture.needsUpdate = true;
   }
 
-  createRestaurantArea() {
-    this.dineSeats = {};
-    var fs = WORLD.FURN_SCALE;
-    var cx = 1200, cy = 2000;
-    this.add.rectangle(cx, cy, 920, 520, 0xf5efe5).setDepth(0.85);
-    this.add.text(cx, 1420, '🍽️ 餐厅', {
-      fontSize: '16px', fontFamily: UI_FONT, color: '#6b5a3a', fontStyle: 'bold',
-      backgroundColor: 'rgba(255,248,235,0.92)', padding: { x: 10, y: 4 }
-    }).setOrigin(0.5).setDepth(2);
-    var tables = [
-      { agent: 'xau', x: 700, y: 1850 }, { agent: 'major', x: 1200, y: 1850 },
-      { agent: 'altcoin', x: 1700, y: 1850 }, { agent: 'newcoin', x: 700, y: 2150 },
-      { agent: 'momentum', x: 1700, y: 2150 },
+  spawnAgents() {
+    const starts = [
+      { id:'xau', x:4.2, z:5.6 }, { id:'major', x:7, z:5.6 }, { id:'altcoin', x:9.8, z:5.6 },
+      { id:'newcoin', x:12.6, z:5.6 }, { id:'momentum', x:15.4, z:5.6 },
     ];
-    var self = this;
-    tables.forEach(function(t) {
-      self.add.image(t.x, t.y, 'furniture_dining_table').setScale(fs * 0.85).setDepth(1.05);
-      self.add.image(t.x, t.y - 52, 'furniture_chair').setScale(fs * 0.75).setDepth(1.04);
-      self.dineSeats[t.agent] = { seatX: t.x, seatY: t.y - 38 };
-    });
-    this.add.image(480, 1680, 'furniture_coffee').setScale(fs).setDepth(1.05);
-    this.add.circle(1200, 1750, 100, 0xffe8a0, 0.1).setDepth(0.88);
-  }
+    starts.forEach(s => {
+      const meta = AGENTS[s.id];
+      const model = createGugugaga(meta.color);
+      model.position.set(s.x, 0, s.z);
+      model.userData.agentId = s.id;
+      model.traverse(c => { if (c.isMesh) { c.userData.agentId = s.id; c.castShadow = true; } });
+      this.scene.add(model);
 
-  createCasinoArea() {
-    this.pokerSeats = {};
-    var fs = WORLD.FURN_SCALE;
-    var cx = 3600, cy = 2100;
-    this.add.rectangle(cx, cy, 920, 520, 0x1a1520).setDepth(0.85);
-    this.add.text(cx, 1420, '🎰 赌场 · 德州扑克', {
-      fontSize: '16px', fontFamily: UI_FONT, color: '#d4af37', fontStyle: 'bold',
-      backgroundColor: 'rgba(26,21,32,0.88)', padding: { x: 10, y: 4 }
-    }).setOrigin(0.5).setDepth(2);
-    this.add.image(cx, cy, 'furniture_poker_table').setScale(fs * 1.05).setDepth(1.08);
-    var seats = [
-      { agent: 'xau', x: 3300, y: 2050 }, { agent: 'major', x: 3600, y: 2180 },
-      { agent: 'altcoin', x: 3900, y: 2050 }, { agent: 'newcoin', x: 3420, y: 2320 },
-      { agent: 'momentum', x: 3780, y: 2320 },
-    ];
-    var self = this;
-    seats.forEach(function(s) {
-      self.add.image(s.x, s.y, 'furniture_chair').setScale(fs * 0.7).setDepth(1.06);
-      self.pokerSeats[s.agent] = { seatX: s.x, seatY: s.y + 6 };
-    });
-    this.add.circle(cx, cy, 120, 0xd4af37, 0.06).setDepth(0.88);
-    this.add.circle(cx, cy - 30, 8, 0xffd700, 0.8).setDepth(1.15);
-  }
+      const label = makeLabel(meta.name, meta.color);
+      label.position.set(0, 1.55, 0);
+      model.add(label);
 
-  createNPCs() {
-    var self = this;
-    this.npcs = [];
-    var npcList = [
-      { x: 3000, y: 820, color: '#e879a9', name: '服务员 Lily', role: 'massage' },
-      { x: 3600, y: 2040, color: '#d4af37', name: '荷官 Jack', role: 'dealer' },
-    ];
-    npcList.forEach(function(npc) {
-      var key = 'npc_' + npc.role;
-      if (!self.textures.exists(key)) {
-        PixelArt.createTexture(self, key, 16, 16, PixelArt.generateCharacter(npc.color), WORLD.PIXEL_SCALE);
-      }
-      var spr = self.add.sprite(npc.x, npc.y, key);
-      spr.setScale(WORLD.CHAR_SCALE);
-      spr.setDepth(3.1);
-      var tag = self.add.text(npc.x, npc.y - 40, npc.name, {
-        fontSize: '11px', fontFamily: UI_FONT, color: npc.color, fontStyle: 'bold',
-        backgroundColor: 'rgba(250,246,239,0.92)', padding: { x: 4, y: 2 }
-      }).setOrigin(0.5).setDepth(4);
-      self.npcs.push({ sprite: spr, tag: tag, role: npc.role, baseY: npc.y });
-    });
-  }
-
-  createCharacters() {
-    this.characters = {};
-    var agents = [
-      { id: 'xau', x: 420, y: 560 },
-      { id: 'major', x: 700, y: 560 },
-      { id: 'altcoin', x: 980, y: 560 },
-      { id: 'newcoin', x: 1260, y: 560 },
-      { id: 'momentum', x: 1540, y: 560 },
-    ];
-    
-    var self = this;
-    agents.forEach(function(agent) {
-      var meta = PixelArt.characters[agent.id];
-      var sprite = self.add.sprite(agent.x, agent.y, 'char_' + agent.id + '_idle');
-      sprite.setScale(WORLD.CHAR_SCALE);
-      sprite.setDepth(3);
-      var hitR = 40;
-      sprite.setInteractive(new Phaser.Geom.Circle(0, 0, hitR), Phaser.Geom.Circle.Contains);
-      sprite.input.cursor = 'pointer';
-      
-      var hitZone = self.add.zone(agent.x, agent.y, hitR * 2.2, hitR * 2.8);
-      hitZone.setDepth(3);
-      hitZone.setInteractive({ cursor: 'pointer' });
-      
-      var nameTag = self.add.text(agent.x, agent.y - 42, meta.name, {
-        fontSize: '12px', fontFamily: UI_FONT, color: meta.color, fontStyle: 'bold',
-        backgroundColor: 'rgba(250,246,239,0.95)', padding: { x: 5, y: 2 }
-      }).setOrigin(0.5).setDepth(4);
-      
-      var statusText = self.add.text(agent.x, agent.y + 28, '空闲', {
-        fontSize: '11px', fontFamily: UI_FONT, color: '#777'
-      }).setOrigin(0.5).setDepth(4);
-      
-      var pnlText = self.add.text(agent.x, agent.y + 42, '盈亏: --', {
-        fontSize: '11px', fontFamily: UI_FONT, color: '#888'
-      }).setOrigin(0.5).setDepth(4);
-      
-      var bubbleText = self.add.text(agent.x, agent.y - 58, '', {
-        fontSize: '11px', fontFamily: UI_FONT, color: '#2d2520',
-        backgroundColor: 'rgba(255,255,255,0.92)', padding: { x: 6, y: 3 }
-      }).setOrigin(0.5).setDepth(5).setAlpha(0);
-      
-      self.characters[agent.id] = {
-        sprite: sprite, hitZone: hitZone, nameTag: nameTag, statusText: statusText, pnlText: pnlText,
-        bubbleText: bubbleText, agentId: agent.id, baseX: agent.x, baseY: agent.y,
+      this.characters[s.id] = {
+        model, label, agentId: s.id, meta,
+        x: s.x, z: s.z,
         pathQueue: [], pathIndex: 0, isWalking: false, destNode: null,
-        isResting: false, restPose: 'sit', restUntil: 0, restToggle: 0,
-        isMassaging: false, massageUntil: 0,
-        isDining: false, dineUntil: 0,
-        isPlayingPoker: false, pokerUntil: 0,
-        activity: null,
-        state: 'idle', animTimer: 0, walkFrame: 0,
+        isResting: false, isMassaging: false, isDining: false, isPlayingPoker: false,
+        activityUntil: 0, state: 'idle', animT: 0,
         moveTimer: 0, nextMoveTime: 4000 + Math.random() * 6000,
-        lastTradeKey: null,
-        data: Object.assign({ id: agent.id }, meta)
+        data: { id: s.id, ...meta }, lastTradeKey: null,
       };
-      
-      function onCharClick(pointer) {
-        if (pointer && pointer.event) pointer.event.stopPropagation();
-        self.showAgentDetail(agent.id);
-      }
-      sprite.on('pointerdown', onCharClick);
-      hitZone.on('pointerdown', onCharClick);
-      nameTag.setInteractive({ cursor: 'pointer' });
-      nameTag.on('pointerdown', onCharClick);
     });
+    this.clickables = Object.values(this.characters).map(c => c.model);
   }
 
-  createParticles() {
-    this.particles = this.add.particles(0, 0, 'particle_up', {
-      speed: { min: 20, max: 60 },
-      angle: { min: 250, max: 290 },
-      scale: { start: 1, end: 0 },
-      lifespan: 1000,
-      frequency: -1,
-      quantity: 1,
-      emitting: false
+  spawnNPCs() {
+    [{ x:30, z:8.2, name:'服务员 Lily', color:'#e879a9' }, { x:36, z:20.4, name:'荷官 Jack', color:'#d4af37' }].forEach(n => {
+      const m = createGugugaga(n.color);
+      m.scale.setScalar(1.05);
+      m.position.set(n.x, 0, n.z);
+      this.scene.add(m);
+      const lbl = makeLabel(n.name, n.color);
+      lbl.position.set(0, 1.65, 0);
+      m.add(lbl);
     });
-    this.particles.setDepth(5);
   }
 
   setupInput() {
-    var self = this;
-    this.selectedAgentId = null;
-    
-    document.getElementById('detail-close').addEventListener('click', function() {
-      document.getElementById('agent-detail').classList.remove('active');
-      self.selectedAgentId = null;
-    });
-
-    AgentProfile.init();
-    
-    this.input.on('pointerdown', function(pointer, currentlyOver) {
-      if (currentlyOver && currentlyOver.length > 0) {
-        var hitChar = currentlyOver.some(function(obj) {
-          return Object.values(self.characters).some(function(c) {
-            return c.sprite === obj || c.hitZone === obj || c.nameTag === obj;
-          });
-        });
-        if (hitChar) return;
-      }
-      var wx = pointer.worldX, wy = pointer.worldY;
-      var clickedChar = Object.values(self.characters).some(function(c) {
-        return Phaser.Math.Distance.Between(wx, wy, c.sprite.x, c.sprite.y) < 48;
-      });
-      if (clickedChar) return;
-      if (!self.camDidDrag) {
+    this.raycaster = new THREE.Raycaster();
+    this.mouse = new THREE.Vector2();
+    this.renderer.domElement.addEventListener('pointerdown', (e) => {
+      const rect = this.renderer.domElement.getBoundingClientRect();
+      this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      this.raycaster.setFromCamera(this.mouse, this.camera);
+      const hits = this.raycaster.intersectObjects(this.clickables, true);
+      if (hits.length) {
+        let id = hits[0].object.userData.agentId;
+        if (!id) { hits[0].object.traverseAncestors(a => { if (a.userData.agentId) id = a.userData.agentId; }); }
+        if (id) this.showAgentDetail(id);
+      } else if (!e.target.closest('#agent-detail')) {
         document.getElementById('agent-detail').classList.remove('active');
-        self.selectedAgentId = null;
+        this.selectedAgentId = null;
       }
-      self.beginCameraDrag(pointer);
     });
   }
 
-  drawDetailAvatar(agentId) {
-    var canvas = document.getElementById('detail-avatar');
-    if (!canvas) return;
-    var ctx = canvas.getContext('2d');
-    ctx.imageSmoothingEnabled = false;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#f5f0e8';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    var tex = this.textures.get('char_' + agentId + '_idle');
-    if (tex && tex.getSourceImage) {
-      var img = tex.getSourceImage();
-      var scale = Math.min(canvas.width / img.width, canvas.height / img.height) * 0.92;
-      var dw = img.width * scale, dh = img.height * scale;
-      ctx.drawImage(img, (canvas.width - dw) / 2, (canvas.height - dh) / 2, dw, dh);
-    }
+  renderAvatar(agentId) {
+    const canvas = document.getElementById('detail-avatar');
+    const meta = AGENTS[agentId];
+    if (!canvas || !meta) return;
+    const r = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    r.setSize(128, 128);
+    r.setClearColor(0x000000, 0);
+    const sc = new THREE.Scene();
+    sc.add(new THREE.AmbientLight(0xfff5ee, 0.6));
+    const dl = new THREE.DirectionalLight(0xffffff, 1);
+    dl.position.set(2, 4, 3);
+    sc.add(dl);
+    const m = createGugugaga(meta.color);
+    m.rotation.y = 0.4;
+    sc.add(m);
+    const cam = new THREE.PerspectiveCamera(35, 1, 0.1, 20);
+    cam.position.set(0, 1.0, 2.8);
+    cam.lookAt(0, 0.7, 0);
+    r.render(sc, cam);
+    r.dispose();
   }
 
-  showAgentDetail(agentId, options) {
-    options = options || {};
-    var char = this.characters[agentId];
+  showAgentDetail(agentId, refresh) {
+    const char = this.characters[agentId];
     if (!char) return;
-    
     this.selectedAgentId = agentId;
-    var meta = PixelArt.characters[agentId] || {};
-    var d = char.data || meta;
-    
-    this.drawDetailAvatar(agentId);
-    document.getElementById('detail-icon').textContent = d.icon || meta.icon || '';
-    document.getElementById('detail-name').textContent = d.name || meta.name || agentId;
-    document.getElementById('detail-desc').textContent = d.desc || meta.desc || '';
-    document.getElementById('detail-strategy').textContent = d.strategy || meta.strategy || '--';
-    document.getElementById('detail-market').textContent = d.market || meta.market || '--';
-    document.getElementById('detail-interval').textContent = d.interval || meta.interval || '--';
-    document.getElementById('detail-risk').textContent = d.risk || meta.risk || '--';
+    const d = char.data || AGENTS[agentId];
+    this.renderAvatar(agentId);
+    document.getElementById('detail-icon').textContent = d.icon || '';
+    document.getElementById('detail-name').textContent = d.name || agentId;
+    document.getElementById('detail-desc').textContent = d.desc || '';
+    document.getElementById('detail-strategy').textContent = d.strategy || '--';
+    document.getElementById('detail-market').textContent = d.market || '--';
+    document.getElementById('detail-interval').textContent = d.interval || '--';
+    document.getElementById('detail-risk').textContent = d.risk || '--';
     document.getElementById('detail-capital').textContent = d.capital != null ? '$' + Number(d.capital).toLocaleString() : '--';
-    
-    var pnlEl = document.getElementById('detail-pnl');
-    var pnl = d.pnl || 0;
+    const pnl = d.pnl || 0;
+    const pnlEl = document.getElementById('detail-pnl');
     pnlEl.textContent = d.pnl != null ? (pnl > 0 ? '+' : '') + '$' + Number(pnl).toLocaleString() + ' (' + (d.pnl_pct != null ? d.pnl_pct.toFixed(1) : '0') + '%)' : '--';
     pnlEl.className = pnl > 0 ? 'up' : pnl < 0 ? 'down' : '';
-    
-    document.getElementById('detail-wr').textContent = d.win_rate != null ? d.win_rate.toFixed(1) + '% (' + (d.wins || 0) + '/' + (d.trades || 0) + ')' : '--';
-    
-    var status = d.is_circuit_break ? '熔断保护' : d.running ? '运行中' : '离线';
-    var statusEl = document.getElementById('detail-status');
+    document.getElementById('detail-wr').textContent = d.win_rate != null ? d.win_rate.toFixed(1) + '% (' + (d.wins||0) + '/' + (d.trades||0) + ')' : '--';
+    const status = d.is_circuit_break ? '熔断保护' : d.running ? '运行中' : '离线';
+    const statusEl = document.getElementById('detail-status');
     statusEl.textContent = status;
     statusEl.className = d.is_circuit_break ? 'down' : d.running ? 'up' : '';
-    
     document.getElementById('detail-pos').textContent = (d.positions ? d.positions.length : 0) + ' 个';
-    
-    var posDiv = document.getElementById('detail-positions');
-    if (d.positions && d.positions.length > 0) {
-      posDiv.innerHTML = d.positions.map(function(p) {
-        var dirColor = p.direction && p.direction.includes('LONG') ? '#16a34a' : '#dc2626';
-        return '<div class="row"><span>' + p.symbol + '</span><span style="color:' + dirColor + '">' + p.direction + '</span></div>';
-      }).join('');
-    } else {
-      posDiv.innerHTML = '<div style="color:#999">无持仓</div>';
-    }
-    
+    const posDiv = document.getElementById('detail-positions');
+    posDiv.innerHTML = (d.positions && d.positions.length) ? d.positions.map(p => {
+      const c = p.direction && p.direction.includes('LONG') ? '#16a34a' : '#dc2626';
+      return '<div class="row"><span>' + p.symbol + '</span><span style="color:' + c + '">' + p.direction + '</span></div>';
+    }).join('') : '<div style="color:#999">无持仓</div>';
     document.getElementById('agent-detail').classList.add('active');
-    if (!options.refresh) {
-      char.sprite.setTint(0xffffcc);
-      var self = this;
-      this.time.delayedCall(180, function() {
-        if (self.characters[agentId]) self.characters[agentId].sprite.clearTint();
-      });
-      AgentProfile.load(agentId);
-    }
-  }
-
-  startDataPolling() {
-    this.fetchData();
-    this.fetchTicker();
-    var self = this;
-    this.time.addEvent({ delay: 5000, callback: function() { self.fetchData(); }, loop: true });
-    this.time.addEvent({ delay: 10000, callback: function() { self.fetchTicker(); }, loop: true });
-    this.time.addEvent({ delay: 60000, callback: function() { self.updateDayNight(); }, loop: true });
+    if (!refresh) AgentProfile.load(agentId);
   }
 
   fetchData() {
-    var self = this;
-    var API = location.origin + '/trading';
-    fetch(API + '/api/overview')
-      .then(function(res) { return res.json(); })
-      .then(function(data) {
-        self.updateUI(data);
-        self.updateCharacters(data.agents);
-        if (data.risk) {
-          self.updateRiskIndicator(data.risk);
-        }
-      })
-      .catch(function(e) {
-        console.error('Data fetch error:', e);
-      });
+    fetch(location.origin + '/trading/api/overview').then(r => r.json()).then(data => {
+      this.updateUI(data);
+      this.updateCharacters(data.agents);
+    }).catch(() => {});
   }
 
   fetchTicker() {
-    var self = this;
-    var API = location.origin + '/trading';
-    fetch(API + '/api/ticker')
-      .then(function(res) { return res.json(); })
-      .then(function(data) {
-        self.tickerData = data;
-        if (data.BTCUSDT) document.getElementById('btc-price').textContent = '$' + data.BTCUSDT.toLocaleString();
-        if (data.ETHUSDT) document.getElementById('eth-price').textContent = '$' + data.ETHUSDT.toLocaleString();
-        if (data.XAUUSDT) document.getElementById('xau-price').textContent = '$' + data.XAUUSDT.toFixed(2);
-        self.updateBigScreenTicker(data);
-      })
-      .catch(function(e) {});
-  }
-
-  updateBigScreenTicker(data) {
-    if (!this.tickerTexts || !data) return;
-    this.tickerTexts.forEach(function(t) {
-      var price = data[t.field];
-      if (price == null) {
-        t.priceText.setText('--');
-        t.priceText.setColor('#888888');
-        return;
-      }
-      var txt;
-      if (t.field === 'XAUUSDT') txt = '$' + Number(price).toFixed(2);
-      else if (price >= 1000) txt = '$' + Number(price).toLocaleString(undefined, { maximumFractionDigits: 0 });
-      else txt = '$' + Number(price).toFixed(2);
-      t.priceText.setText(txt);
-      t.priceText.setColor('#e8f0ff');
-    });
-  }
-
-  showTradeBubble(char, trade) {
-    if (!trade || !char.bubbleText) return;
-    var pct = trade.pnl_pct != null ? trade.pnl_pct : 0;
-    var sign = pct >= 0 ? '+' : '';
-    var msg = (trade.symbol || '') + ' ' + sign + pct.toFixed(1) + '%';
-    char.bubbleText.setText(msg);
-    char.bubbleText.setColor(pct >= 0 ? '#16a34a' : '#dc2626');
-    char.bubbleText.setAlpha(1);
-    char.bubbleText.y = char.sprite.y - 58;
-    var self = this;
-    this.tweens.killTweensOf(char.bubbleText);
-    this.tweens.add({
-      targets: char.bubbleText,
-      y: char.sprite.y - 88,
-      alpha: 0,
-      duration: 4200,
-      ease: 'Sine.easeOut',
-      onComplete: function() { char.bubbleText.setAlpha(0); }
-    });
+    fetch(location.origin + '/trading/api/ticker').then(r => r.json()).then(data => {
+      if (data.BTCUSDT) document.getElementById('btc-price').textContent = '$' + data.BTCUSDT.toLocaleString();
+      if (data.ETHUSDT) document.getElementById('eth-price').textContent = '$' + data.ETHUSDT.toLocaleString();
+      if (data.XAUUSDT) document.getElementById('xau-price').textContent = '$' + data.XAUUSDT.toFixed(2);
+      this.drawTicker(data);
+    }).catch(() => {});
   }
 
   updateUI(data) {
-    var pnl = data.total_pnl || 0;
-    var pnlEl = document.getElementById('total-pnl');
+    const pnl = data.total_pnl || 0;
+    const pnlEl = document.getElementById('total-pnl');
     pnlEl.textContent = pnl ? '$' + pnl.toLocaleString() : '--';
     pnlEl.className = pnl > 0 ? 'value up' : pnl < 0 ? 'value down' : 'value';
-    
     document.getElementById('win-rate').textContent = data.total_wr ? data.total_wr.toFixed(1) + '%' : '--';
     document.getElementById('runner-status').textContent = data.runner && data.runner.running ? 'RUNNING' : 'STOPPED';
     document.getElementById('runner-status').className = data.runner && data.runner.running ? 'value up' : 'value down';
@@ -1576,157 +875,28 @@ class TradingWorld extends Phaser.Scene {
 
   updateCharacters(agents) {
     if (!agents) return;
-    
-    var self = this;
-    agents.forEach(function(agent) {
-      var char = self.characters[agent.id];
+    agents.forEach(agent => {
+      const char = this.characters[agent.id];
       if (!char) return;
-      
       char.data = agent;
-      
-      var status = agent.is_circuit_break ? '熔断' : 
-                   agent.positions && agent.positions.length ? '交易中' :
-                   agent.running ? '运行中' : '离线';
-      char.statusText.setText(status);
-      char.statusText.setColor(agent.is_circuit_break ? '#dc2626' : 
-                               agent.positions && agent.positions.length ? '#d97706' :
-                               agent.running ? '#16a34a' : '#999');
-      
-      var pnl = agent.pnl || 0;
-      char.pnlText.setText('盈亏: ' + (pnl > 0 ? '+' : '') + '$' + pnl.toLocaleString());
-      char.pnlText.setColor(pnl > 0 ? '#16a34a' : pnl < 0 ? '#dc2626' : '#888');
-      
-      var desk = self.desks[agent.id];
-      if (desk) {
-        var lightColor = agent.is_circuit_break ? 0xdc2626 :
-                          agent.running ? 0x16a34a : 0x999999;
-        desk.light.setFillStyle(lightColor);
-        desk.agentRunning = !!agent.running;
-        desk.agentTrading = !!(agent.positions && agent.positions.length > 0);
-        if (agent.running) {
-          desk.light.setAlpha(0.5 + Math.sin(self.time.now / 200) * 0.5);
-        } else {
-          desk.light.setAlpha(1);
-        }
-      }
-      
-      if (agent.trades_history && agent.trades_history.length > 0) {
-        var latest = agent.trades_history[agent.trades_history.length - 1];
-        var tradeKey = latest.symbol + '_' + (latest.opened_at || '') + '_' + (latest.pnl_pct || '');
-        if (tradeKey !== char.lastTradeKey && latest.pnl_pct != null) {
-          char.lastTradeKey = tradeKey;
-          self.showTradeBubble(char, latest);
-        }
-      }
-      
-      if (agent.is_circuit_break) {
-        char.state = 'panic';
-        if (!char.isWalking && !char.isResting) {
-          self.assignPathTo(char, 'scr_ctr');
-        }
-      } else if (agent.positions && agent.positions.length > 0) {
-        char.state = 'trading';
-        if (!char.isResting && !char.isWalking && Math.random() > 0.92) {
-          self.assignPathTo(char, OfficePath.deskByAgent[agent.id]);
-        }
-      } else if (agent.running) {
-        char.state = 'scanning';
-      } else {
-        char.state = 'idle';
-      }
-      
-      if (Math.abs(pnl) > 100 && Math.random() > 0.7) {
-        self.emitPnlParticles(char.sprite.x, char.sprite.y, pnl > 0);
-      }
+      const status = agent.is_circuit_break ? '熔断' : agent.positions && agent.positions.length ? '交易中' : agent.running ? '运行中' : '离线';
+      const color = agent.is_circuit_break ? '#dc2626' : agent.positions && agent.positions.length ? '#d97706' : agent.running ? '#16a34a' : '#999';
+      char.label.element.querySelector('.status').textContent = status + ' · 盈亏 ' + (agent.pnl > 0 ? '+' : '') + '$' + (agent.pnl || 0).toLocaleString();
+      char.label.element.querySelector('.status').style.color = color;
+      const desk = this.desks[agent.id];
+      if (desk) desk.light.material.color.setHex(agent.is_circuit_break ? 0xdc2626 : agent.running ? 0x16a34a : 0x999999);
+      if (agent.is_circuit_break) { char.state = 'panic'; if (!char.isWalking && !char.activityUntil) this.assignPathTo(char, 'scr_ctr'); }
+      else if (agent.positions && agent.positions.length) char.state = 'trading';
+      else if (agent.running) char.state = 'scanning';
+      else char.state = 'idle';
     });
-    
-    if (self.selectedAgentId) {
-      self.showAgentDetail(self.selectedAgentId, { refresh: true });
-    }
-  }
-
-  updateRiskIndicator(risk) {
-    if (risk.circuit_break) {
-      this.cameras.main.flash(500, 220, 60, 60, false);
-    }
-  }
-
-  emitPnlParticles(x, y, isUp) {
-    var key = isUp ? 'particle_up' : 'particle_down';
-    var emitter = this.add.particles(x, y, key, {
-      speed: { min: 30, max: 80 },
-      angle: { min: 200, max: 340 },
-      scale: { start: 1.5, end: 0 },
-      lifespan: 1500,
-      quantity: 5,
-      emitting: false
-    });
-    emitter.explode(5);
-    emitter.setDepth(5);
-  }
-
-  update(time, delta) {
-    var self = this;
-    
-    // Animate characters
-    Object.entries(this.characters).forEach(function(entry) {
-      self.animateCharacter(entry[1], time, delta);
-    });
-    
-    this.updateDeskScreens(time);
-    if (this.npcs) {
-      this.npcs.forEach(function(npc) {
-        npc.sprite.y = npc.baseY + Math.sin(time / 700) * 1.5;
-        npc.tag.y = npc.sprite.y - 40;
-      });
-    }
-    if (Math.floor(time / 30000) !== this._lastDayNightTick) {
-      this._lastDayNightTick = Math.floor(time / 30000);
-      this.updateDayNight();
-    }
-  }
-
-  updateDeskScreens(time) {
-    Object.values(this.desks).forEach(function(desk) {
-      if (!desk.screenBars) return;
-      desk.screenBars.forEach(function(bar, i) {
-        var h = 6 + Math.abs(Math.sin(time * bar.speed + bar.phase)) * 14;
-        if (desk.agentTrading) h += 4 + Math.sin(time * 0.008 + i) * 3;
-        bar.rect.setSize(4, h);
-        bar.rect.y = 2;
-        var color;
-        if (desk.agentTrading) {
-          color = i % 2 === 0 ? 0x16a34a : 0xdc2626;
-        } else if (desk.agentRunning) {
-          color = 0x4a90c8;
-        } else {
-          color = 0x3a5060;
-        }
-        bar.rect.setFillStyle(color);
-      });
-      if (desk.scanLine) {
-        desk.scanLine.y = -10 + ((time * 0.04) % 24);
-        desk.scanLine.setAlpha(desk.agentRunning ? 0.45 : 0.15);
-      }
-      if (desk.screenCursor) {
-        desk.screenCursor.setAlpha(desk.agentRunning && Math.floor(time / 400) % 2 === 0 ? 1 : 0.2);
-        desk.screenCursor.x = -26 + ((time * 0.02) % 52);
-      }
-    });
+    if (this.selectedAgentId) this.showAgentDetail(this.selectedAgentId, true);
   }
 
   assignPathTo(char, nodeId) {
-    if (char.isResting || char.isMassaging || char.isDining || char.isPlayingPoker) {
-      char.isResting = false;
-      char.isMassaging = false;
-      char.isDining = false;
-      char.isPlayingPoker = false;
-      char.activity = null;
-      char.sprite.setAngle(0);
-      char.sprite.setScale(WORLD.CHAR_SCALE);
-      this.resetCharDepth(char);
-    }
-    var pts = OfficePath.pathToNode(char.sprite.x, char.sprite.y, nodeId);
+    char.isResting = char.isMassaging = char.isDining = char.isPlayingPoker = false;
+    char.activityUntil = 0;
+    const pts = OfficePath.pathToNode(char.x, char.z, nodeId);
     if (!pts || pts.length < 2) return;
     char.destNode = nodeId;
     char.pathQueue = pts.slice(1);
@@ -1734,518 +904,131 @@ class TradingWorld extends Phaser.Scene {
     char.isWalking = true;
   }
 
-  onPathComplete(char, time) {
-    var node = char.destNode;
+  onPathComplete(char, now) {
+    const node = char.destNode;
     char.destNode = null;
-    if (node === OfficePath.boothByAgent[char.agentId]) {
-      this.startResting(char, time);
-    } else if (node === OfficePath.massageByAgent[char.agentId]) {
-      this.startMassaging(char, time);
-    } else if (node === OfficePath.dineByAgent[char.agentId]) {
-      this.startDining(char, time);
-    } else if (node === OfficePath.pokerByAgent[char.agentId]) {
-      this.startPlayingPoker(char, time);
-    }
+    if (node === OfficePath.boothByAgent[char.agentId]) this.startActivity(char, 'rest', now, 9000);
+    else if (node === OfficePath.massageByAgent[char.agentId]) this.startActivity(char, 'massage', now, 10000);
+    else if (node === OfficePath.dineByAgent[char.agentId]) this.startActivity(char, 'dine', now, 9000);
+    else if (node === OfficePath.pokerByAgent[char.agentId]) this.startActivity(char, 'poker', now, 12000);
   }
 
-  startMassaging(char, time) {
-    var bed = this.massageBeds && this.massageBeds[char.agentId];
-    char.isMassaging = true;
-    char.activity = 'massage';
-    char.massageUntil = time + 10000 + Math.random() * 9000;
+  startActivity(char, type, now, dur) {
+    char.isResting = type === 'rest';
+    char.isMassaging = type === 'massage';
+    char.isDining = type === 'dine';
+    char.isPlayingPoker = type === 'poker';
+    char.activityUntil = now + dur + Math.random() * 8000;
     char.isWalking = false;
     char.pathQueue = [];
-    if (bed) { char.sprite.x = bed.bedX; char.sprite.y = bed.bedY; }
-    char.sprite.setDepth(3.2);
-    char.nameTag.setDepth(4.5);
-    char.statusText.setDepth(4.5);
-    char.pnlText.setDepth(4.5);
-    char.bubbleText.setDepth(5);
-    char.statusText.setText('按摩中');
-    char.statusText.setColor('#c87898');
-    char.sprite.setTexture('char_' + char.agentId + '_sit');
-    char.sprite.setAngle(-90);
-    char.sprite.setScale(WORLD.CHAR_SCALE * 0.88);
-  }
-
-  startDining(char, time) {
-    var seat = this.dineSeats && this.dineSeats[char.agentId];
-    char.isDining = true;
-    char.activity = 'dine';
-    char.dineUntil = time + 9000 + Math.random() * 8000;
-    char.isWalking = false;
-    char.pathQueue = [];
-    if (seat) { char.sprite.x = seat.seatX; char.sprite.y = seat.seatY; }
-    char.sprite.setDepth(3.2);
-    char.nameTag.setDepth(4.5);
-    char.statusText.setDepth(4.5);
-    char.pnlText.setDepth(4.5);
-    char.bubbleText.setDepth(5);
-    char.statusText.setText('就餐中');
-    char.statusText.setColor('#b8860b');
-    char.sprite.setTexture('char_' + char.agentId + '_sit');
-    char.sprite.setAngle(0);
-    char.sprite.setScale(WORLD.CHAR_SCALE * 0.92);
-  }
-
-  startPlayingPoker(char, time) {
-    var seat = this.pokerSeats && this.pokerSeats[char.agentId];
-    char.isPlayingPoker = true;
-    char.activity = 'poker';
-    char.pokerUntil = time + 12000 + Math.random() * 10000;
-    char.isWalking = false;
-    char.pathQueue = [];
-    if (seat) { char.sprite.x = seat.seatX; char.sprite.y = seat.seatY; }
-    char.sprite.setDepth(3.2);
-    char.nameTag.setDepth(4.5);
-    char.statusText.setDepth(4.5);
-    char.pnlText.setDepth(4.5);
-    char.bubbleText.setDepth(5);
-    char.statusText.setText('打德州');
-    char.statusText.setColor('#d4af37');
-    char.sprite.setTexture('char_' + char.agentId + '_sit');
-    char.sprite.setAngle(0);
-    char.sprite.setScale(WORLD.CHAR_SCALE * 0.9);
-  }
-
-  startResting(char, time) {
-    var seat = this.booths && this.booths[char.agentId];
-    char.isResting = true;
-    char.restUntil = time + 9000 + Math.random() * 8000;
-    char.restToggle = time;
-    char.restPose = 'sit';
-    char.isWalking = false;
-    char.pathQueue = [];
-    if (seat) {
-      char.sprite.x = seat.seatX;
-      char.sprite.y = seat.seatY;
-    }
-    char.sprite.setDepth(3.2);
-    char.nameTag.setDepth(4.5);
-    char.statusText.setDepth(4.5);
-    char.pnlText.setDepth(4.5);
-    char.bubbleText.setDepth(5);
-    char.statusText.setText('休息中');
-    char.statusText.setColor('#6b8e6b');
-  }
-
-  resetCharDepth(char) {
-    char.sprite.setDepth(3);
-    char.nameTag.setDepth(4);
-    char.statusText.setDepth(4);
-    char.pnlText.setDepth(4);
-    char.bubbleText.setDepth(5);
+    const seatMap = { rest: char.agentId, massage: 'bed_' + char.agentId, dine: 'dine_' + char.agentId, poker: 'poker_' + char.agentId };
+    const seat = this.seats[seatMap[type]];
+    if (seat) { char.x = seat.x; char.z = seat.z; }
+    const labels = { rest:'休息中', massage:'按摩中', dine:'就餐中', poker:'打德州' };
+    char.label.element.querySelector('.status').textContent = labels[type];
   }
 
   pickWanderTarget(char) {
-    var deskNode = OfficePath.deskByAgent[char.agentId];
-    if (char.state === 'trading') return deskNode;
+    const desk = OfficePath.deskByAgent[char.agentId];
+    if (char.state === 'trading') return desk;
     if (char.state === 'panic') return 'scr_ctr';
-    if (char.state === 'idle' && (!char.data || !char.data.running)) {
-      var roll = Math.random();
-      if (roll > 0.72) return OfficePath.boothByAgent[char.agentId];
-      if (roll > 0.52) return OfficePath.massageByAgent[char.agentId];
-      if (roll > 0.32) return OfficePath.dineByAgent[char.agentId];
-      if (roll > 0.14) return OfficePath.pokerByAgent[char.agentId];
-      return deskNode;
+    if (char.state === 'idle') {
+      const r = Math.random();
+      if (r > 0.72) return OfficePath.boothByAgent[char.agentId];
+      if (r > 0.52) return OfficePath.massageByAgent[char.agentId];
+      if (r > 0.32) return OfficePath.dineByAgent[char.agentId];
+      if (r > 0.14) return OfficePath.pokerByAgent[char.agentId];
+      return desk;
     }
-    if (char.state === 'scanning' && Math.random() > 0.65) {
-      return ['scr_xau','scr_maj','scr_alt','scr_ctr','scr_mom'][Math.floor(Math.random() * 5)];
-    }
-    if (char.state === 'scanning' && Math.random() > 0.88) {
-      var leisure = ['bed_1','dine_2','poker_3','rest_l_2'];
-      return leisure[Math.floor(Math.random() * leisure.length)];
-    }
-    var pool = OfficePath.wanderTargets.filter(function(n) { return n !== deskNode || Math.random() > 0.45; });
-    if (Math.random() > 0.4) pool.push(OfficePath.boothByAgent[char.agentId]);
-    if (Math.random() > 0.55) pool.push(OfficePath.massageByAgent[char.agentId]);
-    if (Math.random() > 0.6) pool.push(OfficePath.dineByAgent[char.agentId]);
-    if (Math.random() > 0.65) pool.push(OfficePath.pokerByAgent[char.agentId]);
+    const pool = OfficePath.wanderTargets;
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
-  animateCharacter(char, time, delta) {
-    char.animTimer += delta;
+  updateCharacter(char, dt, now) {
+    char.animT += dt;
+    const parts = char.model.userData.parts;
 
-    if (char.isResting) {
-      this.animateResting(char, time, delta);
+    if (char.activityUntil && now < char.activityUntil) {
+      char.model.position.set(char.x, 0, char.z);
+      if (char.isMassaging) {
+        char.model.rotation.set(-Math.PI / 2, 0, 0);
+        char.model.position.y = 0.35;
+      } else if (char.isResting || char.isDining || char.isPlayingPoker) {
+        char.model.rotation.set(0, char.model.rotation.y, 0);
+        char.model.position.y = char.isDining || char.isPlayingPoker ? 0.15 : 0.05;
+      }
+      if (parts) { parts.wingL.rotation.z = 0.5 + Math.sin(char.animT * 2) * 0.1; parts.wingR.rotation.z = -0.5 - Math.sin(char.animT * 2) * 0.1; }
       return;
-    }
-    if (char.isMassaging) {
-      this.animateMassaging(char, time, delta);
-      return;
-    }
-    if (char.isDining) {
-      this.animateDining(char, time, delta);
-      return;
-    }
-    if (char.isPlayingPoker) {
-      this.animatePoker(char, time, delta);
-      return;
-    }
-
-    char.moveTimer += delta;
-
-    if (char.state === 'trading' && !char.isWalking && Math.random() > 0.97) {
+    } else if (char.activityUntil && now >= char.activityUntil) {
+      char.activityUntil = 0;
+      char.isResting = char.isMassaging = char.isDining = char.isPlayingPoker = false;
+      char.model.rotation.set(0, char.model.rotation.y, 0);
+      char.model.position.y = 0;
+      char.moveTimer = 0;
+      char.nextMoveTime = 2000 + Math.random() * 3000;
       this.assignPathTo(char, OfficePath.deskByAgent[char.agentId]);
     }
 
-    if (char.moveTimer > char.nextMoveTime && char.state !== 'panic' && char.state !== 'trading' && !char.isWalking) {
+    char.moveTimer += dt * 1000;
+    if (!char.isWalking && char.state !== 'panic' && char.state !== 'trading' && char.moveTimer > char.nextMoveTime) {
       char.moveTimer = 0;
       char.nextMoveTime = 4500 + Math.random() * 7000;
       this.assignPathTo(char, this.pickWanderTarget(char));
     }
+    if (char.state === 'panic' && !char.isWalking) this.assignPathTo(char, 'scr_ctr');
 
-    if (char.state === 'panic' && !char.isWalking) {
-      this.assignPathTo(char, 'scr_ctr');
-    }
-
-    var agentId = char.agentId;
-    var moving = false;
-    var dx = 0;
-
-    if (char.isWalking && char.pathQueue.length > 0) {
-      var wp = char.pathQueue[char.pathIndex];
+    let moving = false;
+    if (char.isWalking && char.pathQueue.length) {
+      const wp = char.pathQueue[char.pathIndex];
       if (wp) {
-        dx = wp.x - char.sprite.x;
-        var dy = wp.y - char.sprite.y;
-        var dist = Math.sqrt(dx * dx + dy * dy);
-        var step = (WORLD.WALK_SPEED * delta) / 1000;
-        if (dist <= step || dist < 2) {
-          char.sprite.x = wp.x;
-          char.sprite.y = wp.y;
+        const dx = wp.x - char.x, dz = wp.z - char.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        const step = WALK_SPEED * dt;
+        if (dist <= step) {
+          char.x = wp.x; char.z = wp.z;
           char.pathIndex++;
           if (char.pathIndex >= char.pathQueue.length) {
             char.isWalking = false;
             char.pathQueue = [];
-            char.pathIndex = 0;
-            this.onPathComplete(char, time);
+            this.onPathComplete(char, now);
           }
         } else {
-          char.sprite.x += (dx / dist) * step;
-          char.sprite.y += (dy / dist) * step;
+          char.x += (dx / dist) * step;
+          char.z += (dz / dist) * step;
+          char.model.rotation.y = Math.atan2(dx, dz);
           moving = true;
         }
-      } else {
-        char.isWalking = false;
       }
     }
 
-    if (moving) {
-      char.walkFrame += delta;
-      var frameKey = Math.floor(char.walkFrame / 180) % 2 === 0 ? '_walk1' : '_walk2';
-      char.sprite.setTexture('char_' + agentId + frameKey);
-      char.sprite.setAngle(0);
-      char.sprite.setScale(WORLD.CHAR_SCALE);
-      if (dx < -0.5) char.sprite.setFlipX(true);
-      else if (dx > 0.5) char.sprite.setFlipX(false);
-    } else if (char.state === 'trading' || char.state === 'panic') {
-      char.sprite.setTexture('char_' + agentId + '_excited');
-      char.sprite.setAngle(0);
-      char.sprite.setScale(WORLD.CHAR_SCALE);
-    } else {
-      char.sprite.setTexture('char_' + agentId + '_idle');
-      char.sprite.setAngle(0);
-      char.sprite.setScale(WORLD.CHAR_SCALE);
-      if (char.state === 'idle' || char.state === 'scanning') {
-        char.sprite.y += Math.sin(char.animTimer / 500) * 0.8;
-      }
+    const bob = moving ? Math.abs(Math.sin(char.animT * 12)) * 0.06 : Math.sin(char.animT * 2) * 0.015;
+    char.model.position.set(char.x, bob, char.z);
+    if (parts && moving) {
+      parts.wingL.rotation.z = 0.5 + Math.sin(char.animT * 14) * 0.35;
+      parts.wingR.rotation.z = -0.5 - Math.sin(char.animT * 14) * 0.35;
+      parts.footL.position.y = 0.06 + Math.abs(Math.sin(char.animT * 14)) * 0.04;
+      parts.footR.position.y = 0.06 + Math.abs(Math.sin(char.animT * 14 + Math.PI)) * 0.04;
     }
-
-    this.syncCharLabels(char);
-    this.applyCharTint(char);
-    if (char.state === 'trading' && !moving) {
-      char.sprite.y += Math.sin(char.animTimer / 150) * 0.8;
+    if (char.state === 'trading' && !moving && parts) {
+      parts.wingL.rotation.z = 0.3 + Math.sin(char.animT * 8) * 0.4;
+      parts.wingR.rotation.z = -0.3 - Math.sin(char.animT * 8) * 0.4;
     }
   }
 
-  animateResting(char, time, delta) {
-    var agentId = char.agentId;
-    if (time > char.restUntil) {
-      this.endActivity(char, time);
-      return;
-    }
-    if (time - char.restToggle > 4500) {
-      char.restToggle = time;
-      char.restPose = char.restPose === 'sit' ? 'lie' : 'sit';
-    }
-    var seat = this.booths && this.booths[char.agentId];
-    if (seat) {
-      char.sprite.x = seat.seatX;
-      char.sprite.y = seat.seatY;
-    }
-    char.sprite.setDepth(3.2);
-    if (char.restPose === 'sit') {
-      char.sprite.setTexture('char_' + agentId + '_sit');
-      char.sprite.setAngle(0);
-      char.sprite.setScale(WORLD.CHAR_SCALE * 0.95);
-      char.sprite.setFlipX(false);
-      if (seat) char.sprite.y = seat.seatY - 6;
-      char.sprite.y += Math.sin(char.animTimer / 800) * 0.4;
-    } else {
-      char.sprite.setTexture('char_' + agentId + '_sit');
-      char.sprite.setAngle(-90);
-      char.sprite.setScale(WORLD.CHAR_SCALE * 0.88);
-      if (seat) {
-        char.sprite.x = seat.seatX + 16;
-        char.sprite.y = seat.seatY + 4;
-      }
-    }
-    this.syncCharLabels(char);
-    char.sprite.clearTint();
-    char.sprite.setAlpha(1);
-  }
-
-  endActivity(char, time) {
-    char.isResting = false;
-    char.isMassaging = false;
-    char.isDining = false;
-    char.isPlayingPoker = false;
-    char.activity = null;
-    char.sprite.setAngle(0);
-    char.sprite.setScale(WORLD.CHAR_SCALE);
-    this.resetCharDepth(char);
-    char.moveTimer = 0;
-    char.nextMoveTime = 2000 + Math.random() * 3000;
-    this.assignPathTo(char, OfficePath.deskByAgent[char.agentId]);
-  }
-
-  animateMassaging(char, time, delta) {
-    if (time > char.massageUntil) {
-      this.endActivity(char, time);
-      return;
-    }
-    var bed = this.massageBeds && this.massageBeds[char.agentId];
-    if (bed) { char.sprite.x = bed.bedX; char.sprite.y = bed.bedY; }
-    char.sprite.setDepth(3.2);
-    char.sprite.setTexture('char_' + char.agentId + '_sit');
-    char.sprite.setAngle(-90);
-    char.sprite.setScale(WORLD.CHAR_SCALE * 0.88);
-    char.sprite.y += Math.sin(char.animTimer / 600) * 0.5;
-    this.syncCharLabels(char);
-    char.sprite.clearTint();
-  }
-
-  animateDining(char, time, delta) {
-    if (time > char.dineUntil) {
-      this.endActivity(char, time);
-      return;
-    }
-    var seat = this.dineSeats && this.dineSeats[char.agentId];
-    if (seat) { char.sprite.x = seat.seatX; char.sprite.y = seat.seatY; }
-    char.sprite.setDepth(3.2);
-    char.sprite.setTexture('char_' + char.agentId + '_sit');
-    char.sprite.setAngle(0);
-    char.sprite.setScale(WORLD.CHAR_SCALE * 0.92);
-    if (Math.floor(char.animTimer / 800) % 2 === 0) char.sprite.y -= 2;
-    this.syncCharLabels(char);
-    char.sprite.clearTint();
-  }
-
-  animatePoker(char, time, delta) {
-    if (time > char.pokerUntil) {
-      this.endActivity(char, time);
-      return;
-    }
-    var seat = this.pokerSeats && this.pokerSeats[char.agentId];
-    if (seat) { char.sprite.x = seat.seatX; char.sprite.y = seat.seatY; }
-    char.sprite.setDepth(3.2);
-    char.sprite.setTexture('char_' + char.agentId + '_sit');
-    char.sprite.setAngle(0);
-    char.sprite.setScale(WORLD.CHAR_SCALE * 0.9);
-    char.sprite.y += Math.sin(char.animTimer / 400) * 0.6;
-    this.syncCharLabels(char);
-    if (Math.random() > 0.992) {
-      char.bubbleText.setText('All in!');
-      char.bubbleText.setColor('#d4af37');
-      char.bubbleText.setAlpha(1);
-      var self = this;
-      this.time.delayedCall(2000, function() { char.bubbleText.setAlpha(0); });
-    }
-    char.sprite.clearTint();
-  }
-
-  syncCharLabels(char) {
-    char.nameTag.x = char.sprite.x;
-    char.nameTag.y = char.sprite.y - 44;
-    char.hitZone.x = char.sprite.x;
-    char.hitZone.y = char.sprite.y;
-    char.statusText.x = char.sprite.x;
-    char.statusText.y = char.sprite.y + 30;
-    char.pnlText.x = char.sprite.x;
-    char.pnlText.y = char.sprite.y + 44;
-    if (char.bubbleText && char.bubbleText.alpha > 0) {
-      char.bubbleText.x = char.sprite.x;
-    }
-  }
-
-  applyCharTint(char) {
-    if (char.isResting || char.isMassaging || char.isDining || char.isPlayingPoker) return;
-    if (char.state === 'panic') {
-      char.sprite.setTint(0xff6666);
-      char.sprite.setAlpha(Math.floor(char.animTimer / 200) % 2 === 0 ? 0.65 : 1);
-    } else {
-      char.sprite.clearTint();
-      char.sprite.setAlpha(1);
-    }
+  animate() {
+    requestAnimationFrame(() => this.animate());
+    const dt = Math.min(this.clock.getDelta(), 0.05);
+    const now = performance.now();
+    Object.values(this.characters).forEach(c => this.updateCharacter(c, dt, now));
+    this.controls.update();
+    const top = this.getUiTopInset();
+    this.renderer.setViewport(0, top, window.innerWidth, window.innerHeight - top);
+    this.renderer.render(this.scene, this.camera);
+    this.labelRenderer.render(this.scene, this.camera);
   }
 }
 
-// ============================================================
-// AGENT PROFILE — SOUL + 策略参数编辑
-// ============================================================
-const AgentProfile = {
-  API: location.origin + '/trading',
-  currentAgent: null,
-  schema: [],
-  config: {},
-
-  init() {
-    var self = this;
-    document.querySelectorAll('#agent-detail .tab-btn').forEach(function(btn) {
-      btn.addEventListener('click', function() { self.switchTab(btn.dataset.tab); });
-    });
-    document.getElementById('config-save').addEventListener('click', function() { self.saveConfig(); });
-    document.getElementById('soul-save').addEventListener('click', function() { self.saveSoul(); });
-  },
-
-  switchTab(tab) {
-    document.querySelectorAll('#agent-detail .tab-btn').forEach(function(b) {
-      b.classList.toggle('active', b.dataset.tab === tab);
-    });
-    document.getElementById('tab-overview').classList.toggle('active', tab === 'overview');
-    document.getElementById('tab-config').classList.toggle('active', tab === 'config');
-    document.getElementById('tab-soul').classList.toggle('active', tab === 'soul');
-  },
-
-  load(agentId) {
-    var self = this;
-    this.currentAgent = agentId;
-    this.switchTab('overview');
-    document.getElementById('config-msg').textContent = '';
-    document.getElementById('soul-msg').textContent = '';
-    fetch(this.API + '/api/agent/' + agentId + '/profile')
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (data.error) return;
-        self.schema = (data.schema && data.schema.fields) || [];
-        self.config = data.config || {};
-        document.getElementById('soul-editor').value = data.soul_md || '';
-        self.renderConfigForm();
-      })
-      .catch(function(e) { console.warn('Profile load failed:', e); });
-  },
-
-  renderConfigForm() {
-    var form = document.getElementById('config-form');
-    if (!this.schema.length) {
-      form.innerHTML = '<div style="color:#999;padding:8px 0">该 Agent 暂无可编辑的量化参数</div>';
-      return;
-    }
-    var html = '';
-    var cfg = this.config;
-    this.schema.forEach(function(f) {
-      var val = cfg[f.key] != null ? cfg[f.key] : '';
-      var step = f.step ? ' step="' + f.step + '"' : '';
-      var min = f.min != null ? ' min="' + f.min + '"' : '';
-      var max = f.max != null ? ' max="' + f.max + '"' : '';
-      html += '<div class="cfg-field"><label>' + f.label + '</label>';
-      html += '<input type="number" name="' + f.key + '" value="' + val + '"' + step + min + max + '></div>';
-    });
-    form.innerHTML = html;
-  },
-
-  saveConfig() {
-    var self = this;
-    if (!this.currentAgent) return;
-    var body = { config: {} };
-    this.schema.forEach(function(f) {
-      var inp = document.querySelector('#config-form input[name="' + f.key + '"]');
-      if (inp && inp.value !== '') body.config[f.key] = inp.value;
-    });
-    document.getElementById('config-save').disabled = true;
-    fetch(this.API + '/api/agent/' + this.currentAgent + '/config', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    })
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        document.getElementById('config-save').disabled = false;
-        document.getElementById('config-msg').textContent = data.message || (data.ok ? '已保存' : (data.error || '保存失败'));
-        document.getElementById('config-msg').style.color = data.ok ? '#16a34a' : '#dc2626';
-        if (data.config) self.config = data.config;
-      })
-      .catch(function() {
-        document.getElementById('config-save').disabled = false;
-        document.getElementById('config-msg').textContent = '网络错误';
-        document.getElementById('config-msg').style.color = '#dc2626';
-      });
-  },
-
-  saveSoul() {
-    var self = this;
-    if (!this.currentAgent) return;
-    var content = document.getElementById('soul-editor').value;
-    document.getElementById('soul-save').disabled = true;
-    fetch(this.API + '/api/agent/' + this.currentAgent + '/soul', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: content })
-    })
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        document.getElementById('soul-save').disabled = false;
-        document.getElementById('soul-msg').textContent = data.message || (data.ok ? '已保存' : (data.error || '保存失败'));
-        document.getElementById('soul-msg').style.color = data.ok ? '#16a34a' : '#dc2626';
-      })
-      .catch(function() {
-        document.getElementById('soul-save').disabled = false;
-        document.getElementById('soul-msg').textContent = '网络错误';
-        document.getElementById('soul-msg').style.color = '#dc2626';
-      });
-  }
-};
-
-// ============================================================
-// GAME CONFIG
-// ============================================================
-var config = {
-  type: Phaser.AUTO,
-  parent: 'game-container',
-  width: window.innerWidth,
-  height: window.innerHeight,
-  backgroundColor: '#faf6ef',
-  pixelArt: true,
-  roundPixels: true,
-  scene: TradingWorld,
-  scale: {
-    mode: Phaser.Scale.RESIZE,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
-    width: window.innerWidth,
-    height: window.innerHeight
-  },
-  physics: {
-    default: 'arcade',
-    arcade: { gravity: { y: 0 } }
-  },
-  callbacks: {
-    preBoot: function(game) {
-      console.log('Phaser preBoot');
-    },
-    postBoot: function(game) {
-      console.log('Phaser postBoot');
-    }
-  }
-};
-
-var game = new Phaser.Game(config);
-
-window.addEventListener('resize', function() {
-  game.scale.resize(window.innerWidth, window.innerHeight);
-  var scene = game.scene.getScene('TradingWorld');
-  if (scene && scene.fitCamera) scene.fitCamera();
-});
+const world = new TradingWorld3D(document.getElementById('game-container'));
 </script>
 </body>
 </html>
