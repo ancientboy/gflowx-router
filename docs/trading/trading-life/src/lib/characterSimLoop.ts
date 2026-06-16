@@ -1,5 +1,6 @@
 import { useGameStore, assignPath, pickWanderTarget, onPathComplete, maybeDispatchLeisure } from '../store/useGameStore';
 import { OfficePath } from './pathfinding';
+import { moveWithCollision } from './collision';
 
 const WALK_SPEED = 2.8;
 
@@ -17,6 +18,26 @@ export function tickCharacterSim(dt: number) {
   const now = performance.now();
   Object.values(agents).forEach(char => {
     let c = { ...char };
+
+    if (c.inTransit) {
+      if (now < (c.transitUntil ?? 0)) return;
+      const node = c.destNode;
+      const pos = node ? OfficePath.nodes[node] : null;
+      if (pos) { c.x = pos.x; c.z = pos.z; }
+      c = {
+        ...c,
+        inTransit: false,
+        transitUntil: 0,
+        transitZone: undefined,
+        isWalking: false,
+        pathQueue: [],
+        pathIndex: 0,
+      };
+      c = onPathComplete(c, now);
+      patchChar(c.agentId, c);
+      return;
+    }
+
     if (c.activity && now < c.activityUntil) return;
     if (c.activity && now >= c.activityUntil) {
       c = { ...c, activity: null, activityUntil: 0, moveTimer: 0, nextMoveTime: 1500, travelIntent: null };
@@ -48,7 +69,7 @@ export function tickCharacterSim(dt: number) {
         c.nextMoveTime = 4000 + Math.random() * 6000;
       }
     }
-    if (c.state === 'panic' && !c.isWalking && !c.travelIntent) c = assignPath(c, 'scr_ctr');
+    if (c.state === 'panic' && !c.isWalking && !c.travelIntent && !c.inTransit) c = assignPath(c, 'scr_ctr');
     if (c.isWalking && c.pathQueue.length) {
       const wp = c.pathQueue[c.pathIndex];
       if (wp) {
@@ -62,14 +83,17 @@ export function tickCharacterSim(dt: number) {
         } else {
           if (Math.abs(dx) > Math.abs(dz)) c.facing = dx > 0 ? 'e' : 'w';
           else c.facing = dz > 0 ? 's' : 'n';
-          c.x += (dx / dist) * step;
-          c.z += (dz / dist) * step;
+          const nx = c.x + (dx / dist) * step;
+          const nz = c.z + (dz / dist) * step;
+          const moved = moveWithCollision(c.x, c.z, nx, nz);
+          c.x = moved.x;
+          c.z = moved.z;
         }
       }
     }
     if (c.x !== char.x || c.z !== char.z || c.isWalking !== char.isWalking
       || c.activity !== char.activity || c.travelIntent !== char.travelIntent
-      || c.facing !== char.facing) {
+      || c.facing !== char.facing || c.inTransit !== char.inTransit) {
       patchChar(c.agentId, c);
     }
   });

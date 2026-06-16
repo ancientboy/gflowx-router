@@ -24,7 +24,7 @@ export function drawDesk(
   const monitorActive = opts.active ?? false;
   const t = opts.t ?? 0;
   const seed = opts.chartSeed ?? 1;
-  const dw = 118 * s, dh = 72 * s, r = 8 * s, side = 6 * s;
+  const dw = 82 * s, dh = 50 * s, r = 6 * s, side = 4 * s;
   dropShadow(ctx, x, y + side / 2, dw, dh);
   ctx.fillStyle = '#e2e2e2';
   ctx.beginPath();
@@ -38,8 +38,8 @@ export function drawDesk(
   rrect(ctx, x - dw / 2, y - dh / 2, dw, dh, r); ctx.fill();
   ctx.strokeStyle = '#e0e0e0'; ctx.lineWidth = 1; ctx.stroke();
 
-  const mw = 48 * s, mh = 30 * s;
-  const mx = x - mw / 2, my = y - dh / 2 - mh - 5 * s;
+  const mw = 36 * s, mh = 22 * s;
+  const mx = x - mw / 2, my = y - dh / 2 - mh - 4 * s;
   ctx.fillStyle = '#2a2a2a';
   rrect(ctx, mx, my, mw, mh, 4 * s); ctx.fill();
   ctx.fillStyle = monitorActive ? '#0a1520' : '#141820';
@@ -144,27 +144,62 @@ function drawAgentSitting(
   drawActivityBadge(ctx, x, py, opts.activity, t);
 }
 
-/** 背面 — 圆头 + 后脑围巾横条 */
+function walkPhase(t: number, walking: boolean) {
+  return walking ? t * 10 : 0;
+}
+
+/** 手脚摆动 — 参考 144 office-engine */
+function drawWalkLimbs(
+  ctx: CanvasRenderingContext2D, py: number, facing: AgentFacing,
+  walking: boolean, t: number, color: string,
+) {
+  const phase = walkPhase(t, walking);
+  const swing = walking ? Math.sin(phase) * 5 : 0;
+  const bounce = walking ? Math.abs(Math.sin(phase)) * 2 : 0;
+  const vert = facing === 'n' || facing === 's';
+
+  ctx.fillStyle = '#1a1a1a';
+  ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.strokeStyle = '#1a1a1a';
+  if (vert) {
+    ctx.beginPath(); ctx.ellipse(-5, py + 18 - bounce + swing, 5, 3.2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(5, py + 18 - bounce - swing, 5, 3.2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-11, py + 2); ctx.lineTo(-14 - swing * 0.6, py + 12); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(11, py + 2); ctx.lineTo(14 + swing * 0.6, py + 12); ctx.stroke();
+  } else {
+    const flip = facing === 'w' ? -1 : 1;
+    ctx.beginPath(); ctx.ellipse(flip * (-4 + swing * 0.5), py + 18 - bounce, 4.5, 3, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(flip * (4 - swing * 0.5), py + 18 - bounce, 4.5, 3, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(flip * 10, py + 2); ctx.lineTo(flip * (14 + swing * 0.5), py + 11); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(flip * 6, py); ctx.lineTo(flip * (2 - swing * 0.4), py + 10); ctx.stroke();
+  }
+  void color;
+}
+
+/** 背面 — 圆头 + 后脑围巾 + 手脚 */
 function drawAgentBack(
   ctx: CanvasRenderingContext2D, x: number, y: number, color: string,
-  opts: { selected?: boolean; walking?: boolean; t?: number; activity?: AgentActivity },
+  opts: { selected?: boolean; walking?: boolean; t?: number; activity?: AgentActivity; facing?: AgentFacing },
 ) {
   const t = opts.t ?? 0;
-  let bob = opts.walking ? Math.abs(Math.sin(t * 10)) * 3 : 0;
+  const walking = !!opts.walking;
+  const bob = walking ? Math.abs(Math.sin(walkPhase(t, walking))) * 2.5 : 0;
   const py = y + bob;
   if (opts.selected) {
     ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.ellipse(x, py, 18, 22, 0, 0, Math.PI * 2); ctx.stroke();
   }
   dropShadow(ctx, x, py + 6, 32, 36, 0.12);
+  ctx.save(); ctx.translate(x, 0);
+  drawWalkLimbs(ctx, py, 'n', walking, t, color);
   ctx.fillStyle = '#1a1a1a';
-  ctx.beginPath(); ctx.ellipse(x, py + 2, 15, 18, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0, py + 2, 14, 17, 0, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = color;
-  ctx.beginPath(); ctx.ellipse(x, py - 10, 16, 5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0, py - 10, 15, 5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
   drawActivityBadge(ctx, x, py, opts.activity, t);
 }
 
-/** 正面 — 圆脸 + 双眼 + 围巾 */
+/** 正面 — 圆脸 + 双眼 + 围巾 + 手脚 */
 function drawAgentFront(
   ctx: CanvasRenderingContext2D, x: number, y: number, color: string,
   opts: {
@@ -173,8 +208,9 @@ function drawAgentFront(
   },
 ) {
   const t = opts.t ?? 0;
+  const walking = !!opts.walking;
   let bob = 0;
-  if (opts.walking) bob = Math.abs(Math.sin(t * 10)) * 3;
+  if (walking) bob = Math.abs(Math.sin(walkPhase(t, walking))) * 2.5;
   else if (opts.trading) bob = Math.sin(t * 4) * 1.5;
   else if (opts.activity === 'dine') bob = Math.abs(Math.sin(t * 3)) * 1.5;
   const py = y + bob;
@@ -184,16 +220,19 @@ function drawAgentFront(
     ctx.beginPath(); ctx.ellipse(x, py, 18, 22, 0, 0, Math.PI * 2); ctx.stroke();
   }
   dropShadow(ctx, x, py + 6, 32, 36, 0.12);
+  ctx.save(); ctx.translate(x, 0);
+  drawWalkLimbs(ctx, py, 's', walking, t, color);
   ctx.fillStyle = '#1a1a1a';
-  ctx.beginPath(); ctx.ellipse(x, py + 2, 15, 18, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0, py + 2, 14, 17, 0, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = '#fff';
-  ctx.beginPath(); ctx.ellipse(x - 5, py - 2, 3.5, 4, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(x + 5, py - 2, 3.5, 4, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(-5, py - 2, 3.5, 4, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(5, py - 2, 3.5, 4, 0, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = '#1a1a1a';
-  ctx.beginPath(); ctx.arc(x - 5, py - 2, 1.8, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(x + 5, py - 2, 1.8, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(-5, py - 2, 1.8, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(5, py - 2, 1.8, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = color;
-  ctx.beginPath(); ctx.ellipse(x, py + 8, 13, 4, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0, py + 8, 12, 4, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
   if (opts.icon && !opts.activity) {
     ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
     ctx.fillText(opts.icon, x, py + 12);
@@ -205,29 +244,33 @@ function drawAgentFront(
   drawActivityBadge(ctx, x, py, opts.activity, t);
 }
 
-/** 侧面 */
+/** 侧面 + 手脚 */
 function drawAgentSide(
   ctx: CanvasRenderingContext2D, x: number, y: number, color: string,
   opts: { selected?: boolean; walking?: boolean; t?: number; activity?: AgentActivity; icon?: string },
   facing: 'e' | 'w',
 ) {
   const t = opts.t ?? 0;
-  const flip = facing === 'w' ? -1 : 1;
-  const bob = opts.walking ? Math.abs(Math.sin(t * 10)) * 3 : 0;
+  const walking = !!opts.walking;
+  const bob = walking ? Math.abs(Math.sin(walkPhase(t, walking))) * 2.5 : 0;
   const py = y + bob;
   if (opts.selected) {
     ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.ellipse(x, py, 16, 22, 0, 0, Math.PI * 2); ctx.stroke();
   }
   dropShadow(ctx, x, py + 6, 28, 34, 0.12);
+  ctx.save(); ctx.translate(x, 0);
+  drawWalkLimbs(ctx, py, facing, walking, t, color);
+  const flip = facing === 'w' ? -1 : 1;
   ctx.fillStyle = '#1a1a1a';
-  ctx.beginPath(); ctx.ellipse(x + flip * 2, py + 2, 12, 18, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(flip * 2, py + 2, 12, 17, 0, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = '#fff';
-  ctx.beginPath(); ctx.ellipse(x + flip * 6, py - 2, 2.5, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(flip * 6, py - 2, 2.5, 3.5, 0, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = '#1a1a1a';
-  ctx.beginPath(); ctx.arc(x + flip * 6, py - 2, 1.5, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(flip * 6, py - 2, 1.5, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = color;
-  ctx.beginPath(); ctx.ellipse(x + flip * 4, py + 6, 8, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(flip * 4, py + 6, 8, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
   drawActivityBadge(ctx, x, py, opts.activity, t);
 }
 
@@ -335,7 +378,33 @@ export function drawCoffeeZone(ctx: CanvasRenderingContext2D, x: number, y: numb
   drawFacilityLabel(ctx, x, y + ch / 2 + 14 * s, '☕ 咖啡区', s);
 }
 
-/** 紧凑型分区导航箭头 */
+export function drawZoneTransitOverlay(
+  ctx: CanvasRenderingContext2D, cw: number, ch: number, t: number, label: string,
+) {
+  ctx.fillStyle = 'rgba(244,242,237,0.92)';
+  ctx.fillRect(0, 0, cw, ch);
+  const cx = cw / 2, cy = ch / 2;
+  const step = Math.sin(t * 8) * 6;
+  ctx.fillStyle = '#3d3530';
+  ctx.font = '600 15px Inter,sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(label, cx, cy - 36);
+  ctx.font = '12px Inter,sans-serif'; ctx.fillStyle = '#8a7e72';
+  ctx.fillText('正在前往…', cx, cy - 16);
+  for (let i = 0; i < 3; i++) {
+    const ox = (i - 1) * 22 + step * (i === 1 ? 0 : 1);
+    ctx.beginPath(); ctx.ellipse(cx + ox, cy + 18, 8, 5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = i === 1 ? '#1a1a1a' : '#888';
+    ctx.fill();
+  }
+  ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(cx - 40, cy + 40);
+  ctx.lineTo(cx - 20 + step, cy + 40); ctx.lineTo(cx - 28 + step, cy + 32); ctx.moveTo(cx - 20 + step, cy + 40);
+  ctx.lineTo(cx - 28 + step, cy + 48); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx + 40, cy + 40);
+  ctx.lineTo(cx + 20 - step, cy + 40); ctx.lineTo(cx + 28 - step, cy + 32); ctx.moveTo(cx + 20 - step, cy + 40);
+  ctx.lineTo(cx + 28 - step, cy + 48); ctx.stroke();
+}
+
 export function drawNavArrow(ctx: CanvasRenderingContext2D, x: number, y: number, label: string, dir: 'n' | 's' | 'e' | 'w', bob: number) {
   const py = y + Math.sin(bob * 2.5) * 2;
   const w = 68, h = 26;

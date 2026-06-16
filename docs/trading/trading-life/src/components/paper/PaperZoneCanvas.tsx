@@ -8,6 +8,7 @@ import { PAPER, agentVisibleInZone } from '../../lib/zoneProjection';
 import {
   makePaperCamera, camToScreen, screenToPaper, renderZone, renderAgents,
 } from './renderZone';
+import { drawZoneTransitOverlay } from './paperDraw';
 
 export function PaperZoneCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -72,10 +73,17 @@ export function PaperZoneCanvas() {
       t,
       npcBubble: performance.now() < (npcBubble?.until ?? 0) ? npcBubble : null,
     });
-    renderAgents(ctx, activeZone, cam, agents, c => agentVisibleInZone(c, activeZone), {
-      selectedId: selectedAgentId,
-      t,
-    });
+
+    const transit = Object.values(agents).find(a => a.inTransit);
+    if (transit) {
+      const label = ZONE_CAMERA[transit.transitZone ?? activeZone]?.label ?? '目标区域';
+      drawZoneTransitOverlay(ctx, cw, ch, t, label);
+    } else {
+      renderAgents(ctx, activeZone, cam, agents, c => agentVisibleInZone(c, activeZone), {
+        selectedId: selectedAgentId,
+        t,
+      });
+    }
   }, [activeZone, agents, selectedAgentId, cameraZoom, dayMode, getPan, hoverFacilityId, ticker, npcBubble]);
 
   useEffect(() => {
@@ -85,7 +93,7 @@ export function PaperZoneCanvas() {
       last = now;
       bobRef.current += dt;
       if (!paused) tickCharacterSim(dt);
-      if (followAgentId && agents[followAgentId]) {
+      if (followAgentId && agents[followAgentId] && !agents[followAgentId].inTransit) {
         const a = agents[followAgentId];
         if (Math.abs(a.x - cameraLookAt.x) > 0.15 || Math.abs(a.z - cameraLookAt.z) > 0.15) {
           setCameraLookAt(a.x, a.z);
@@ -127,6 +135,12 @@ export function PaperZoneCanvas() {
     const fac = hitTestPaperFacilities(activeZone, { px: paper.x, py: paper.y });
     if (fac) {
       return { type: 'facility' as const, action: fac.action, nodeId: fac.nodeId, id: fac.id };
+    }
+
+    for (const npc of ZONE_NPCS[activeZone] ?? []) {
+      if (Math.hypot(paper.x - npc.px, paper.y - npc.py) < 32) {
+        return { type: 'npc' as const, id: npc.id };
+      }
     }
 
     let best: { id: string; d: number } | null = null;
@@ -174,6 +188,7 @@ export function PaperZoneCanvas() {
     if (!hit) return;
     if (hit.type === 'nav') flyToZone(hit.target);
     else if (hit.type === 'agent') selectAgent(hit.id);
+    else if (hit.type === 'npc') selectNpc(hit.id);
     else if (hit.type === 'facility') sendAgentToFacility(hit.action, { nodeId: hit.nodeId });
   };
 

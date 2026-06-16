@@ -5,13 +5,15 @@ import type { AgentMeta } from '../lib/constants';
 import { OfficePath } from '../lib/pathfinding';
 import { WORLD_MAP, ZONE_CAMERA } from '../lib/worldMap';
 import { SIDEBAR_TO_ZONE, ZONE_TO_RIGHT_TAB } from '../lib/zones';
-import { ensureHallRow2Nodes } from '../lib/hallLayout';
+import { ensureHallPathGraph } from '../lib/hallLayout';
 import { paperToWorld } from '../lib/zoneProjection';
 import { syncFurnitureToPathfinding, getActivitySeatPaper, greetingForActivity, npcForZone } from '../lib/zoneFurniture';
 import {
   loadCustomAgentMeta, saveCustomAgentMeta, registerCustomAgentSlots,
-  ensureExtraDeskEdges, nextCustomAgentId, type CustomAgentDraft,
+  nextCustomAgentId, type CustomAgentDraft,
 } from '../lib/customAgents';
+import { zoneAtPosition, invalidateCollisionCache } from '../lib/collision';
+import { isCrossZoneTravel, zoneForNode, zoneForIntent, ZONE_TRANSIT_MS } from '../lib/zoneTransit';
 
 export type RightTab = 'hall' | 'object' | 'agent' | 'npc' | 'facility' | 'assets' | 'strategy' | 'messages';
 export type SidebarAction = 'hall' | 'agents' | 'strategy' | 'positions' | 'restaurant' | 'spa' | 'casino' | 'warehouse' | 'social' | 'logs';
@@ -289,7 +291,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   createAgent: (draft) => {
     const s = get();
-    ensureExtraDeskEdges(OfficePath);
     const customMeta = loadCustomAgentMeta();
     const id = nextCustomAgentId({ ...s.agents, ...customMeta });
     const slot = registerCustomAgentSlots(OfficePath, id, Object.keys(customMeta).length);
@@ -368,12 +369,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
   }),
 
   initAgents: () => {
-    ensureExtraDeskEdges(OfficePath);
-    ensureHallRow2Nodes(OfficePath.nodes);
+    ensureHallPathGraph(OfficePath);
     syncFurnitureToPathfinding(OfficePath.nodes, 'spa');
     syncFurnitureToPathfinding(OfficePath.nodes, 'restaurant');
     syncFurnitureToPathfinding(OfficePath.nodes, 'casino');
     syncFurnitureToPathfinding(OfficePath.nodes, 'hall');
+    invalidateCollisionCache();
     const customMeta = loadCustomAgentMeta();
     const bedPool = ['bed_1', 'bed_2', 'bed_3', 'bed_4', 'bed_5', 'bed_6'];
     const pokerPool = ['poker_s1', 'poker_s2', 'poker_s3', 'poker_s4', 'poker_s5', 'poker_s6', 'poker_s7', 'poker_s8'];
@@ -460,9 +461,31 @@ export const useGameStore = create<GameStore>((set, get) => ({
 }));
 
 export function assignPath(char: CharState, nodeId: string): CharState {
+  const store = useGameStore.getState();
+  const fromZone = zoneAtPosition(char.x, char.z);
+  const destZone = zoneForNode(nodeId) ?? zoneForIntent(char.travelIntent);
+
+  if (destZone && isCrossZoneTravel(fromZone, nodeId, char.travelIntent)) {
+    const now = performance.now();
+    store.flyToZone(destZone);
+    return {
+      ...char,
+      destNode: nodeId,
+      isWalking: false,
+      pathQueue: [],
+      pathIndex: 0,
+      inTransit: true,
+      transitUntil: now + ZONE_TRANSIT_MS,
+      transitZone: destZone,
+    };
+  }
+
   const pts = OfficePath.pathToNode(char.x, char.z, nodeId);
-  if (pts.length < 2) return { ...char, destNode: nodeId, isWalking: false, pathQueue: [] };
-  return { ...char, destNode: nodeId, pathQueue: pts.slice(1), pathIndex: 0, isWalking: true };
+  if (pts.length < 2) return { ...char, destNode: nodeId, isWalking: false, pathQueue: [], inTransit: false };
+  return {
+    ...char, destNode: nodeId, pathQueue: pts.slice(1), pathIndex: 0, isWalking: true,
+    inTransit: false, transitUntil: 0, transitZone: undefined,
+  };
 }
 
 export function pickWanderTarget(char: CharState): string {

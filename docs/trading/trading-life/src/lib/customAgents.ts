@@ -1,8 +1,7 @@
-import { p2 } from './constants';
 import type { AgentMeta } from './constants';
 
-/** 自定义 Agent 可分配的额外工位 */
-export const EXTRA_DESK_NODES = ['desk_extra_1', 'desk_extra_2', 'desk_extra_3'] as const;
+/** 自定义 Agent 可分配的额外工位（第二排 6/7/8） */
+export const EXTRA_DESK_NODES = ['seat_6', 'seat_7', 'seat_8'] as const;
 const LEISURE_POOL = {
   booth: ['rest_l_1', 'rest_l_2'],
   massage: ['bed_1', 'bed_2', 'bed_3', 'bed_4', 'bed_5', 'bed_6'],
@@ -39,26 +38,17 @@ export function saveCustomAgentMeta(all: Record<string, AgentMeta>) {
 /** 注册自定义 Agent 到寻路图（工位 + 休闲位） */
 export function registerCustomAgentSlots(
   OfficePath: {
-    nodes: Record<string, { x: number; z: number }>;
     deskByAgent: Record<string, string>;
     boothByAgent: Record<string, string>;
     massageByAgent: Record<string, string>;
     dineByAgent: Record<string, string>;
     pokerByAgent: Record<string, string>;
-    _edges: Record<string, string[]> | null;
   },
   agentId: string,
   index: number,
 ): string | null {
   const deskNode = EXTRA_DESK_NODES.find(n => !Object.values(OfficePath.deskByAgent).includes(n));
   if (!deskNode) return null;
-
-  if (!OfficePath.nodes.desk_extra_1) {
-    OfficePath.nodes.desk_extra_1 = p2(1820, 560);
-    OfficePath.nodes.desk_extra_2 = p2(1960, 560);
-    OfficePath.nodes.desk_extra_3 = p2(2100, 560);
-    OfficePath._edges = null;
-  }
 
   const i = index % 3;
   OfficePath.deskByAgent[agentId] = deskNode;
@@ -67,25 +57,6 @@ export function registerCustomAgentSlots(
   OfficePath.dineByAgent[agentId] = LEISURE_POOL.dine[i];
   OfficePath.pokerByAgent[agentId] = LEISURE_POOL.poker[i];
   return deskNode;
-}
-
-export function ensureExtraDeskEdges(
-  OfficePath: {
-    nodes: Record<string, { x: number; z: number }>;
-    _edges: Record<string, string[]> | null;
-    _buildEdges: () => Record<string, string[]>;
-  },
-) {
-  if (!OfficePath.nodes.desk_extra_1) return;
-  const edges = OfficePath._buildEdges();
-  const pairs: [string, string][] = [
-    ['a_mom', 'desk_extra_1'], ['desk_extra_1', 'desk_extra_2'], ['desk_extra_2', 'desk_extra_3'],
-    ['desk_extra_3', 'a_e'], ['desk_extra_1', 'u_ctr'],
-  ];
-  pairs.forEach(([a, b]) => {
-    if (edges[a] && !edges[a].includes(b)) edges[a].push(b);
-    if (edges[b] && !edges[b].includes(a)) edges[b].push(a);
-  });
 }
 
 export function nextCustomAgentId(existing: Record<string, unknown>): string {

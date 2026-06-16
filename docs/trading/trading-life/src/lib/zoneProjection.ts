@@ -56,14 +56,16 @@ function inZoneBounds(wx: number, wz: number, zone: ZoneId): boolean {
 
 /** Agent 是否应在当前分区画布中显示（支持多人同区） */
 export function agentVisibleInZone(
-  char: { x: number; z: number; activity: string | null; travelIntent?: string | null; isWalking?: boolean },
+  char: {
+    x: number; z: number; activity: string | null; travelIntent?: string | null;
+    isWalking?: boolean; inTransit?: boolean;
+  },
   zone: ZoneId,
 ): boolean {
+  if (char.inTransit) return false;
   if (char.activity && ACTIVITY_ZONE[char.activity] === zone) return true;
   if (char.travelIntent && INTENT_ZONE[char.travelIntent] === zone) return true;
   if (inZoneBounds(char.x, char.z, zone)) return true;
-  // 走廊过渡：正在行走且路径会经过当前区
-  if (char.isWalking && char.travelIntent && INTENT_ZONE[char.travelIntent] === zone) return true;
   return false;
 }
 

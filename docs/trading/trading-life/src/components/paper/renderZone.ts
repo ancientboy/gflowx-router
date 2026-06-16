@@ -1,4 +1,6 @@
-import { ensureHallRow2Nodes, HALL_COFFEE, HALL_DESK_ROWS, deskChartSeed } from '../../lib/hallLayout';
+import {
+  HALL_COFFEE, HALL_DESKS_8, HALL_GRID, deskChartSeed, deskPaperPos, seatPaperPos,
+} from '../../lib/hallLayout';
 import { MARKET_TICKER_ITEMS, formatTickerPrice } from '../../lib/marketTicker';
 import {
   SPA_BEDS, RESTAURANT_TABLES, CASINO_TABLE, CASINO_SEATS, HALL_REST_BOOTHS,
@@ -74,25 +76,24 @@ function drawBigTicker(
 }
 
 function drawHallDesks(
-  ctx: CanvasRenderingContext2D, cam: PaperCamera, zone: ZoneId,
+  ctx: CanvasRenderingContext2D, cam: PaperCamera,
   agents: Record<string, CharState>, t: number,
 ) {
-  ensureHallRow2Nodes(OfficePath.nodes);
-  HALL_DESK_ROWS.forEach(row => {
-    row.forEach(({ id }) => {
-      const n = OfficePath.nodes[id];
-      if (!n) return;
-      const p = worldToPaper(zone, n.x, n.z);
-      const s = pt(cam, p.x, p.y + 22);
-      const agent = Object.values(agents).find(a => OfficePath.deskByAgent[a.agentId] === id);
-      const agentAtDesk = agent && !agent.isWalking && !agent.activity && !agent.travelIntent;
-      const trading = agentAtDesk && (agent.state === 'trading' || agent.state === 'scanning');
-      drawDesk(ctx, s.x, s.y, cam.scale, {
-        active: trading,
-        chartSeed: deskChartSeed(id, agent?.agentId),
-        t,
-      });
+  const ds = HALL_GRID.deskScale;
+  HALL_DESKS_8.forEach(desk => {
+    const dp = deskPaperPos(desk.row, desk.col);
+    const sp = seatPaperPos(desk.row, desk.col);
+    const deskPt = pt(cam, dp.px, dp.py);
+    const seatPt = pt(cam, sp.px, sp.py);
+    const agent = Object.values(agents).find(a => OfficePath.deskByAgent[a.agentId] === desk.seatId);
+    const agentAtDesk = agent && !agent.isWalking && !agent.activity && !agent.travelIntent && !agent.inTransit;
+    const trading = agentAtDesk && (agent.state === 'trading' || agent.state === 'scanning');
+    drawDesk(ctx, deskPt.x, deskPt.y, cam.scale * ds, {
+      active: trading,
+      chartSeed: deskChartSeed(desk.id, agent?.agentId),
+      t,
     });
+    drawChair(ctx, seatPt.x, seatPt.y, cam.scale * ds, 'n');
   });
 }
 
@@ -161,9 +162,8 @@ function drawHallScene(
   hoverId: string | null,
 ) {
   drawBigTicker(ctx, cam, zone, ticker, t);
-  const cp = worldToPaper(zone, HALL_COFFEE.x, HALL_COFFEE.z);
-  drawCoffeeZone(ctx, pt(cam, cp.x, cp.y).x, pt(cam, cp.x, cp.y).y, cam.scale, t);
-  drawHallDesks(ctx, cam, zone, agents, t);
+  drawCoffeeZone(ctx, pt(cam, HALL_COFFEE.px, HALL_COFFEE.py).x, pt(cam, HALL_COFFEE.px, HALL_COFFEE.py).y, cam.scale, t);
+  drawHallDesks(ctx, cam, agents, t);
   drawHallRest(ctx, cam, hoverId);
 }
 

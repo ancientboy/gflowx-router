@@ -70,6 +70,10 @@ export interface CharState {
   nextMoveTime: number;
   /** 朝向 — 决定正/背面渲染 */
   facing: 'n' | 's' | 'e' | 'w';
+  /** 跨区过场中 — 不渲染空白地图行走 */
+  inTransit?: boolean;
+  transitUntil?: number;
+  transitZone?: 'hall' | 'reception' | 'spa' | 'restaurant' | 'casino';
   data: AgentData;
 }
 

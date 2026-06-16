@@ -21,7 +21,7 @@ export const OfficePath = {
     cas_c: p2(3600,1480), cas_d: p2(3600,1580),
     poker_1: p2(3300,2050), poker_2: p2(3600,2180), poker_3: p2(3900,2050),
   } as Record<string, { x: number; z: number }>,
-  deskByAgent: { xau:'desk_xau', major:'desk_maj', altcoin:'desk_alt', newcoin:'desk_new', momentum:'desk_mom' } as Record<string,string>,
+  deskByAgent: { xau:'seat_xau', major:'seat_maj', altcoin:'seat_alt', newcoin:'seat_new', momentum:'seat_mom' } as Record<string,string>,
   boothByAgent: { xau:'rest_l_1', major:'rest_l_2', altcoin:'rest_l_1', newcoin:'rest_l_2', momentum:'rest_l_2' } as Record<string,string>,
   massageByAgent: { xau:'bed_1', major:'bed_2', altcoin:'bed_3', newcoin:'bed_4', momentum:'bed_5' } as Record<string,string>,
   dineByAgent: { xau:'dine_1', major:'dine_2', altcoin:'dine_3', newcoin:'dine_1', momentum:'dine_2' } as Record<string,string>,
