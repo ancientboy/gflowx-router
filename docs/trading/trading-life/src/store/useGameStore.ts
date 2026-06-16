@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import type { AgentData, CameraMode, CharState, QualityTier } from '../lib/constants';
+import type { AgentData, CameraMode, CharState, QualityTier, TradeRecord } from '../lib/constants';
 import { AGENT_META } from '../lib/constants';
 import { OfficePath } from '../lib/pathfinding';
 
-export type RightTab = 'object' | 'agent' | 'npc' | 'facility' | 'assets' | 'strategy' | 'messages';
+export type RightTab = 'hall' | 'object' | 'agent' | 'npc' | 'facility' | 'assets' | 'strategy' | 'messages';
+export type SidebarAction = 'hall' | 'agents' | 'strategy' | 'positions' | 'restaurant' | 'spa' | 'casino' | 'warehouse' | 'social' | 'logs';
 export type ModalId = 'workshop' | 'strategy' | 'market' | 'rank' | 'settings' | 'help' | 'dine' | 'massage' | 'poker' | null;
 export type ZoneId = 'hall' | 'reception' | 'spa' | 'restaurant' | 'casino';
 
@@ -36,7 +37,12 @@ interface GameStore {
   followAgentId: string | null;
   agents: Record<string, CharState>;
   ticker: Record<string, number>;
-  overview: { total_pnl?: number; total_wr?: number; total_capital?: number; runner?: { running: boolean } };
+  overview: {
+    total_pnl?: number; total_wr?: number; total_capital?: number;
+    total_initial?: number; total_pnl_pct?: number; total_trades?: number;
+    runner?: { running: boolean };
+  };
+  tradeFeed: { agentId: string; agentName: string; trade: TradeRecord }[];
   profileSchema: { key: string; label: string; type: string; min?: number; max?: number; step?: number }[];
   profileConfig: Record<string, unknown>;
   soulMd: string;
@@ -57,13 +63,19 @@ interface GameStore {
   setLeftSidebarExpanded: (v: boolean) => void;
   toggleMinimalUi: () => void;
   setSidebarActive: (id: string) => void;
+  navigateSidebar: (action: SidebarAction) => void;
   openModal: (id: ModalId) => void;
   closeModal: () => void;
   flyToZone: (zone: ZoneId) => void;
   resetCamera: () => void;
   setFollowAgent: (id: string | null) => void;
   initAgents: () => void;
-  updateFromOverview: (data: { agents?: AgentData[]; total_pnl?: number; total_wr?: number; total_capital?: number; runner?: { running: boolean } }) => void;
+  updateFromOverview: (data: {
+    agents?: AgentData[];
+    total_pnl?: number; total_wr?: number; total_capital?: number;
+    total_initial?: number; total_pnl_pct?: number; total_trades?: number;
+    runner?: { running: boolean };
+  }) => void;
   setTicker: (t: Record<string, number>) => void;
   setProfile: (schema: GameStore['profileSchema'], config: Record<string, unknown>, soul: string) => void;
   patchChar: (id: string, patch: Partial<CharState>) => void;
@@ -86,7 +98,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   selectedNpcId: null,
   selectedFacility: null,
   panelTab: 'overview',
-  rightTab: 'object',
+  rightTab: 'hall',
   rightPanelCollapsed: false,
   leftSidebarExpanded: false,
   minimalUi: false,
@@ -97,6 +109,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   agents: {},
   ticker: {},
   overview: {},
+  tradeFeed: [],
   profileSchema: [],
   profileConfig: {},
   soulMd: '',
@@ -117,6 +130,47 @@ export const useGameStore = create<GameStore>((set, get) => ({
   setLeftSidebarExpanded: (v) => set({ leftSidebarExpanded: v }),
   toggleMinimalUi: () => set(s => ({ minimalUi: !s.minimalUi })),
   setSidebarActive: (id) => set({ sidebarActive: id }),
+
+  navigateSidebar: (action) => {
+    const s = get();
+    const expand = { rightPanelCollapsed: false };
+    switch (action) {
+      case 'hall':
+        set({ ...expand, sidebarActive: 'hall', rightTab: 'hall', cameraFocus: ZONE_CAMERA.hall, followAgentId: null });
+        break;
+      case 'agents': {
+        const firstId = s.selectedAgentId || Object.keys(s.agents)[0] || null;
+        set({ ...expand, sidebarActive: 'agents', rightTab: 'agent', selectedAgentId: firstId, activeModal: 'workshop' });
+        break;
+      }
+      case 'strategy':
+        set({ ...expand, sidebarActive: 'strategy', rightTab: 'strategy', activeModal: 'strategy' });
+        break;
+      case 'positions':
+        set({ ...expand, sidebarActive: 'positions', rightTab: 'assets' });
+        break;
+      case 'restaurant':
+        set({ ...expand, sidebarActive: 'restaurant', cameraFocus: ZONE_CAMERA.restaurant, followAgentId: null });
+        break;
+      case 'spa':
+        set({ ...expand, sidebarActive: 'spa', cameraFocus: ZONE_CAMERA.spa, followAgentId: null });
+        break;
+      case 'casino':
+        set({ ...expand, sidebarActive: 'casino', cameraFocus: ZONE_CAMERA.casino, followAgentId: null });
+        break;
+      case 'logs':
+        set({ ...expand, sidebarActive: 'logs', rightTab: 'messages' });
+        break;
+      case 'warehouse':
+        set({ ...expand, sidebarActive: 'warehouse', rightTab: 'assets' });
+        break;
+      case 'social':
+        set({ ...expand, sidebarActive: 'social', rightTab: 'hall' });
+        break;
+      default:
+        break;
+    }
+  },
   openModal: (id) => set({ activeModal: id }),
   closeModal: () => set({ activeModal: null }),
   flyToZone: (zone) => set({ cameraFocus: ZONE_CAMERA[zone], sidebarActive: zone, followAgentId: null }),
@@ -138,7 +192,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   updateFromOverview: (data) => {
-    const agents = { ...get().agents };
+    const prev = get();
+    const agents = { ...prev.agents };
+    const tradeFeed: GameStore['tradeFeed'] = [];
+
     (data.agents || []).forEach((a) => {
       if (!agents[a.id]) return;
       const stress = Math.min(100, Math.max(0, -(a.pnl || 0) / 20 + (a.is_circuit_break ? 40 : 0)));
@@ -147,10 +204,32 @@ export const useGameStore = create<GameStore>((set, get) => ({
       else if (a.positions?.length) state = 'trading';
       else if (a.running) state = 'scanning';
       agents[a.id] = { ...agents[a.id], data: { ...agents[a.id].data, ...a }, stress, state };
+      (a.trades_history || []).slice(0, 20).forEach(trade => {
+        tradeFeed.push({ agentId: a.id, agentName: a.name || agents[a.id].data.name, trade });
+      });
     });
+
+    tradeFeed.sort((a, b) => {
+      const ta = a.trade.closed_at || a.trade.opened_at || '';
+      const tb = b.trade.closed_at || b.trade.opened_at || '';
+      return tb.localeCompare(ta);
+    });
+
+    const selectedAgentId = prev.selectedAgentId || Object.keys(agents)[0] || null;
+
     set({
       agents,
-      overview: { total_pnl: data.total_pnl, total_wr: data.total_wr, total_capital: data.total_capital, runner: data.runner },
+      selectedAgentId,
+      tradeFeed: tradeFeed.slice(0, 80),
+      overview: {
+        total_pnl: data.total_pnl,
+        total_wr: data.total_wr,
+        total_capital: data.total_capital,
+        total_initial: (data as { total_initial?: number }).total_initial,
+        total_pnl_pct: (data as { total_pnl_pct?: number }).total_pnl_pct,
+        total_trades: (data as { total_trades?: number }).total_trades,
+        runner: data.runner,
+      },
     });
   },
 

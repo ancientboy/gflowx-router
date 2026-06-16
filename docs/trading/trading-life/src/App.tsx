@@ -16,7 +16,7 @@ export default function App() {
     }).catch(() => {});
     const tick = () => fetchTicker().then(setTicker).catch(() => {});
     poll(); tick();
-    addMessage('欢迎来到交易人生 · 点击 Gugugaga 查看详情');
+    addMessage('欢迎来到交易人生 · 左侧「交易大厅」查看全部 Agent');
     const a = setInterval(poll, 5000);
     const b = setInterval(tick, 10000);
     return () => { clearInterval(a); clearInterval(b); };

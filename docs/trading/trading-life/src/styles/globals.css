@@ -238,6 +238,10 @@ html, body, #root {
   box-shadow: 0 16px 48px rgba(0,0,0,0.1);
   animation: scaleIn 0.2s ease;
 }
+.modal-box.modal-wide {
+  min-width: 640px;
+  max-width: 720px;
+}
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes scaleIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
 

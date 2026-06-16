@@ -14,11 +14,39 @@ export interface AgentMeta {
   desc: string; strategy: string; market: string; interval: string; risk: string;
 }
 
+export interface Position {
+  symbol: string;
+  direction: string;
+  entry_price?: number;
+  quantity?: number;
+  leverage?: number;
+  stop_loss?: number;
+  entry_type?: string;
+  entry_reasoning?: string;
+}
+
+export interface TradeRecord {
+  symbol: string;
+  direction: string;
+  entry_price?: number;
+  exit_price?: number;
+  quantity?: number;
+  leverage?: number;
+  pnl_pct?: number;
+  pnl_amount?: number;
+  reason?: string;
+  opened_at?: string;
+  closed_at?: string;
+  agent_type?: string;
+}
+
 export interface AgentData extends AgentMeta {
   capital?: number; initial_capital?: number; pnl?: number; pnl_pct?: number;
   trades?: number; wins?: number; win_rate?: number;
-  running?: boolean; is_circuit_break?: boolean;
-  positions?: { symbol: string; direction: string }[];
+  running?: boolean; is_circuit_break?: boolean; consecutive_losses?: number;
+  positions?: Position[];
+  pending_orders?: unknown[];
+  trades_history?: TradeRecord[];
 }
 
 export interface Personality {

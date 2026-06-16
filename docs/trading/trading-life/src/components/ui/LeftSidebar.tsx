@@ -1,32 +1,29 @@
-import { useGameStore, type ZoneId } from '../../store/useGameStore';
+import { useGameStore, type SidebarAction, type ZoneId } from '../../store/useGameStore';
 
-const MAIN_ITEMS = [
-  { id: 'hall', icon: '🏠', label: '交易大厅', zone: 'hall' as ZoneId },
-  { id: 'agents', icon: '🐧', label: '我的 Agent', modal: 'workshop' as const },
-  { id: 'strategy', icon: '📊', label: '策略编辑器', modal: 'strategy' as const },
-  { id: 'positions', icon: '📈', label: '持仓交易', tab: 'assets' as const },
+const MAIN_ITEMS: { id: SidebarAction; icon: string; label: string; zone?: ZoneId }[] = [
+  { id: 'hall', icon: '🏠', label: '交易大厅', zone: 'hall' },
+  { id: 'agents', icon: '🐧', label: '我的 Agent' },
+  { id: 'strategy', icon: '📊', label: '策略编辑器' },
+  { id: 'positions', icon: '📈', label: '持仓交易' },
 ];
 
-const LEISURE_ITEMS = [
-  { id: 'restaurant', icon: '🍽️', label: '餐厅', zone: 'restaurant' as ZoneId },
-  { id: 'spa', icon: '💆', label: '按摩区', zone: 'spa' as ZoneId },
-  { id: 'casino', icon: '🎰', label: '德州扑克', zone: 'casino' as ZoneId },
+const LEISURE_ITEMS: { id: SidebarAction; icon: string; label: string; zone: ZoneId }[] = [
+  { id: 'restaurant', icon: '🍽️', label: '餐厅', zone: 'restaurant' },
+  { id: 'spa', icon: '💆', label: '按摩区', zone: 'spa' },
+  { id: 'casino', icon: '🎰', label: '德州扑克', zone: 'casino' },
 ];
 
-const OTHER_ITEMS = [
+const OTHER_ITEMS: { id: SidebarAction; icon: string; label: string }[] = [
   { id: 'warehouse', icon: '🎁', label: '资产仓库' },
   { id: 'social', icon: '👥', label: '社交大厅' },
-  { id: 'logs', icon: '📜', label: '交易日志', tab: 'messages' as const },
+  { id: 'logs', icon: '📜', label: '交易日志' },
 ];
 
 export function LeftSidebar() {
   const expanded = useGameStore(s => s.leftSidebarExpanded);
   const setExpanded = useGameStore(s => s.setLeftSidebarExpanded);
   const active = useGameStore(s => s.sidebarActive);
-  const setActive = useGameStore(s => s.setSidebarActive);
-  const flyToZone = useGameStore(s => s.flyToZone);
-  const openModal = useGameStore(s => s.openModal);
-  const setRightTab = useGameStore(s => s.setRightTab);
+  const navigateSidebar = useGameStore(s => s.navigateSidebar);
   const toggleMinimalUi = useGameStore(s => s.toggleMinimalUi);
   const agents = useGameStore(s => s.agents);
 
@@ -46,12 +43,7 @@ export function LeftSidebar() {
             label={item.label}
             expanded={expanded}
             active={active === item.id}
-            onClick={() => {
-              setActive(item.id);
-              if (item.zone) flyToZone(item.zone);
-              if (item.modal) openModal(item.modal);
-              if (item.tab) setRightTab(item.tab);
-            }}
+            onClick={() => navigateSidebar(item.id)}
           />
         ))}
 
@@ -66,7 +58,7 @@ export function LeftSidebar() {
             expanded={expanded}
             active={active === item.id}
             badge={leisureActive}
-            onClick={() => { setActive(item.id); flyToZone(item.zone); }}
+            onClick={() => navigateSidebar(item.id)}
           />
         ))}
 
@@ -79,10 +71,7 @@ export function LeftSidebar() {
             label={item.label}
             expanded={expanded}
             active={active === item.id}
-            onClick={() => {
-              setActive(item.id);
-              if (item.tab) setRightTab(item.tab);
-            }}
+            onClick={() => navigateSidebar(item.id)}
           />
         ))}
       </div>
