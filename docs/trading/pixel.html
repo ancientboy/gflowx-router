@@ -733,6 +733,8 @@ class TradingWorld extends Phaser.Scene {
     this.setupInput();
     this.setupCameraControls();
     this.updateDayNight();
+    var hint = document.getElementById('cam-hint');
+    if (hint) setTimeout(function() { hint.classList.add('hidden'); }, 9000);
   }
 
 
