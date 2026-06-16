@@ -68,6 +68,8 @@ export interface CharState {
   stress: number;
   moveTimer: number;
   nextMoveTime: number;
+  /** 朝向 — 决定正/背面渲染 */
+  facing: 'n' | 's' | 'e' | 'w';
   data: AgentData;
 }
 

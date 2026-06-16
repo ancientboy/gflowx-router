@@ -25,6 +25,7 @@ export function PaperZoneCanvas() {
   const dayMode = useGameStore(s => s.dayMode);
   const followAgentId = useGameStore(s => s.followAgentId);
   const paused = useGameStore(s => s.paused);
+  const ticker = useGameStore(s => s.ticker);
 
   const flyToZone = useGameStore(s => s.flyToZone);
   const selectAgent = useGameStore(s => s.selectAgent);
@@ -64,12 +65,14 @@ export function PaperZoneCanvas() {
       hoverFacilityId: hoverFacilityId,
       bob: bobRef.current,
       dayMode,
+      ticker,
+      t,
     });
     renderAgents(ctx, activeZone, cam, agents, c => agentVisibleInZone(c, activeZone), {
       selectedId: selectedAgentId,
       t,
     });
-  }, [activeZone, agents, selectedAgentId, cameraZoom, dayMode, getPan, hoverFacilityId]);
+  }, [activeZone, agents, selectedAgentId, cameraZoom, dayMode, getPan, hoverFacilityId, ticker]);
 
   useEffect(() => {
     let last = performance.now();

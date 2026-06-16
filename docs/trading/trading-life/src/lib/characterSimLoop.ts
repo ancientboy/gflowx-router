@@ -60,13 +60,16 @@ export function tickCharacterSim(dt: number) {
           c.pathIndex++;
           if (c.pathIndex >= c.pathQueue.length) c = onPathComplete(c, now);
         } else {
+          if (Math.abs(dx) > Math.abs(dz)) c.facing = dx > 0 ? 'e' : 'w';
+          else c.facing = dz > 0 ? 's' : 'n';
           c.x += (dx / dist) * step;
           c.z += (dz / dist) * step;
         }
       }
     }
     if (c.x !== char.x || c.z !== char.z || c.isWalking !== char.isWalking
-      || c.activity !== char.activity || c.travelIntent !== char.travelIntent) {
+      || c.activity !== char.activity || c.travelIntent !== char.travelIntent
+      || c.facing !== char.facing) {
       patchChar(c.agentId, c);
     }
   });

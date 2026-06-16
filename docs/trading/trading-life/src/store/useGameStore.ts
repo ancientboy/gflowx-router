@@ -5,6 +5,7 @@ import type { AgentMeta } from '../lib/constants';
 import { OfficePath } from '../lib/pathfinding';
 import { WORLD_MAP, ZONE_CAMERA } from '../lib/worldMap';
 import { SIDEBAR_TO_ZONE, ZONE_TO_RIGHT_TAB } from '../lib/zones';
+import { ensureHallRow2Nodes } from '../lib/hallLayout';
 import {
   loadCustomAgentMeta, saveCustomAgentMeta, registerCustomAgentSlots,
   ensureExtraDeskEdges, nextCustomAgentId, type CustomAgentDraft,
@@ -310,6 +311,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       activity: null, activityUntil: 0, travelIntent: null,
       state: 'idle', stress: 0,
       moveTimer: 0, nextMoveTime: 1500 + Math.random() * 2500,
+      facing: 'n',
       data: { ...meta, capital: 10000, initial_capital: 10000, pnl: 0, running: false },
     };
     set({
@@ -362,6 +364,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   initAgents: () => {
     ensureExtraDeskEdges(OfficePath);
+    ensureHallRow2Nodes(OfficePath.nodes);
     const customMeta = loadCustomAgentMeta();
     Object.entries(customMeta).forEach(([id], i) => {
       if (!OfficePath.deskByAgent[id]) registerCustomAgentSlots(OfficePath, id, i);
@@ -382,6 +385,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         activity: null, activityUntil: 0, travelIntent: null,
         state: 'idle', stress: 0,
         moveTimer: 0, nextMoveTime: 1500 + Math.random() * 2500,
+        facing: 'n',
         data: { ...meta },
       };
     });
