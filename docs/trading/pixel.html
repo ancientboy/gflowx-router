@@ -2,53 +2,74 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Trading Agent - Pixel World</title>
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="preconnect" href="https://fonts.googleapis.com">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #faf6ef; overflow: hidden; font-family: 'Courier New', monospace; }
-#game-container { width: 100vw; height: 100vh; }
+body { background: #faf6ef; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; -webkit-font-smoothing: antialiased; }
+#game-container { width: 100vw; height: 100vh; touch-action: none; }
 #ui-overlay {
   position: fixed; top: 0; left: 0; right: 0; padding: 8px 16px;
   display: flex; gap: 12px; align-items: center; z-index: 100;
-  background: rgba(250,246,239,0.92); border-bottom: 2px solid #e8dfd0;
-  font-size: 12px; color: #6b5e4e;
+  background: rgba(250,246,239,0.94); border-bottom: 2px solid #e8dfd0;
+  font-size: 13px; color: #4a3f35;
 }
-#ui-overlay .stat { display: flex; align-items: center; gap: 4px; }
-#ui-overlay .stat .label { color: #9a8b7a; font-size: 10px; text-transform: uppercase; }
-#ui-overlay .stat .value { color: #4a3f35; font-weight: bold; font-size: 13px; }
+#ui-overlay .stat { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+#ui-overlay .stat .label { color: #7a6e62; font-size: 11px; font-weight: 500; }
+#ui-overlay .stat .value { color: #2d2520; font-weight: 600; font-size: 14px; }
 #ui-overlay .stat .value.up { color: #16a34a; }
 #ui-overlay .stat .value.down { color: #dc2626; }
-#ui-overlay .divider { width: 1px; height: 16px; background: #d4c8b8; }
+#ui-overlay .divider { width: 1px; height: 16px; background: #d4c8b8; flex-shrink: 0; }
+#ui-overlay .hint { color: #9a8b7a; font-size: 11px; }
 #back-btn {
   position: fixed; bottom: 16px; right: 16px; z-index: 100;
   background: rgba(232,223,208,0.95); border: 1px solid #d4c8b8;
-  color: #6b5e4e; padding: 8px 16px; border-radius: 6px;
-  cursor: pointer; font-size: 12px; text-decoration: none;
-  transition: all 0.2s;
+  color: #4a3f35; padding: 10px 16px; border-radius: 8px;
+  cursor: pointer; font-size: 13px; font-weight: 500; text-decoration: none;
+  transition: all 0.2s; font-family: inherit;
 }
-#back-btn:hover { background: #d4c8b8; color: #4a3f35; }
+#back-btn:hover { background: #d4c8b8; }
+#cam-hint {
+  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 99;
+  background: rgba(45,37,32,0.72); color: #fff; padding: 6px 14px; border-radius: 20px;
+  font-size: 11px; pointer-events: none; opacity: 0.85; transition: opacity 1s ease;
+}
+#cam-hint.hidden { opacity: 0; }
 #agent-detail {
   position: fixed; bottom: 16px; left: 16px; z-index: 100;
-  background: rgba(250,246,239,0.97); border: 2px solid #d4c8b8;
-  border-radius: 8px; padding: 14px 16px; min-width: 300px; max-width: 360px;
-  display: none; font-size: 12px; color: #6b5e4e;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  background: rgba(255,252,247,0.98); border: 2px solid #d4c8b8;
+  border-radius: 12px; padding: 16px 18px; min-width: 300px; max-width: 380px;
+  display: none; font-size: 13px; color: #4a3f35;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  font-family: inherit;
 }
 #agent-detail.active { display: block; }
 #agent-detail .detail-header { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #e8dfd0; }
-#agent-detail #detail-avatar { width: 72px; height: 72px; image-rendering: pixelated; image-rendering: crisp-edges; border: 2px solid #d4c8b8; border-radius: 6px; background: #f5f0e8; flex-shrink: 0; }
+#agent-detail #detail-avatar { width: 72px; height: 72px; image-rendering: pixelated; border: 2px solid #d4c8b8; border-radius: 8px; background: #f5f0e8; flex-shrink: 0; }
 #agent-detail .detail-meta { flex: 1; min-width: 0; }
-#agent-detail .title { color: #4a3f35; font-weight: bold; font-size: 14px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
-#agent-detail .desc { color: #8a7a6a; font-size: 11px; line-height: 1.45; }
-#agent-detail .row { display: flex; justify-content: space-between; margin: 4px 0; gap: 8px; }
-#agent-detail .row span:last-child { text-align: right; max-width: 58%; word-break: break-word; }
-#agent-detail .positions { margin-top: 8px; padding-top: 8px; border-top: 1px solid #e8dfd0; }
-#agent-detail .up { color: #16a34a; }
-#agent-detail .down { color: #dc2626; }
-#agent-detail .detail-close { position: absolute; top: 8px; right: 10px; background: none; border: none; color: #9a8b7a; cursor: pointer; font-size: 16px; line-height: 1; padding: 2px 6px; }
-#agent-detail .detail-close:hover { color: #4a3f35; }
+#agent-detail .title { color: #2d2520; font-weight: 700; font-size: 15px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+#agent-detail .desc { color: #6b5e4e; font-size: 12px; line-height: 1.5; }
+#agent-detail .row { display: flex; justify-content: space-between; margin: 5px 0; gap: 8px; font-size: 13px; }
+#agent-detail .row span:first-child { color: #7a6e62; font-weight: 500; }
+#agent-detail .row span:last-child { text-align: right; max-width: 58%; word-break: break-word; font-weight: 600; color: #2d2520; }
+#agent-detail .positions { margin-top: 8px; padding-top: 8px; border-top: 1px solid #e8dfd0; font-size: 12px; }
+#agent-detail .up { color: #16a34a !important; }
+#agent-detail .down { color: #dc2626 !important; }
+#agent-detail .detail-close { position: absolute; top: 10px; right: 12px; background: #ede8dc; border: none; color: #6b5e4e; cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 8px; border-radius: 6px; }
+#agent-detail .detail-close:hover { background: #d4c8b8; }
+@media (max-width: 768px) {
+  #ui-overlay { flex-wrap: wrap; gap: 6px 10px; padding: 6px 10px; font-size: 12px; }
+  #ui-overlay .stat .value { font-size: 12px; }
+  #ui-overlay .hint { display: none; }
+  #agent-detail {
+    left: 8px; right: 8px; bottom: 8px; max-width: none; min-width: 0;
+    max-height: 55vh; overflow-y: auto;
+  }
+  #back-btn { bottom: auto; top: auto; right: 8px; bottom: 8px; padding: 8px 12px; font-size: 12px; }
+  #cam-hint { bottom: 56px; font-size: 10px; max-width: 90vw; text-align: center; }
+}
 </style>
 </head>
 <body>
@@ -65,7 +86,7 @@ body { background: #faf6ef; overflow: hidden; font-family: 'Courier New', monosp
   <div class="divider"></div>
   <div class="stat"><span class="label">状态</span><span class="value" id="runner-status">--</span></div>
   <div style="flex:1"></div>
-  <div class="stat"><span class="label">点击角色查看详情</span></div>
+  <div class="stat hint">拖拽平移 · 滚轮缩放 · 点击角色查看详情</div>
 </div>
 
 <div id="agent-detail">
@@ -90,9 +111,16 @@ body { background: #faf6ef; overflow: hidden; font-family: 'Courier New', monosp
 </div>
 
 <a href="/trading/" id="back-btn">&larr; 返回 Dashboard</a>
+<div id="cam-hint">单指拖拽平移 · 双指/滚轮缩放</div>
 <div id="game-container"></div>
 
 <script>
+// ============================================================
+// GLOBAL UI
+// ============================================================
+const UI_FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif";
+const UI_TEXT = { fontFamily: UI_FONT, resolution: 2 };
+
 // ============================================================
 // PIXEL ART GENERATOR - Procedural sprite generation
 // ============================================================
@@ -274,6 +302,33 @@ const PixelArt = {
     ];
   },
 
+  generateCharacterSit(mainColor) {
+    const skin = '#f5d0a9';
+    const eyeWhite = '#ffffff';
+    const eyeBlack = '#1a1a1a';
+    const shoe = '#4a3f35';
+    const pants = '#3a3530';
+    const t = 'transparent';
+    return [
+      t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,
+      t,t,t,t,t,skin,skin,skin,skin,skin,skin,t,t,t,t,t,
+      t,t,t,t,skin,skin,skin,skin,skin,skin,skin,skin,t,t,t,t,
+      t,t,t,skin,skin,eyeWhite,skin,skin,skin,skin,eyeWhite,skin,skin,t,t,t,
+      t,t,t,skin,skin,eyeBlack,skin,skin,skin,skin,eyeBlack,skin,skin,t,t,t,
+      t,t,t,t,skin,skin,skin,skin,skin,skin,skin,skin,t,t,t,t,
+      t,t,t,t,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,t,t,t,t,
+      t,t,t,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,t,t,t,
+      t,t,skin,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,mainColor,skin,t,t,
+      t,t,t,pants,pants,pants,pants,pants,pants,pants,pants,t,t,t,t,
+      t,t,pants,pants,t,t,t,t,t,t,pants,pants,t,t,t,t,
+      t,t,shoe,shoe,t,t,t,t,t,t,shoe,shoe,t,t,t,t,
+      t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,
+      t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,
+      t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,
+      t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,
+    ];
+  },
+
   characters: {
     xau: { name: 'XAU Agent', color: '#FFD700', icon: '🥇', desc: '黄金趋势交易 — 结构突破 + EMA 趋势跟踪', strategy: '趋势跟踪', market: '黄金(XAUUSDT)', interval: '15m/1h/4h', risk: '中' },
     major: { name: 'Major Agent', color: '#3B82F6', icon: '₿', desc: '主流币趋势交易 — BTC/ETH 等大市值币种的趋势跟踪与反转', strategy: '趋势跟踪 + 反转', market: 'BTC/ETH 等主流币', interval: '1h/4h', risk: '中' },
@@ -309,16 +364,21 @@ const OfficePath = {
     d_w: { x: 220, y: 980 }, d_xau: { x: 420, y: 980 }, d_maj: { x: 700, y: 980 },
     d_alt: { x: 980, y: 980 }, d_new: { x: 1260, y: 980 }, d_mom: { x: 1540, y: 980 },
     d_e: { x: 2180, y: 980 },
-    // 休息包间
-    booth_xau: { x: 420, y: 1160 }, booth_maj: { x: 700, y: 1160 },
-    booth_alt: { x: 980, y: 1160 }, booth_new: { x: 1260, y: 1160 },
-    booth_mom: { x: 1540, y: 1160 },
+    // 休息包间 — 门口在上方（连接走廊 y≈980），沙发在内侧
+    booth_door_xau: { x: 420, y: 1055 }, booth_door_maj: { x: 700, y: 1055 },
+    booth_door_alt: { x: 980, y: 1055 }, booth_door_new: { x: 1260, y: 1055 },
+    booth_door_mom: { x: 1540, y: 1055 },
+    booth_xau: { x: 420, y: 1220 }, booth_maj: { x: 700, y: 1220 },
+    booth_alt: { x: 980, y: 1220 }, booth_new: { x: 1260, y: 1220 },
+    booth_mom: { x: 1540, y: 1220 },
   },
   deskByAgent: { xau: 'desk_xau', major: 'desk_maj', altcoin: 'desk_alt', newcoin: 'desk_new', momentum: 'desk_mom' },
   boothByAgent: { xau: 'booth_xau', major: 'booth_maj', altcoin: 'booth_alt', newcoin: 'booth_new', momentum: 'booth_mom' },
+  boothDoorByAgent: { xau: 'booth_door_xau', major: 'booth_door_maj', altcoin: 'booth_door_alt', newcoin: 'booth_door_new', momentum: 'booth_door_mom' },
   wanderTargets: [
     'desk_xau', 'desk_maj', 'desk_alt', 'desk_new', 'desk_mom',
     'scr_xau', 'scr_maj', 'scr_alt', 'scr_ctr', 'scr_mom',
+    'booth_door_xau', 'booth_door_maj', 'booth_door_alt', 'booth_door_new', 'booth_door_mom',
     'booth_xau', 'booth_maj', 'booth_alt', 'booth_new', 'booth_mom',
   ],
   _edges: null,
@@ -328,7 +388,11 @@ const OfficePath = {
       ['a_w','a_xau'],['a_xau','a_maj'],['a_maj','a_alt'],['a_alt','a_new'],['a_new','a_mom'],['a_mom','a_e'],
       ['u_w','u_xau'],['u_xau','u_maj'],['u_maj','u_alt'],['u_alt','u_new'],['u_new','u_mom'],['u_mom','u_e'],
       ['d_w','d_xau'],['d_xau','d_maj'],['d_maj','d_alt'],['d_alt','d_new'],['d_new','d_mom'],['d_mom','d_e'],
-      ['booth_xau','d_xau'],['booth_maj','d_maj'],['booth_alt','d_alt'],['booth_new','d_new'],['booth_mom','d_mom'],
+      ['booth_door_xau','d_xau'],['booth_door_xau','booth_xau'],
+      ['booth_door_maj','d_maj'],['booth_door_maj','booth_maj'],
+      ['booth_door_alt','d_alt'],['booth_door_alt','booth_alt'],
+      ['booth_door_new','d_new'],['booth_door_new','booth_new'],
+      ['booth_door_mom','d_mom'],['booth_door_mom','booth_mom'],
       ['desk_xau','a_xau'],['desk_maj','a_maj'],['desk_alt','a_alt'],['desk_new','a_new'],['desk_mom','a_mom'],
       ['a_xau','u_xau'],['a_maj','u_maj'],['a_alt','u_alt'],['a_new','u_new'],['a_mom','u_mom'],
       ['a_xau','d_xau'],['a_maj','d_maj'],['a_alt','d_alt'],['a_new','d_new'],['a_mom','d_mom'],
@@ -417,6 +481,7 @@ class TradingWorld extends Phaser.Scene {
       PixelArt.createTexture(self, 'char_' + key + '_walk1', 16, 16, PixelArt.generateCharacterWalk1(char.color), WORLD.PIXEL_SCALE);
       PixelArt.createTexture(self, 'char_' + key + '_walk2', 16, 16, PixelArt.generateCharacterWalk2(char.color), WORLD.PIXEL_SCALE);
       PixelArt.createTexture(self, 'char_' + key + '_excited', 16, 16, PixelArt.generateCharacterExcited(char.color), WORLD.PIXEL_SCALE);
+      PixelArt.createTexture(self, 'char_' + key + '_sit', 16, 16, PixelArt.generateCharacterSit(char.color), WORLD.PIXEL_SCALE);
     });
     
     // Generate floor tiles
@@ -644,8 +709,9 @@ class TradingWorld extends Phaser.Scene {
     this.fitCamera();
 
     this.createFloor();
+    this.lightingOverlay = this.add.rectangle(this.WORLD_W / 2, this.WORLD_H / 2, this.WORLD_W, this.WORLD_H, 0x1a2040, 0);
+    this.lightingOverlay.setDepth(50);
     
-    // Create room zones
     this.createBigScreenArea();
     this.createTradingDesks();
     this.createRestArea();
@@ -665,6 +731,8 @@ class TradingWorld extends Phaser.Scene {
     
     // Setup input
     this.setupInput();
+    this.setupCameraControls();
+    this.updateDayNight();
   }
 
 
@@ -672,8 +740,81 @@ class TradingWorld extends Phaser.Scene {
     var vw = this.scale.width;
     var vh = this.scale.height;
     var zoom = Math.min(vw / this.WORLD_W, vh / this.WORLD_H) * 0.97;
+    this.baseZoom = zoom;
+    this.minZoom = zoom * 0.55;
+    this.maxZoom = zoom * 1.45;
     this.cameras.main.setZoom(zoom);
     this.cameras.main.centerOn(this.WORLD_W / 2, this.WORLD_H / 2);
+  }
+
+  setupCameraControls() {
+    var self = this;
+    var cam = this.cameras.main;
+    this.camDragging = false;
+    this.camDidDrag = false;
+    this.camDragStart = { x: 0, y: 0 };
+    this.camScrollStart = { x: 0, y: 0 };
+    this.lastPinchDist = 0;
+
+    this.input.on('wheel', function(pointer, over, deltaX, deltaY) {
+      var z = cam.zoom - deltaY * 0.0012;
+      cam.zoom = Phaser.Math.Clamp(z, self.minZoom || 0.3, self.maxZoom || 1.5);
+    });
+
+    this.input.on('pointerdown', function(pointer) {
+      if (pointer.pointerType === 'touch' && self.input.pointer1.isDown && self.input.pointer2.isDown) {
+        self.lastPinchDist = Phaser.Math.Distance.Between(
+          self.input.pointer1.x, self.input.pointer1.y,
+          self.input.pointer2.x, self.input.pointer2.y
+        );
+      }
+    });
+
+    this.input.on('pointermove', function(pointer) {
+      if (self.input.pointer1.isDown && self.input.pointer2.isDown) {
+        var dist = Phaser.Math.Distance.Between(
+          self.input.pointer1.x, self.input.pointer1.y,
+          self.input.pointer2.x, self.input.pointer2.y
+        );
+        if (self.lastPinchDist > 0) {
+          cam.zoom = Phaser.Math.Clamp(cam.zoom * (dist / self.lastPinchDist), self.minZoom || 0.3, self.maxZoom || 1.5);
+        }
+        self.lastPinchDist = dist;
+        return;
+      }
+      if (!self.camDragging || !pointer.isDown) return;
+      var dx = pointer.x - self.camDragStart.x;
+      var dy = pointer.y - self.camDragStart.y;
+      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) self.camDidDrag = true;
+      cam.scrollX = self.camScrollStart.x - dx / cam.zoom;
+      cam.scrollY = self.camScrollStart.y - dy / cam.zoom;
+    });
+
+    this.input.on('pointerup', function() {
+      self.camDragging = false;
+      self.lastPinchDist = 0;
+      self.time.delayedCall(50, function() { self.camDidDrag = false; });
+    });
+  }
+
+  beginCameraDrag(pointer) {
+    this.camDragging = true;
+    this.camDidDrag = false;
+    this.camDragStart = { x: pointer.x, y: pointer.y };
+    this.camScrollStart = { x: this.cameras.main.scrollX, y: this.cameras.main.scrollY };
+  }
+
+  updateDayNight() {
+    var hour = new Date().getHours();
+    var alpha = 0;
+    if (hour >= 21 || hour < 6) alpha = 0.38;
+    else if (hour >= 19) alpha = 0.22;
+    else if (hour >= 17) alpha = 0.1;
+    if (this.lightingOverlay) this.lightingOverlay.setAlpha(alpha);
+    this.isNight = alpha > 0.2;
+    Object.values(this.booths || {}).forEach(function(b) {
+      if (b.boothLight) b.boothLight.setAlpha(b.boothLightBaseAlpha * (alpha > 0.2 ? 1.6 : 1));
+    });
   }
 
 
@@ -681,28 +822,19 @@ class TradingWorld extends Phaser.Scene {
     var tileSize = 48;
     var cols = Math.ceil(this.WORLD_W / tileSize);
     var rows = Math.ceil(this.WORLD_H / tileSize);
-    
-    this.floorTiles = this.add.group();
-    
-    // Define zones
-    var screenZoneRows = 3; // top
-    var deskZoneStart = 4;
-    var deskZoneEnd = 10;
-    var restZoneStart = 12;
-    
+    var screenZoneRows = 3, deskZoneStart = 4, deskZoneEnd = 10, restZoneStart = 12;
+
+    var rt = this.add.renderTexture(0, 0, this.WORLD_W, this.WORLD_H).setOrigin(0, 0).setDepth(0);
     for (var y = 0; y < rows; y++) {
       for (var x = 0; x < cols; x++) {
         var key = 'tile_floor';
         if (y < screenZoneRows) key = 'tile_floor_light';
         else if (y >= deskZoneStart && y <= deskZoneEnd) key = 'tile_floor';
         else if (y >= restZoneStart) key = 'tile_floor_dark';
-        
-        var tile = this.add.image(x * tileSize + tileSize/2, y * tileSize + tileSize/2, key);
-        tile.setDisplaySize(tileSize, tileSize);
-        tile.setDepth(0);
-        this.floorTiles.add(tile);
+        rt.draw(key, x * tileSize + tileSize / 2, y * tileSize + tileSize / 2);
       }
     }
+    this.floorRT = rt;
   }
 
   createBigScreenArea() {
@@ -722,13 +854,13 @@ class TradingWorld extends Phaser.Scene {
     
     for (var i = 0; i < symbols.length; i++) {
       var text = this.add.text(screenX - spread * 2 + i * spread, screenY - 6, symbols[i] + ': --', {
-        fontSize: Math.round(11 * sc) + 'px', fontFamily: 'Courier New', color: '#a8bcd8'
+        fontSize: Math.round(12 * sc) + 'px', fontFamily: UI_FONT, color: '#b8cce8', fontStyle: 'bold'
       }).setOrigin(0.5).setDepth(3);
       this.tickerTexts.push({ text: text, symbol: symbols[i], baseX: screenX - spread * 2 + i * spread });
     }
     
     this.add.text(screenX, screenY - 58 * sc, '📊 行情大屏', {
-      fontSize: '13px', fontFamily: 'Courier New', color: '#6b5e4e', fontStyle: 'bold'
+      fontSize: '14px', fontFamily: UI_FONT, color: '#4a3f35', fontStyle: 'bold'
     }).setOrigin(0.5).setDepth(2);
     
     this.tickerScroll = 0;
@@ -776,8 +908,8 @@ class TradingWorld extends Phaser.Scene {
       screenContainer.add(screenCursor);
       
       var label = self.add.text(agent.x, deskY - 72, agent.label, {
-        fontSize: '12px', fontFamily: 'Courier New', color: agent.color,
-        fontStyle: 'bold', backgroundColor: '#faf6ef', padding: { x: 5, y: 3 }
+        fontSize: '13px', fontFamily: UI_FONT, color: agent.color,
+        fontStyle: 'bold', backgroundColor: '#faf6ef', padding: { x: 6, y: 3 }
       }).setOrigin(0.5).setDepth(3);
       
       var light = self.add.circle(agent.x + 58, deskY - 72, 5, 0x999999);
@@ -793,43 +925,53 @@ class TradingWorld extends Phaser.Scene {
     });
   }
 
-  drawRestBooth(cx, cy, label, accentColor) {
-    var w = 172, h = 148, wall = 10;
+  drawRestBooth(cx, cy, label, accentColor, agentId) {
+    var w = 172, h = 168, wall = 10;
     var wallColor = 0xc8baa8;
     var wallDark = 0xa89880;
     var innerColor = 0xede5d8;
     var fs = WORLD.FURN_SCALE;
+    var doorW = 58;
+    var segW = (w - doorW) / 2;
     
-    this.add.rectangle(cx, cy + 8, w - 6, h - 6, innerColor).setDepth(0.9);
+    this.add.rectangle(cx, cy + 6, w - 8, h - 8, innerColor).setDepth(0.9);
     
-    this.add.rectangle(cx - w / 2 + wall / 2, cy, wall, h, wallColor).setDepth(1.2);
-    this.add.rectangle(cx + w / 2 - wall / 2, cy, wall, h, wallColor).setDepth(1.2);
-    this.add.rectangle(cx, cy - h / 2 + wall / 2, w, wall, wallColor).setDepth(1.2);
+    this.add.rectangle(cx - w / 2 + wall / 2, cy, wall, h, wallColor).setDepth(1.25);
+    this.add.rectangle(cx + w / 2 - wall / 2, cy, wall, h, wallColor).setDepth(1.25);
+    this.add.rectangle(cx, cy + h / 2 - wall / 2, w, wall, wallDark).setDepth(1.25);
     
-    var doorW = 52;
-    this.add.rectangle(cx - w / 2 + (w - doorW) / 4, cy + h / 2 - 2, (w - doorW) / 2 - 4, 6, wallDark).setDepth(1.3);
-    this.add.rectangle(cx + w / 2 - (w - doorW) / 4, cy + h / 2 - 2, (w - doorW) / 2 - 4, 6, wallDark).setDepth(1.3);
+    this.add.rectangle(cx - w / 2 + segW / 2, cy - h / 2 + wall / 2, segW - 2, wall, wallColor).setDepth(1.25);
+    this.add.rectangle(cx + w / 2 - segW / 2, cy - h / 2 + wall / 2, segW - 2, wall, wallColor).setDepth(1.25);
     
-    var sofa = this.add.image(cx, cy + 28, 'furniture_sofa');
+    this.add.rectangle(cx, cy - h / 2 - 10, doorW, 8, 0xd4c8b8).setDepth(0.95);
+    this.add.rectangle(cx, cy - h / 2 - 4, doorW - 12, 4, 0xe8dfd0).setDepth(0.96);
+    
+    var boothLight = this.add.circle(cx, cy - 20, 32, 0xffe8a0, 0.14);
+    boothLight.setDepth(0.88);
+    
+    var sofa = this.add.image(cx, cy + 34, 'furniture_sofa');
     sofa.setScale(fs * 0.72);
     sofa.setDepth(1.1);
     
-    var table = this.add.image(cx - 48, cy + 10, 'furniture_sidetable');
+    var table = this.add.image(cx - 48, cy + 14, 'furniture_sidetable');
     table.setScale(fs * 0.85);
     table.setDepth(1.15);
     
-    var plant = this.add.image(cx + 52, cy - 20, 'furniture_plant');
+    var plant = this.add.image(cx + 52, cy - 10, 'furniture_plant');
     plant.setScale(fs * 0.75);
     plant.setDepth(1.15);
     
-    this.add.text(cx, cy - h / 2 + 18, label, {
-      fontSize: '10px', fontFamily: 'Courier New', color: accentColor,
-      fontStyle: 'bold', backgroundColor: '#faf6ef', padding: { x: 4, y: 2 }
+    this.add.text(cx, cy - h / 2 + 22, label, {
+      fontSize: '12px', fontFamily: UI_FONT, color: accentColor,
+      fontStyle: 'bold', backgroundColor: 'rgba(250,246,239,0.92)', padding: { x: 5, y: 2 }
     }).setOrigin(0.5).setDepth(1.4);
+    
+    return { cx: cx, cy: cy, seatX: cx, seatY: cy + 38, agentId: agentId, boothLight: boothLight, boothLightBaseAlpha: 0.14 };
   }
 
   createRestArea() {
-    var restY = 1160;
+    this.booths = {};
+    var restY = 1215;
     var booths = [
       { id: 'xau', x: 420, label: 'XAU 包间', color: '#FFD700' },
       { id: 'major', x: 700, label: 'MAJOR 包间', color: '#3B82F6' },
@@ -840,15 +982,15 @@ class TradingWorld extends Phaser.Scene {
     
     var self = this;
     booths.forEach(function(b) {
-      self.drawRestBooth(b.x, restY, b.label, b.color);
+      self.booths[b.id] = self.drawRestBooth(b.x, restY, b.label, b.color, b.id);
     });
     
-    var coffee = this.add.image(200, restY - 30, 'furniture_coffee');
+    var coffee = this.add.image(200, restY - 80, 'furniture_coffee');
     coffee.setScale(WORLD.FURN_SCALE);
     coffee.setDepth(1);
     
-    this.add.text(this.WORLD_W / 2, 1040, '☕ 休息包间区', {
-      fontSize: '13px', fontFamily: 'Courier New', color: '#8a7a6a', fontStyle: 'bold'
+    this.add.text(this.WORLD_W / 2, 1010, '☕ 休息包间区', {
+      fontSize: '14px', fontFamily: UI_FONT, color: '#6b5e4e', fontStyle: 'bold'
     }).setOrigin(0.5).setDepth(2);
   }
 
@@ -877,24 +1019,31 @@ class TradingWorld extends Phaser.Scene {
       hitZone.setInteractive({ cursor: 'pointer' });
       
       var nameTag = self.add.text(agent.x, agent.y - 42, meta.name, {
-        fontSize: '11px', fontFamily: 'Courier New', color: meta.color,
-        backgroundColor: '#faf6ef', padding: { x: 4, y: 2 }
+        fontSize: '12px', fontFamily: UI_FONT, color: meta.color, fontStyle: 'bold',
+        backgroundColor: 'rgba(250,246,239,0.95)', padding: { x: 5, y: 2 }
       }).setOrigin(0.5).setDepth(4);
       
-      var statusText = self.add.text(agent.x, agent.y + 28, 'IDLE', {
-        fontSize: '9px', fontFamily: 'Courier New', color: '#999'
+      var statusText = self.add.text(agent.x, agent.y + 28, '空闲', {
+        fontSize: '11px', fontFamily: UI_FONT, color: '#777'
       }).setOrigin(0.5).setDepth(4);
       
-      var pnlText = self.add.text(agent.x, agent.y + 40, 'PNL: --', {
-        fontSize: '9px', fontFamily: 'Courier New', color: '#888'
+      var pnlText = self.add.text(agent.x, agent.y + 42, '盈亏: --', {
+        fontSize: '11px', fontFamily: UI_FONT, color: '#888'
       }).setOrigin(0.5).setDepth(4);
+      
+      var bubbleText = self.add.text(agent.x, agent.y - 58, '', {
+        fontSize: '11px', fontFamily: UI_FONT, color: '#2d2520',
+        backgroundColor: 'rgba(255,255,255,0.92)', padding: { x: 6, y: 3 }
+      }).setOrigin(0.5).setDepth(5).setAlpha(0);
       
       self.characters[agent.id] = {
         sprite: sprite, hitZone: hitZone, nameTag: nameTag, statusText: statusText, pnlText: pnlText,
-        agentId: agent.id, baseX: agent.x, baseY: agent.y,
-        pathQueue: [], pathIndex: 0, isWalking: false,
+        bubbleText: bubbleText, agentId: agent.id, baseX: agent.x, baseY: agent.y,
+        pathQueue: [], pathIndex: 0, isWalking: false, destNode: null,
+        isResting: false, restPose: 'sit', restUntil: 0, restToggle: 0,
         state: 'idle', animTimer: 0, walkFrame: 0,
         moveTimer: 0, nextMoveTime: 4000 + Math.random() * 6000,
+        lastTradeKey: null,
         data: Object.assign({ id: agent.id }, meta)
       };
       
@@ -944,10 +1093,12 @@ class TradingWorld extends Phaser.Scene {
       var clickedChar = Object.values(self.characters).some(function(c) {
         return Phaser.Math.Distance.Between(wx, wy, c.sprite.x, c.sprite.y) < 48;
       });
-      if (!clickedChar) {
+      if (clickedChar) return;
+      if (!self.camDidDrag) {
         document.getElementById('agent-detail').classList.remove('active');
         self.selectedAgentId = null;
       }
+      self.beginCameraDrag(pointer);
     });
   }
 
@@ -1023,9 +1174,11 @@ class TradingWorld extends Phaser.Scene {
 
   startDataPolling() {
     this.fetchData();
+    this.fetchTicker();
     var self = this;
     this.time.addEvent({ delay: 5000, callback: function() { self.fetchData(); }, loop: true });
-    this.time.addEvent({ delay: 30000, callback: function() { self.fetchTicker(); }, loop: true });
+    this.time.addEvent({ delay: 10000, callback: function() { self.fetchTicker(); }, loop: true });
+    this.time.addEvent({ delay: 60000, callback: function() { self.updateDayNight(); }, loop: true });
   }
 
   fetchData() {
@@ -1046,15 +1199,56 @@ class TradingWorld extends Phaser.Scene {
   }
 
   fetchTicker() {
+    var self = this;
     var API = location.origin + '/trading';
     fetch(API + '/api/ticker')
       .then(function(res) { return res.json(); })
       .then(function(data) {
-        document.getElementById('btc-price').textContent = data.BTCUSDT ? '$' + data.BTCUSDT.toLocaleString() : '--';
-        document.getElementById('eth-price').textContent = data.ETHUSDT ? '$' + data.ETHUSDT.toLocaleString() : '--';
-        document.getElementById('xau-price').textContent = data.XAUUSDT ? '$' + data.XAUUSDT.toFixed(2) : '--';
+        self.tickerData = data;
+        if (data.BTCUSDT) document.getElementById('btc-price').textContent = '$' + data.BTCUSDT.toLocaleString();
+        if (data.ETHUSDT) document.getElementById('eth-price').textContent = '$' + data.ETHUSDT.toLocaleString();
+        if (data.XAUUSDT) document.getElementById('xau-price').textContent = '$' + data.XAUUSDT.toFixed(2);
+        self.updateBigScreenTicker(data);
       })
       .catch(function(e) {});
+  }
+
+  updateBigScreenTicker(data) {
+    if (!this.tickerTexts || !data) return;
+    var map = {
+      BTC: data.BTCUSDT, ETH: data.ETHUSDT, XAU: data.XAUUSDT,
+      SOL: data.SOLUSDT, DOGE: data.DOGEUSDT
+    };
+    this.tickerTexts.forEach(function(t) {
+      var price = map[t.symbol];
+      var label = t.symbol + ': ';
+      if (price == null) label += '--';
+      else if (t.symbol === 'XAU') label += '$' + price.toFixed(2);
+      else if (price >= 1000) label += '$' + price.toLocaleString(undefined, { maximumFractionDigits: 0 });
+      else label += '$' + price.toFixed(2);
+      t.text.setText(label);
+    });
+  }
+
+  showTradeBubble(char, trade) {
+    if (!trade || !char.bubbleText) return;
+    var pct = trade.pnl_pct != null ? trade.pnl_pct : 0;
+    var sign = pct >= 0 ? '+' : '';
+    var msg = (trade.symbol || '') + ' ' + sign + pct.toFixed(1) + '%';
+    char.bubbleText.setText(msg);
+    char.bubbleText.setColor(pct >= 0 ? '#16a34a' : '#dc2626');
+    char.bubbleText.setAlpha(1);
+    char.bubbleText.y = char.sprite.y - 58;
+    var self = this;
+    this.tweens.killTweensOf(char.bubbleText);
+    this.tweens.add({
+      targets: char.bubbleText,
+      y: char.sprite.y - 88,
+      alpha: 0,
+      duration: 4200,
+      ease: 'Sine.easeOut',
+      onComplete: function() { char.bubbleText.setAlpha(0); }
+    });
   }
 
   updateUI(data) {
@@ -1078,14 +1272,16 @@ class TradingWorld extends Phaser.Scene {
       
       char.data = agent;
       
-      var status = agent.is_circuit_break ? 'CIRCUIT BREAK' : 
-                   agent.running ? 'ACTIVE' : 'OFFLINE';
+      var status = agent.is_circuit_break ? '熔断' : 
+                   agent.positions && agent.positions.length ? '交易中' :
+                   agent.running ? '运行中' : '离线';
       char.statusText.setText(status);
       char.statusText.setColor(agent.is_circuit_break ? '#dc2626' : 
+                               agent.positions && agent.positions.length ? '#d97706' :
                                agent.running ? '#16a34a' : '#999');
       
       var pnl = agent.pnl || 0;
-      char.pnlText.setText('PNL: ' + (pnl > 0 ? '+' : '') + '$' + pnl.toLocaleString());
+      char.pnlText.setText('盈亏: ' + (pnl > 0 ? '+' : '') + '$' + pnl.toLocaleString());
       char.pnlText.setColor(pnl > 0 ? '#16a34a' : pnl < 0 ? '#dc2626' : '#888');
       
       var desk = self.desks[agent.id];
@@ -1102,10 +1298,25 @@ class TradingWorld extends Phaser.Scene {
         }
       }
       
+      if (agent.trades_history && agent.trades_history.length > 0) {
+        var latest = agent.trades_history[agent.trades_history.length - 1];
+        var tradeKey = latest.symbol + '_' + (latest.opened_at || '') + '_' + (latest.pnl_pct || '');
+        if (tradeKey !== char.lastTradeKey && latest.pnl_pct != null) {
+          char.lastTradeKey = tradeKey;
+          self.showTradeBubble(char, latest);
+        }
+      }
+      
       if (agent.is_circuit_break) {
         char.state = 'panic';
+        if (!char.isWalking && !char.isResting) {
+          self.assignPathTo(char, 'scr_ctr');
+        }
       } else if (agent.positions && agent.positions.length > 0) {
         char.state = 'trading';
+        if (!char.isResting && !char.isWalking && Math.random() > 0.92) {
+          self.assignPathTo(char, OfficePath.deskByAgent[agent.id]);
+        }
       } else if (agent.running) {
         char.state = 'scanning';
       } else {
@@ -1158,6 +1369,10 @@ class TradingWorld extends Phaser.Scene {
     });
     
     this.updateDeskScreens(time);
+    if (Math.floor(time / 30000) !== this._lastDayNightTick) {
+      this._lastDayNightTick = Math.floor(time / 30000);
+      this.updateDayNight();
+    }
   }
 
   updateDeskScreens(time) {
@@ -1190,35 +1405,81 @@ class TradingWorld extends Phaser.Scene {
   }
 
   assignPathTo(char, nodeId) {
+    if (char.isResting) {
+      char.isResting = false;
+      char.sprite.setAngle(0);
+      char.sprite.setScale(WORLD.CHAR_SCALE);
+    }
     var pts = OfficePath.pathToNode(char.sprite.x, char.sprite.y, nodeId);
     if (!pts || pts.length < 2) return;
+    char.destNode = nodeId;
     char.pathQueue = pts.slice(1);
     char.pathIndex = 0;
     char.isWalking = true;
   }
 
+  onPathComplete(char, time) {
+    var node = char.destNode;
+    char.destNode = null;
+    if (node === OfficePath.boothByAgent[char.agentId]) {
+      this.startResting(char, time);
+    }
+  }
+
+  startResting(char, time) {
+    var booth = this.booths && this.booths[char.agentId];
+    char.isResting = true;
+    char.restUntil = time + 9000 + Math.random() * 8000;
+    char.restToggle = time;
+    char.restPose = 'sit';
+    char.isWalking = false;
+    char.pathQueue = [];
+    if (booth) {
+      char.sprite.x = booth.seatX;
+      char.sprite.y = booth.seatY;
+    }
+    char.sprite.setDepth(1.05);
+    char.statusText.setText('休息中');
+    char.statusText.setColor('#6b8e6b');
+  }
+
   pickWanderTarget(char) {
     var deskNode = OfficePath.deskByAgent[char.agentId];
-    var boothNode = OfficePath.boothByAgent[char.agentId];
-    var pool = OfficePath.wanderTargets.filter(function(n) {
-      return n !== deskNode || Math.random() > 0.5;
-    });
-    if (Math.random() > 0.55 && boothNode) pool.push(boothNode, boothNode);
+    if (char.state === 'trading') return deskNode;
+    if (char.state === 'panic') return 'scr_ctr';
+    if (char.state === 'idle' && (!char.data || !char.data.running)) {
+      return Math.random() > 0.35 ? OfficePath.boothByAgent[char.agentId] : deskNode;
+    }
+    if (char.state === 'scanning' && Math.random() > 0.65) {
+      return ['scr_xau','scr_maj','scr_alt','scr_ctr','scr_mom'][Math.floor(Math.random() * 5)];
+    }
+    var pool = OfficePath.wanderTargets.filter(function(n) { return n !== deskNode || Math.random() > 0.45; });
+    if (Math.random() > 0.45) pool.push(OfficePath.boothByAgent[char.agentId]);
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
   animateCharacter(char, time, delta) {
     char.animTimer += delta;
+
+    if (char.isResting) {
+      this.animateResting(char, time, delta);
+      return;
+    }
+
     char.moveTimer += delta;
+
+    if (char.state === 'trading' && !char.isWalking && Math.random() > 0.97) {
+      this.assignPathTo(char, OfficePath.deskByAgent[char.agentId]);
+    }
 
     if (char.moveTimer > char.nextMoveTime && char.state !== 'panic' && char.state !== 'trading' && !char.isWalking) {
       char.moveTimer = 0;
-      char.nextMoveTime = 5000 + Math.random() * 8000;
+      char.nextMoveTime = 4500 + Math.random() * 7000;
       this.assignPathTo(char, this.pickWanderTarget(char));
     }
 
     if (char.state === 'panic' && !char.isWalking) {
-      this.assignPathTo(char, OfficePath.deskByAgent[char.agentId]);
+      this.assignPathTo(char, 'scr_ctr');
     }
 
     var agentId = char.agentId;
@@ -1240,6 +1501,7 @@ class TradingWorld extends Phaser.Scene {
             char.isWalking = false;
             char.pathQueue = [];
             char.pathIndex = 0;
+            this.onPathComplete(char, time);
           }
         } else {
           char.sprite.x += (dx / dist) * step;
@@ -1255,35 +1517,91 @@ class TradingWorld extends Phaser.Scene {
       char.walkFrame += delta;
       var frameKey = Math.floor(char.walkFrame / 180) % 2 === 0 ? '_walk1' : '_walk2';
       char.sprite.setTexture('char_' + agentId + frameKey);
+      char.sprite.setAngle(0);
+      char.sprite.setScale(WORLD.CHAR_SCALE);
       if (dx < -0.5) char.sprite.setFlipX(true);
       else if (dx > 0.5) char.sprite.setFlipX(false);
     } else if (char.state === 'trading' || char.state === 'panic') {
       char.sprite.setTexture('char_' + agentId + '_excited');
+      char.sprite.setAngle(0);
+      char.sprite.setScale(WORLD.CHAR_SCALE);
     } else {
       char.sprite.setTexture('char_' + agentId + '_idle');
+      char.sprite.setAngle(0);
+      char.sprite.setScale(WORLD.CHAR_SCALE);
       if (char.state === 'idle' || char.state === 'scanning') {
-        char.sprite.y += Math.sin(char.animTimer / 500) * 1;
+        char.sprite.y += Math.sin(char.animTimer / 500) * 0.8;
       }
     }
 
+    this.syncCharLabels(char);
+    this.applyCharTint(char);
+    if (char.state === 'trading' && !moving) {
+      char.sprite.y += Math.sin(char.animTimer / 150) * 0.8;
+    }
+  }
+
+  animateResting(char, time, delta) {
+    var agentId = char.agentId;
+    if (time > char.restUntil) {
+      char.isResting = false;
+      char.sprite.setAngle(0);
+      char.sprite.setScale(WORLD.CHAR_SCALE);
+      char.sprite.setDepth(3);
+      char.moveTimer = 0;
+      char.nextMoveTime = 2000 + Math.random() * 3000;
+      this.assignPathTo(char, OfficePath.deskByAgent[char.agentId]);
+      return;
+    }
+    if (time - char.restToggle > 4500) {
+      char.restToggle = time;
+      char.restPose = char.restPose === 'sit' ? 'lie' : 'sit';
+    }
+    var booth = this.booths && this.booths[char.agentId];
+    if (booth) {
+      char.sprite.x = booth.seatX;
+      char.sprite.y = booth.seatY;
+    }
+    if (char.restPose === 'sit') {
+      char.sprite.setTexture('char_' + agentId + '_sit');
+      char.sprite.setAngle(0);
+      char.sprite.setScale(WORLD.CHAR_SCALE * 0.95);
+      char.sprite.setFlipX(false);
+      char.sprite.y += Math.sin(char.animTimer / 800) * 0.5;
+    } else {
+      char.sprite.setTexture('char_' + agentId + '_sit');
+      char.sprite.setAngle(-90);
+      char.sprite.setScale(WORLD.CHAR_SCALE * 0.9);
+      char.sprite.x += 18;
+      char.sprite.y += 8;
+    }
+    this.syncCharLabels(char);
+    char.sprite.clearTint();
+    char.sprite.setAlpha(1);
+  }
+
+  syncCharLabels(char) {
     char.nameTag.x = char.sprite.x;
-    char.nameTag.y = char.sprite.y - 42;
+    char.nameTag.y = char.sprite.y - 44;
     char.hitZone.x = char.sprite.x;
     char.hitZone.y = char.sprite.y;
     char.statusText.x = char.sprite.x;
-    char.statusText.y = char.sprite.y + 28;
+    char.statusText.y = char.sprite.y + 30;
     char.pnlText.x = char.sprite.x;
-    char.pnlText.y = char.sprite.y + 40;
+    char.pnlText.y = char.sprite.y + 44;
+    if (char.bubbleText && char.bubbleText.alpha > 0) {
+      char.bubbleText.x = char.sprite.x;
+    }
+  }
 
+  applyCharTint(char) {
+    if (char.isResting) return;
     if (char.state === 'panic') {
       char.sprite.setTint(0xff6666);
       char.sprite.setAlpha(Math.floor(char.animTimer / 200) % 2 === 0 ? 0.65 : 1);
     } else {
       char.sprite.clearTint();
       char.sprite.setAlpha(1);
-    }
-    if (char.state === 'trading' && !moving) {
-      char.sprite.y += Math.sin(char.animTimer / 150) * 1;
     }
   }
 }
