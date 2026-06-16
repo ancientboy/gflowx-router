@@ -40,10 +40,10 @@ body { background: #faf6ef; overflow: hidden; font-family: -apple-system, BlinkM
 #agent-detail {
   position: fixed; bottom: 16px; left: 16px; z-index: 100;
   background: rgba(255,252,247,0.98); border: 2px solid #d4c8b8;
-  border-radius: 12px; padding: 16px 18px; min-width: 300px; max-width: 380px;
+  border-radius: 12px; padding: 16px 18px; min-width: 320px; max-width: 420px;
   display: none; font-size: 13px; color: #4a3f35;
   box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-  font-family: inherit;
+  font-family: inherit; max-height: 72vh; overflow-y: auto;
 }
 #agent-detail.active { display: block; }
 #agent-detail .detail-header { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #e8dfd0; }
@@ -59,6 +59,31 @@ body { background: #faf6ef; overflow: hidden; font-family: -apple-system, BlinkM
 #agent-detail .down { color: #dc2626 !important; }
 #agent-detail .detail-close { position: absolute; top: 10px; right: 12px; background: #ede8dc; border: none; color: #6b5e4e; cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 8px; border-radius: 6px; }
 #agent-detail .detail-close:hover { background: #d4c8b8; }
+#agent-detail .detail-tabs { display: flex; gap: 4px; margin: 10px 0 8px; border-bottom: 1px solid #e8dfd0; padding-bottom: 8px; }
+#agent-detail .detail-tabs button {
+  flex: 1; padding: 6px 8px; border: 1px solid #d4c8b8; border-radius: 6px;
+  background: #f5f0e8; color: #6b5e4e; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+#agent-detail .detail-tabs button.active { background: #4a3f35; color: #faf6ef; border-color: #4a3f35; }
+#agent-detail .tab-panel { display: none; }
+#agent-detail .tab-panel.active { display: block; }
+#agent-detail .cfg-field { margin: 8px 0; }
+#agent-detail .cfg-field label { display: block; font-size: 11px; color: #7a6e62; margin-bottom: 3px; font-weight: 600; }
+#agent-detail .cfg-field input, #agent-detail .cfg-field select {
+  width: 100%; padding: 6px 8px; border: 1px solid #d4c8b8; border-radius: 6px;
+  font-size: 13px; font-family: inherit; background: #fff;
+}
+#agent-detail #soul-editor {
+  width: 100%; min-height: 160px; padding: 8px; border: 1px solid #d4c8b8; border-radius: 6px;
+  font-size: 12px; font-family: 'SF Mono', Consolas, monospace; line-height: 1.45; resize: vertical;
+}
+#agent-detail .save-btn {
+  margin-top: 10px; width: 100%; padding: 8px; border: none; border-radius: 6px;
+  background: #4a3f35; color: #faf6ef; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+#agent-detail .save-btn:hover { background: #3a322c; }
+#agent-detail .save-msg { margin-top: 6px; font-size: 11px; color: #16a34a; min-height: 16px; }
+#agent-detail .save-hint { font-size: 11px; color: #9a8b7a; margin-top: 4px; line-height: 1.4; }
 @media (max-width: 768px) {
   #ui-overlay { flex-wrap: wrap; gap: 6px 10px; padding: 6px 10px; font-size: 12px; }
   #ui-overlay .stat .value { font-size: 12px; }
@@ -86,7 +111,7 @@ body { background: #faf6ef; overflow: hidden; font-family: -apple-system, BlinkM
   <div class="divider"></div>
   <div class="stat"><span class="label">状态</span><span class="value" id="runner-status">--</span></div>
   <div style="flex:1"></div>
-  <div class="stat hint">拖拽平移 · 滚轮缩放 · 点击角色查看详情</div>
+  <div class="stat hint">拖拽平移 · 滚轮缩放 · 四区通行 · 点击角色编辑 SOUL/参数</div>
 </div>
 
 <div id="agent-detail">
@@ -98,6 +123,12 @@ body { background: #faf6ef; overflow: hidden; font-family: -apple-system, BlinkM
       <div class="desc" id="detail-desc">点击角色查看介绍</div>
     </div>
   </div>
+  <div class="detail-tabs">
+    <button type="button" class="tab-btn active" data-tab="overview">概览</button>
+    <button type="button" class="tab-btn" data-tab="config">策略参数</button>
+    <button type="button" class="tab-btn" data-tab="soul">SOUL</button>
+  </div>
+  <div id="tab-overview" class="tab-panel active">
   <div class="row"><span>策略</span><span id="detail-strategy">--</span></div>
   <div class="row"><span>市场</span><span id="detail-market">--</span></div>
   <div class="row"><span>周期</span><span id="detail-interval">--</span></div>
@@ -108,6 +139,19 @@ body { background: #faf6ef; overflow: hidden; font-family: -apple-system, BlinkM
   <div class="row"><span>状态</span><span id="detail-status">--</span></div>
   <div class="row"><span>持仓</span><span id="detail-pos">--</span></div>
   <div class="positions" id="detail-positions"></div>
+  </div>
+  <div id="tab-config" class="tab-panel">
+    <div class="save-hint">量化参数写入 config.json，重启 Agent 后完全生效</div>
+    <form id="config-form"></form>
+    <button type="button" class="save-btn" id="config-save">保存策略参数</button>
+    <div class="save-msg" id="config-msg"></div>
+  </div>
+  <div id="tab-soul" class="tab-panel">
+    <div class="save-hint">SOUL.md 定义 Agent 人格与 LLM 决策说明</div>
+    <textarea id="soul-editor" placeholder="# Agent SOUL..."></textarea>
+    <button type="button" class="save-btn" id="soul-save">保存 SOUL</button>
+    <div class="save-msg" id="soul-msg"></div>
+  </div>
 </div>
 
 <a href="/trading/" id="back-btn">&larr; 返回 Dashboard</a>
@@ -342,7 +386,8 @@ const PixelArt = {
 // ============================================================
 // OFFICE PATH NETWORK — 角色只能沿路径行走
 // ============================================================
-const WORLD = { W: 2400, H: 1350, CHAR_SCALE: 1.28, PIXEL_SCALE: 4, WALK_SPEED: 78, FURN_SCALE: 1.65, SCREEN_SCALE: 2.4 };
+const WORLD = { W: 4800, H: 2700, CHAR_SCALE: 1.28, PIXEL_SCALE: 4, WALK_SPEED: 88, FURN_SCALE: 1.65, SCREEN_SCALE: 2.4 };
+const ZONE = { MID_X: 2400, MID_Y: 1350, WALL: 12 };
 
 const OfficePath = {
   nodes: {
@@ -364,19 +409,41 @@ const OfficePath = {
     d_w: { x: 220, y: 980 }, d_xau: { x: 420, y: 980 }, d_maj: { x: 700, y: 980 },
     d_alt: { x: 980, y: 980 }, d_new: { x: 1260, y: 980 }, d_mom: { x: 1540, y: 980 },
     d_e: { x: 2180, y: 980 },
-    // 两大休息区 — 门口在上方连接走廊
+    // 两大休息区
     rest_door_l: { x: 560, y: 1055 }, rest_door_r: { x: 1340, y: 1055 },
     rest_l_1: { x: 420, y: 1265 }, rest_l_2: { x: 560, y: 1278 }, rest_l_3: { x: 700, y: 1265 },
     rest_r_1: { x: 1240, y: 1265 }, rest_r_2: { x: 1440, y: 1278 },
+    // 跨区域门
+    door_ts: { x: 2390, y: 780 }, door_tr: { x: 1200, y: 1350 }, door_sc: { x: 3600, y: 1350 },
+    door_rc: { x: 2390, y: 2000 }, hub_tr: { x: 1200, y: 1160 }, v_sc: { x: 3600, y: 1080 },
+    h_rc: { x: 1920, y: 2000 },
+    // 按摩区 (右上)
+    spa_w: { x: 2580, y: 780 }, spa_c: { x: 3000, y: 780 }, spa_e: { x: 3420, y: 780 },
+    spa_d: { x: 3000, y: 1050 },
+    bed_1: { x: 2700, y: 1180 }, bed_2: { x: 3000, y: 1180 }, bed_3: { x: 3300, y: 1180 },
+    bed_4: { x: 2850, y: 980 }, bed_5: { x: 3150, y: 980 },
+    // 餐厅 (左下)
+    rest_w: { x: 480, y: 1480 }, rest_c: { x: 1200, y: 1480 }, rest_e: { x: 1920, y: 1480 },
+    rest_d: { x: 1200, y: 1580 },
+    dine_1: { x: 700, y: 1850 }, dine_2: { x: 1200, y: 1850 }, dine_3: { x: 1700, y: 1850 },
+    dine_4: { x: 700, y: 2150 }, dine_5: { x: 1700, y: 2150 },
+    // 赌场 (右下)
+    cas_w: { x: 2880, y: 1480 }, cas_c: { x: 3600, y: 1480 }, cas_e: { x: 4320, y: 1480 },
+    cas_d: { x: 3600, y: 1580 },
+    poker_1: { x: 3300, y: 2050 }, poker_2: { x: 3600, y: 2180 }, poker_3: { x: 3900, y: 2050 },
+    poker_4: { x: 3420, y: 2320 }, poker_5: { x: 3780, y: 2320 },
   },
   deskByAgent: { xau: 'desk_xau', major: 'desk_maj', altcoin: 'desk_alt', newcoin: 'desk_new', momentum: 'desk_mom' },
   restByAgent: { xau: 'rest_l_1', major: 'rest_l_2', altcoin: 'rest_l_3', newcoin: 'rest_r_1', momentum: 'rest_r_2' },
   boothByAgent: { xau: 'rest_l_1', major: 'rest_l_2', altcoin: 'rest_l_3', newcoin: 'rest_r_1', momentum: 'rest_r_2' },
+  massageByAgent: { xau: 'bed_1', major: 'bed_2', altcoin: 'bed_3', newcoin: 'bed_4', momentum: 'bed_5' },
+  dineByAgent: { xau: 'dine_1', major: 'dine_2', altcoin: 'dine_3', newcoin: 'dine_4', momentum: 'dine_5' },
+  pokerByAgent: { xau: 'poker_1', major: 'poker_2', altcoin: 'poker_3', newcoin: 'poker_4', momentum: 'poker_5' },
   wanderTargets: [
     'desk_xau', 'desk_maj', 'desk_alt', 'desk_new', 'desk_mom',
     'scr_xau', 'scr_maj', 'scr_alt', 'scr_ctr', 'scr_mom',
-    'rest_door_l', 'rest_door_r',
-    'rest_l_1', 'rest_l_2', 'rest_l_3', 'rest_r_1', 'rest_r_2',
+    'rest_door_l', 'rest_door_r', 'rest_l_1', 'rest_l_2', 'rest_l_3', 'rest_r_1', 'rest_r_2',
+    'bed_1', 'bed_2', 'bed_3', 'dine_1', 'dine_2', 'dine_3', 'poker_1', 'poker_2', 'poker_3',
   ],
   _edges: null,
   _buildEdges() {
@@ -394,6 +461,17 @@ const OfficePath = {
       ['a_xau','d_xau'],['a_maj','d_maj'],['a_alt','d_alt'],['a_new','d_new'],['a_mom','d_mom'],
       ['u_xau','scr_xau'],['u_maj','scr_maj'],['u_alt','scr_alt'],['u_new','scr_new'],['u_mom','scr_mom'],
       ['u_maj','scr_ctr'],['u_alt','scr_ctr'],['u_new','scr_ctr'],
+      // 跨区域
+      ['a_e','door_ts'],['door_ts','spa_w'],['spa_w','spa_c'],['spa_c','spa_e'],
+      ['spa_c','spa_d'],['spa_d','bed_1'],['spa_d','bed_2'],['spa_d','bed_3'],
+      ['spa_e','bed_4'],['spa_e','bed_5'],
+      ['d_maj','hub_tr'],['d_alt','hub_tr'],['d_xau','hub_tr'],['hub_tr','door_tr'],
+      ['door_tr','rest_d'],['rest_d','rest_c'],['rest_w','rest_c'],['rest_c','rest_e'],
+      ['rest_c','dine_1'],['rest_c','dine_2'],['rest_c','dine_3'],['rest_w','dine_4'],['rest_e','dine_5'],
+      ['spa_e','v_sc'],['v_sc','door_sc'],['door_sc','cas_d'],['cas_d','cas_c'],
+      ['cas_w','cas_c'],['cas_c','cas_e'],
+      ['cas_c','poker_1'],['cas_c','poker_2'],['cas_c','poker_3'],['cas_w','poker_4'],['cas_e','poker_5'],
+      ['rest_e','h_rc'],['h_rc','door_rc'],['door_rc','cas_w'],
     ];
     const adj = {};
     Object.keys(this.nodes).forEach(k => { adj[k] = []; });
@@ -691,6 +769,61 @@ class TradingWorld extends Phaser.Scene {
     scctx.fillStyle = '#3a3a3a';
     scctx.fillRect(160, 100, 40, 8);
     this.textures.addCanvas('furniture_bigscreen', screenCanvas);
+
+    // Massage bed
+    var bedCanvas = document.createElement('canvas');
+    bedCanvas.width = 140; bedCanvas.height = 70;
+    var bctx = bedCanvas.getContext('2d');
+    bctx.imageSmoothingEnabled = false;
+    bctx.fillStyle = '#e8dfd0';
+    bctx.fillRect(0, 18, 140, 44);
+    bctx.fillStyle = '#d4c8b8';
+    bctx.fillRect(4, 22, 132, 36);
+    bctx.fillStyle = '#c8baa8';
+    bctx.fillRect(0, 10, 28, 52);
+    bctx.fillStyle = '#f5f0e8';
+    bctx.fillRect(8, 26, 124, 28);
+    bctx.fillStyle = '#8b7355';
+    bctx.fillRect(6, 58, 12, 10);
+    bctx.fillRect(122, 58, 12, 10);
+    this.textures.addCanvas('furniture_massage_bed', bedCanvas);
+
+    // Dining table
+    var dineCanvas = document.createElement('canvas');
+    dineCanvas.width = 96; dineCanvas.height = 96;
+    var dnctx = dineCanvas.getContext('2d');
+    dnctx.imageSmoothingEnabled = false;
+    dnctx.fillStyle = '#8b7355';
+    dnctx.fillRect(16, 16, 64, 64);
+    dnctx.fillStyle = '#a08060';
+    dnctx.fillRect(20, 20, 56, 56);
+    dnctx.fillStyle = '#faf6ef';
+    dnctx.fillRect(38, 38, 20, 20);
+    dnctx.fillStyle = '#6b5340';
+    for (var ci = 0; ci < 4; ci++) {
+      var ang = ci * Math.PI / 2 + Math.PI / 4;
+      dnctx.fillRect(48 + Math.cos(ang) * 38 - 6, 48 + Math.sin(ang) * 38 - 6, 12, 12);
+    }
+    this.textures.addCanvas('furniture_dining_table', dineCanvas);
+
+    // Poker table
+    var pokerCanvas = document.createElement('canvas');
+    pokerCanvas.width = 200; pokerCanvas.height = 140;
+    var pkctx = pokerCanvas.getContext('2d');
+    pkctx.imageSmoothingEnabled = false;
+    pkctx.fillStyle = '#1a5c3a';
+    pkctx.beginPath();
+    pkctx.ellipse(100, 70, 92, 58, 0, 0, Math.PI * 2);
+    pkctx.fill();
+    pkctx.fillStyle = '#2a7a4a';
+    pkctx.beginPath();
+    pkctx.ellipse(100, 70, 78, 46, 0, 0, Math.PI * 2);
+    pkctx.fill();
+    pkctx.fillStyle = '#c8a060';
+    pkctx.fillRect(92, 58, 16, 24);
+    pkctx.fillStyle = '#dc2626';
+    pkctx.fillRect(96, 62, 8, 12);
+    this.textures.addCanvas('furniture_poker_table', pokerCanvas);
   }
 
   generateParticleTexture() {
@@ -727,6 +860,11 @@ class TradingWorld extends Phaser.Scene {
     this.createBigScreenArea();
     this.createTradingDesks();
     this.createRestArea();
+    this.createZoneWalls();
+    this.createMassageArea();
+    this.createRestaurantArea();
+    this.createCasinoArea();
+    this.createNPCs();
     
     // Create characters
     this.createCharacters();
@@ -758,7 +896,7 @@ class TradingWorld extends Phaser.Scene {
     this.minZoom = zoom * 0.55;
     this.maxZoom = zoom * 1.45;
     this.cameras.main.setZoom(zoom);
-    this.cameras.main.centerOn(this.WORLD_W / 2, this.WORLD_H / 2);
+    this.cameras.main.centerOn(1200, 720);
   }
 
   setupCameraControls() {
@@ -836,16 +974,24 @@ class TradingWorld extends Phaser.Scene {
     var tileSize = 48;
     var cols = Math.ceil(this.WORLD_W / tileSize);
     var rows = Math.ceil(this.WORLD_H / tileSize);
-    var screenZoneRows = 3, deskZoneStart = 4, deskZoneEnd = 10, restZoneStart = 12;
+    var mx = ZONE.MID_X, my = ZONE.MID_Y;
 
     var rt = this.add.renderTexture(0, 0, this.WORLD_W, this.WORLD_H).setOrigin(0, 0).setDepth(0);
     for (var y = 0; y < rows; y++) {
       for (var x = 0; x < cols; x++) {
+        var px = x * tileSize + tileSize / 2;
+        var py = y * tileSize + tileSize / 2;
         var key = 'tile_floor';
-        if (y < screenZoneRows) key = 'tile_floor_light';
-        else if (y >= deskZoneStart && y <= deskZoneEnd) key = 'tile_floor';
-        else if (y >= restZoneStart) key = 'tile_floor_dark';
-        rt.draw(key, x * tileSize + tileSize / 2, y * tileSize + tileSize / 2);
+        if (px < mx && py < my) {
+          key = py < 200 ? 'tile_floor_light' : 'tile_floor';
+        } else if (px >= mx && py < my) {
+          key = 'tile_floor'; // spa - warm
+        } else if (px < mx && py >= my) {
+          key = 'tile_floor_dark'; // restaurant
+        } else {
+          key = 'tile_floor_dark'; // casino dark tiles
+        }
+        rt.draw(key, px, py);
       }
     }
     this.floorRT = rt;
@@ -1008,6 +1154,137 @@ class TradingWorld extends Phaser.Scene {
     this.add.text(this.WORLD_W / 2, 1010, '☕ 休息区', {
       fontSize: '14px', fontFamily: UI_FONT, color: '#6b5e4e', fontStyle: 'bold'
     }).setOrigin(0.5).setDepth(2);
+    this.add.text(1200, 48, '📈 交易大厅', {
+      fontSize: '16px', fontFamily: UI_FONT, color: '#4a3f35', fontStyle: 'bold',
+      backgroundColor: 'rgba(250,246,239,0.9)', padding: { x: 10, y: 4 }
+    }).setOrigin(0.5).setDepth(2);
+  }
+
+  drawWallSegment(x, y, w, h) {
+    this.add.rectangle(x, y, w, h, 0xa89880).setDepth(1.18);
+    this.add.rectangle(x, y, w - 4, h - 4, 0xc8baa8).setDepth(1.17);
+  }
+
+  drawDoorMarker(x, y, w, h) {
+    this.add.rectangle(x, y, w, h, 0xd4c8b8).setDepth(1.16);
+    this.add.text(x, y - h / 2 - 10, '门', {
+      fontSize: '10px', fontFamily: UI_FONT, color: '#8a7a68', fontStyle: 'bold'
+    }).setOrigin(0.5).setDepth(1.25);
+  }
+
+  createZoneWalls() {
+    var mx = ZONE.MID_X, my = ZONE.MID_Y, ww = ZONE.WALL;
+    var W = this.WORLD_W, H = this.WORLD_H;
+    // 垂直墙 x=2400，门洞 y=730-830 与 y=1920-2020
+    this.drawWallSegment(mx, 365, ww, 730);
+    this.drawWallSegment(mx, 1375, ww, 1090);
+    this.drawWallSegment(mx, 2360, ww, 680);
+    this.drawDoorMarker(mx, 780, 90, ww + 8);
+    this.drawDoorMarker(mx, 2000, 90, ww + 8);
+    // 水平墙 y=1350，门洞 x=1150-1250 与 x=3550-3650
+    this.drawWallSegment(575, my, 1150, ww);
+    this.drawWallSegment(2400, my, 2300, ww);
+    this.drawWallSegment(4225, my, 1150, ww);
+    this.drawDoorMarker(1200, my, 90, ww + 8);
+    this.drawDoorMarker(3600, my, 90, ww + 8);
+  }
+
+  createMassageArea() {
+    this.massageBeds = {};
+    var fs = WORLD.FURN_SCALE;
+    var cx = 3000, cy = 650;
+    this.add.rectangle(cx, cy + 40, 920, 520, 0xf0ebe3).setDepth(0.85);
+    this.add.text(cx, 48, '💆 休闲按摩区', {
+      fontSize: '16px', fontFamily: UI_FONT, color: '#6b4a5a', fontStyle: 'bold',
+      backgroundColor: 'rgba(255,240,245,0.92)', padding: { x: 10, y: 4 }
+    }).setOrigin(0.5).setDepth(2);
+    var beds = [
+      { id: 'bed_1', x: 2700, y: 1180, agent: 'xau' },
+      { id: 'bed_2', x: 3000, y: 1180, agent: 'major' },
+      { id: 'bed_3', x: 3300, y: 1180, agent: 'altcoin' },
+      { id: 'bed_4', x: 2850, y: 980, agent: 'newcoin' },
+      { id: 'bed_5', x: 3150, y: 980, agent: 'momentum' },
+    ];
+    var self = this;
+    beds.forEach(function(b) {
+      self.add.image(b.x, b.y, 'furniture_massage_bed').setScale(fs * 0.95).setDepth(1.05);
+      self.massageBeds[b.agent] = { bedX: b.x, bedY: b.y - 8 };
+    });
+    this.add.circle(3000, 520, 80, 0xffe0f0, 0.12).setDepth(0.88);
+    this.add.image(3000, 900, 'furniture_plant').setScale(fs).setDepth(1.05);
+    this.add.image(2700, 900, 'furniture_plant').setScale(fs * 0.9).setDepth(1.05);
+    this.add.image(3300, 900, 'furniture_plant').setScale(fs * 0.9).setDepth(1.05);
+  }
+
+  createRestaurantArea() {
+    this.dineSeats = {};
+    var fs = WORLD.FURN_SCALE;
+    var cx = 1200, cy = 2000;
+    this.add.rectangle(cx, cy, 920, 520, 0xf5efe5).setDepth(0.85);
+    this.add.text(cx, 1420, '🍽️ 餐厅', {
+      fontSize: '16px', fontFamily: UI_FONT, color: '#6b5a3a', fontStyle: 'bold',
+      backgroundColor: 'rgba(255,248,235,0.92)', padding: { x: 10, y: 4 }
+    }).setOrigin(0.5).setDepth(2);
+    var tables = [
+      { agent: 'xau', x: 700, y: 1850 }, { agent: 'major', x: 1200, y: 1850 },
+      { agent: 'altcoin', x: 1700, y: 1850 }, { agent: 'newcoin', x: 700, y: 2150 },
+      { agent: 'momentum', x: 1700, y: 2150 },
+    ];
+    var self = this;
+    tables.forEach(function(t) {
+      self.add.image(t.x, t.y, 'furniture_dining_table').setScale(fs * 0.85).setDepth(1.05);
+      self.add.image(t.x, t.y - 52, 'furniture_chair').setScale(fs * 0.75).setDepth(1.04);
+      self.dineSeats[t.agent] = { seatX: t.x, seatY: t.y - 38 };
+    });
+    this.add.image(480, 1680, 'furniture_coffee').setScale(fs).setDepth(1.05);
+    this.add.circle(1200, 1750, 100, 0xffe8a0, 0.1).setDepth(0.88);
+  }
+
+  createCasinoArea() {
+    this.pokerSeats = {};
+    var fs = WORLD.FURN_SCALE;
+    var cx = 3600, cy = 2100;
+    this.add.rectangle(cx, cy, 920, 520, 0x1a1520).setDepth(0.85);
+    this.add.text(cx, 1420, '🎰 赌场 · 德州扑克', {
+      fontSize: '16px', fontFamily: UI_FONT, color: '#d4af37', fontStyle: 'bold',
+      backgroundColor: 'rgba(26,21,32,0.88)', padding: { x: 10, y: 4 }
+    }).setOrigin(0.5).setDepth(2);
+    this.add.image(cx, cy, 'furniture_poker_table').setScale(fs * 1.05).setDepth(1.08);
+    var seats = [
+      { agent: 'xau', x: 3300, y: 2050 }, { agent: 'major', x: 3600, y: 2180 },
+      { agent: 'altcoin', x: 3900, y: 2050 }, { agent: 'newcoin', x: 3420, y: 2320 },
+      { agent: 'momentum', x: 3780, y: 2320 },
+    ];
+    var self = this;
+    seats.forEach(function(s) {
+      self.add.image(s.x, s.y, 'furniture_chair').setScale(fs * 0.7).setDepth(1.06);
+      self.pokerSeats[s.agent] = { seatX: s.x, seatY: s.y + 6 };
+    });
+    this.add.circle(cx, cy, 120, 0xd4af37, 0.06).setDepth(0.88);
+    this.add.circle(cx, cy - 30, 8, 0xffd700, 0.8).setDepth(1.15);
+  }
+
+  createNPCs() {
+    var self = this;
+    this.npcs = [];
+    var npcList = [
+      { x: 3000, y: 820, color: '#e879a9', name: '服务员 Lily', role: 'massage' },
+      { x: 3600, y: 2040, color: '#d4af37', name: '荷官 Jack', role: 'dealer' },
+    ];
+    npcList.forEach(function(npc) {
+      var key = 'npc_' + npc.role;
+      if (!self.textures.exists(key)) {
+        PixelArt.createTexture(self, key, 16, 16, PixelArt.generateCharacter(npc.color), WORLD.PIXEL_SCALE);
+      }
+      var spr = self.add.sprite(npc.x, npc.y, key);
+      spr.setScale(WORLD.CHAR_SCALE);
+      spr.setDepth(3.1);
+      var tag = self.add.text(npc.x, npc.y - 40, npc.name, {
+        fontSize: '11px', fontFamily: UI_FONT, color: npc.color, fontStyle: 'bold',
+        backgroundColor: 'rgba(250,246,239,0.92)', padding: { x: 4, y: 2 }
+      }).setOrigin(0.5).setDepth(4);
+      self.npcs.push({ sprite: spr, tag: tag, role: npc.role, baseY: npc.y });
+    });
   }
 
   createCharacters() {
@@ -1057,6 +1334,10 @@ class TradingWorld extends Phaser.Scene {
         bubbleText: bubbleText, agentId: agent.id, baseX: agent.x, baseY: agent.y,
         pathQueue: [], pathIndex: 0, isWalking: false, destNode: null,
         isResting: false, restPose: 'sit', restUntil: 0, restToggle: 0,
+        isMassaging: false, massageUntil: 0,
+        isDining: false, dineUntil: 0,
+        isPlayingPoker: false, pokerUntil: 0,
+        activity: null,
         state: 'idle', animTimer: 0, walkFrame: 0,
         moveTimer: 0, nextMoveTime: 4000 + Math.random() * 6000,
         lastTradeKey: null,
@@ -1095,6 +1376,8 @@ class TradingWorld extends Phaser.Scene {
       document.getElementById('agent-detail').classList.remove('active');
       self.selectedAgentId = null;
     });
+
+    AgentProfile.init();
     
     this.input.on('pointerdown', function(pointer, currentlyOver) {
       if (currentlyOver && currentlyOver.length > 0) {
@@ -1185,6 +1468,7 @@ class TradingWorld extends Phaser.Scene {
       this.time.delayedCall(180, function() {
         if (self.characters[agentId]) self.characters[agentId].sprite.clearTint();
       });
+      AgentProfile.load(agentId);
     }
   }
 
@@ -1379,6 +1663,12 @@ class TradingWorld extends Phaser.Scene {
     });
     
     this.updateDeskScreens(time);
+    if (this.npcs) {
+      this.npcs.forEach(function(npc) {
+        npc.sprite.y = npc.baseY + Math.sin(time / 700) * 1.5;
+        npc.tag.y = npc.sprite.y - 40;
+      });
+    }
     if (Math.floor(time / 30000) !== this._lastDayNightTick) {
       this._lastDayNightTick = Math.floor(time / 30000);
       this.updateDayNight();
@@ -1415,8 +1705,12 @@ class TradingWorld extends Phaser.Scene {
   }
 
   assignPathTo(char, nodeId) {
-    if (char.isResting) {
+    if (char.isResting || char.isMassaging || char.isDining || char.isPlayingPoker) {
       char.isResting = false;
+      char.isMassaging = false;
+      char.isDining = false;
+      char.isPlayingPoker = false;
+      char.activity = null;
       char.sprite.setAngle(0);
       char.sprite.setScale(WORLD.CHAR_SCALE);
       this.resetCharDepth(char);
@@ -1434,7 +1728,73 @@ class TradingWorld extends Phaser.Scene {
     char.destNode = null;
     if (node === OfficePath.boothByAgent[char.agentId]) {
       this.startResting(char, time);
+    } else if (node === OfficePath.massageByAgent[char.agentId]) {
+      this.startMassaging(char, time);
+    } else if (node === OfficePath.dineByAgent[char.agentId]) {
+      this.startDining(char, time);
+    } else if (node === OfficePath.pokerByAgent[char.agentId]) {
+      this.startPlayingPoker(char, time);
     }
+  }
+
+  startMassaging(char, time) {
+    var bed = this.massageBeds && this.massageBeds[char.agentId];
+    char.isMassaging = true;
+    char.activity = 'massage';
+    char.massageUntil = time + 10000 + Math.random() * 9000;
+    char.isWalking = false;
+    char.pathQueue = [];
+    if (bed) { char.sprite.x = bed.bedX; char.sprite.y = bed.bedY; }
+    char.sprite.setDepth(3.2);
+    char.nameTag.setDepth(4.5);
+    char.statusText.setDepth(4.5);
+    char.pnlText.setDepth(4.5);
+    char.bubbleText.setDepth(5);
+    char.statusText.setText('按摩中');
+    char.statusText.setColor('#c87898');
+    char.sprite.setTexture('char_' + char.agentId + '_sit');
+    char.sprite.setAngle(-90);
+    char.sprite.setScale(WORLD.CHAR_SCALE * 0.88);
+  }
+
+  startDining(char, time) {
+    var seat = this.dineSeats && this.dineSeats[char.agentId];
+    char.isDining = true;
+    char.activity = 'dine';
+    char.dineUntil = time + 9000 + Math.random() * 8000;
+    char.isWalking = false;
+    char.pathQueue = [];
+    if (seat) { char.sprite.x = seat.seatX; char.sprite.y = seat.seatY; }
+    char.sprite.setDepth(3.2);
+    char.nameTag.setDepth(4.5);
+    char.statusText.setDepth(4.5);
+    char.pnlText.setDepth(4.5);
+    char.bubbleText.setDepth(5);
+    char.statusText.setText('就餐中');
+    char.statusText.setColor('#b8860b');
+    char.sprite.setTexture('char_' + char.agentId + '_sit');
+    char.sprite.setAngle(0);
+    char.sprite.setScale(WORLD.CHAR_SCALE * 0.92);
+  }
+
+  startPlayingPoker(char, time) {
+    var seat = this.pokerSeats && this.pokerSeats[char.agentId];
+    char.isPlayingPoker = true;
+    char.activity = 'poker';
+    char.pokerUntil = time + 12000 + Math.random() * 10000;
+    char.isWalking = false;
+    char.pathQueue = [];
+    if (seat) { char.sprite.x = seat.seatX; char.sprite.y = seat.seatY; }
+    char.sprite.setDepth(3.2);
+    char.nameTag.setDepth(4.5);
+    char.statusText.setDepth(4.5);
+    char.pnlText.setDepth(4.5);
+    char.bubbleText.setDepth(5);
+    char.statusText.setText('打德州');
+    char.statusText.setColor('#d4af37');
+    char.sprite.setTexture('char_' + char.agentId + '_sit');
+    char.sprite.setAngle(0);
+    char.sprite.setScale(WORLD.CHAR_SCALE * 0.9);
   }
 
   startResting(char, time) {
@@ -1471,13 +1831,25 @@ class TradingWorld extends Phaser.Scene {
     if (char.state === 'trading') return deskNode;
     if (char.state === 'panic') return 'scr_ctr';
     if (char.state === 'idle' && (!char.data || !char.data.running)) {
-      return Math.random() > 0.35 ? OfficePath.boothByAgent[char.agentId] : deskNode;
+      var roll = Math.random();
+      if (roll > 0.72) return OfficePath.boothByAgent[char.agentId];
+      if (roll > 0.52) return OfficePath.massageByAgent[char.agentId];
+      if (roll > 0.32) return OfficePath.dineByAgent[char.agentId];
+      if (roll > 0.14) return OfficePath.pokerByAgent[char.agentId];
+      return deskNode;
     }
     if (char.state === 'scanning' && Math.random() > 0.65) {
       return ['scr_xau','scr_maj','scr_alt','scr_ctr','scr_mom'][Math.floor(Math.random() * 5)];
     }
+    if (char.state === 'scanning' && Math.random() > 0.88) {
+      var leisure = ['bed_1','dine_2','poker_3','rest_l_2'];
+      return leisure[Math.floor(Math.random() * leisure.length)];
+    }
     var pool = OfficePath.wanderTargets.filter(function(n) { return n !== deskNode || Math.random() > 0.45; });
-    if (Math.random() > 0.45) pool.push(OfficePath.boothByAgent[char.agentId]);
+    if (Math.random() > 0.4) pool.push(OfficePath.boothByAgent[char.agentId]);
+    if (Math.random() > 0.55) pool.push(OfficePath.massageByAgent[char.agentId]);
+    if (Math.random() > 0.6) pool.push(OfficePath.dineByAgent[char.agentId]);
+    if (Math.random() > 0.65) pool.push(OfficePath.pokerByAgent[char.agentId]);
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
@@ -1486,6 +1858,18 @@ class TradingWorld extends Phaser.Scene {
 
     if (char.isResting) {
       this.animateResting(char, time, delta);
+      return;
+    }
+    if (char.isMassaging) {
+      this.animateMassaging(char, time, delta);
+      return;
+    }
+    if (char.isDining) {
+      this.animateDining(char, time, delta);
+      return;
+    }
+    if (char.isPlayingPoker) {
+      this.animatePoker(char, time, delta);
       return;
     }
 
@@ -1567,13 +1951,7 @@ class TradingWorld extends Phaser.Scene {
   animateResting(char, time, delta) {
     var agentId = char.agentId;
     if (time > char.restUntil) {
-      char.isResting = false;
-      char.sprite.setAngle(0);
-      char.sprite.setScale(WORLD.CHAR_SCALE);
-      this.resetCharDepth(char);
-      char.moveTimer = 0;
-      char.nextMoveTime = 2000 + Math.random() * 3000;
-      this.assignPathTo(char, OfficePath.deskByAgent[char.agentId]);
+      this.endActivity(char, time);
       return;
     }
     if (time - char.restToggle > 4500) {
@@ -1607,6 +1985,75 @@ class TradingWorld extends Phaser.Scene {
     char.sprite.setAlpha(1);
   }
 
+  endActivity(char, time) {
+    char.isResting = false;
+    char.isMassaging = false;
+    char.isDining = false;
+    char.isPlayingPoker = false;
+    char.activity = null;
+    char.sprite.setAngle(0);
+    char.sprite.setScale(WORLD.CHAR_SCALE);
+    this.resetCharDepth(char);
+    char.moveTimer = 0;
+    char.nextMoveTime = 2000 + Math.random() * 3000;
+    this.assignPathTo(char, OfficePath.deskByAgent[char.agentId]);
+  }
+
+  animateMassaging(char, time, delta) {
+    if (time > char.massageUntil) {
+      this.endActivity(char, time);
+      return;
+    }
+    var bed = this.massageBeds && this.massageBeds[char.agentId];
+    if (bed) { char.sprite.x = bed.bedX; char.sprite.y = bed.bedY; }
+    char.sprite.setDepth(3.2);
+    char.sprite.setTexture('char_' + char.agentId + '_sit');
+    char.sprite.setAngle(-90);
+    char.sprite.setScale(WORLD.CHAR_SCALE * 0.88);
+    char.sprite.y += Math.sin(char.animTimer / 600) * 0.5;
+    this.syncCharLabels(char);
+    char.sprite.clearTint();
+  }
+
+  animateDining(char, time, delta) {
+    if (time > char.dineUntil) {
+      this.endActivity(char, time);
+      return;
+    }
+    var seat = this.dineSeats && this.dineSeats[char.agentId];
+    if (seat) { char.sprite.x = seat.seatX; char.sprite.y = seat.seatY; }
+    char.sprite.setDepth(3.2);
+    char.sprite.setTexture('char_' + char.agentId + '_sit');
+    char.sprite.setAngle(0);
+    char.sprite.setScale(WORLD.CHAR_SCALE * 0.92);
+    if (Math.floor(char.animTimer / 800) % 2 === 0) char.sprite.y -= 2;
+    this.syncCharLabels(char);
+    char.sprite.clearTint();
+  }
+
+  animatePoker(char, time, delta) {
+    if (time > char.pokerUntil) {
+      this.endActivity(char, time);
+      return;
+    }
+    var seat = this.pokerSeats && this.pokerSeats[char.agentId];
+    if (seat) { char.sprite.x = seat.seatX; char.sprite.y = seat.seatY; }
+    char.sprite.setDepth(3.2);
+    char.sprite.setTexture('char_' + char.agentId + '_sit');
+    char.sprite.setAngle(0);
+    char.sprite.setScale(WORLD.CHAR_SCALE * 0.9);
+    char.sprite.y += Math.sin(char.animTimer / 400) * 0.6;
+    this.syncCharLabels(char);
+    if (Math.random() > 0.992) {
+      char.bubbleText.setText('All in!');
+      char.bubbleText.setColor('#d4af37');
+      char.bubbleText.setAlpha(1);
+      var self = this;
+      this.time.delayedCall(2000, function() { char.bubbleText.setAlpha(0); });
+    }
+    char.sprite.clearTint();
+  }
+
   syncCharLabels(char) {
     char.nameTag.x = char.sprite.x;
     char.nameTag.y = char.sprite.y - 44;
@@ -1622,7 +2069,7 @@ class TradingWorld extends Phaser.Scene {
   }
 
   applyCharTint(char) {
-    if (char.isResting) return;
+    if (char.isResting || char.isMassaging || char.isDining || char.isPlayingPoker) return;
     if (char.state === 'panic') {
       char.sprite.setTint(0xff6666);
       char.sprite.setAlpha(Math.floor(char.animTimer / 200) % 2 === 0 ? 0.65 : 1);
@@ -1632,6 +2079,122 @@ class TradingWorld extends Phaser.Scene {
     }
   }
 }
+
+// ============================================================
+// AGENT PROFILE — SOUL + 策略参数编辑
+// ============================================================
+const AgentProfile = {
+  API: location.origin + '/trading',
+  currentAgent: null,
+  schema: [],
+  config: {},
+
+  init() {
+    var self = this;
+    document.querySelectorAll('#agent-detail .tab-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() { self.switchTab(btn.dataset.tab); });
+    });
+    document.getElementById('config-save').addEventListener('click', function() { self.saveConfig(); });
+    document.getElementById('soul-save').addEventListener('click', function() { self.saveSoul(); });
+  },
+
+  switchTab(tab) {
+    document.querySelectorAll('#agent-detail .tab-btn').forEach(function(b) {
+      b.classList.toggle('active', b.dataset.tab === tab);
+    });
+    document.getElementById('tab-overview').classList.toggle('active', tab === 'overview');
+    document.getElementById('tab-config').classList.toggle('active', tab === 'config');
+    document.getElementById('tab-soul').classList.toggle('active', tab === 'soul');
+  },
+
+  load(agentId) {
+    var self = this;
+    this.currentAgent = agentId;
+    this.switchTab('overview');
+    document.getElementById('config-msg').textContent = '';
+    document.getElementById('soul-msg').textContent = '';
+    fetch(this.API + '/api/agent/' + agentId + '/profile')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.error) return;
+        self.schema = (data.schema && data.schema.fields) || [];
+        self.config = data.config || {};
+        document.getElementById('soul-editor').value = data.soul_md || '';
+        self.renderConfigForm();
+      })
+      .catch(function(e) { console.warn('Profile load failed:', e); });
+  },
+
+  renderConfigForm() {
+    var form = document.getElementById('config-form');
+    if (!this.schema.length) {
+      form.innerHTML = '<div style="color:#999;padding:8px 0">该 Agent 暂无可编辑的量化参数</div>';
+      return;
+    }
+    var html = '';
+    var cfg = this.config;
+    this.schema.forEach(function(f) {
+      var val = cfg[f.key] != null ? cfg[f.key] : '';
+      var step = f.step ? ' step="' + f.step + '"' : '';
+      var min = f.min != null ? ' min="' + f.min + '"' : '';
+      var max = f.max != null ? ' max="' + f.max + '"' : '';
+      html += '<div class="cfg-field"><label>' + f.label + '</label>';
+      html += '<input type="number" name="' + f.key + '" value="' + val + '"' + step + min + max + '></div>';
+    });
+    form.innerHTML = html;
+  },
+
+  saveConfig() {
+    var self = this;
+    if (!this.currentAgent) return;
+    var body = { config: {} };
+    this.schema.forEach(function(f) {
+      var inp = document.querySelector('#config-form input[name="' + f.key + '"]');
+      if (inp && inp.value !== '') body.config[f.key] = inp.value;
+    });
+    document.getElementById('config-save').disabled = true;
+    fetch(this.API + '/api/agent/' + this.currentAgent + '/config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        document.getElementById('config-save').disabled = false;
+        document.getElementById('config-msg').textContent = data.message || (data.ok ? '已保存' : (data.error || '保存失败'));
+        document.getElementById('config-msg').style.color = data.ok ? '#16a34a' : '#dc2626';
+        if (data.config) self.config = data.config;
+      })
+      .catch(function() {
+        document.getElementById('config-save').disabled = false;
+        document.getElementById('config-msg').textContent = '网络错误';
+        document.getElementById('config-msg').style.color = '#dc2626';
+      });
+  },
+
+  saveSoul() {
+    var self = this;
+    if (!this.currentAgent) return;
+    var content = document.getElementById('soul-editor').value;
+    document.getElementById('soul-save').disabled = true;
+    fetch(this.API + '/api/agent/' + this.currentAgent + '/soul', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: content })
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        document.getElementById('soul-save').disabled = false;
+        document.getElementById('soul-msg').textContent = data.message || (data.ok ? '已保存' : (data.error || '保存失败'));
+        document.getElementById('soul-msg').style.color = data.ok ? '#16a34a' : '#dc2626';
+      })
+      .catch(function() {
+        document.getElementById('soul-save').disabled = false;
+        document.getElementById('soul-msg').textContent = '网络错误';
+        document.getElementById('soul-msg').style.color = '#dc2626';
+      });
+  }
+};
 
 // ============================================================
 // GAME CONFIG
