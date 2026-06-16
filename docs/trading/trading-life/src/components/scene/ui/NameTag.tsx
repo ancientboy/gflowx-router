@@ -7,8 +7,8 @@ export function NameTag({ label, status, accentColor = '#FFD700' }: {
 }) {
   const { map, w, h } = useMemo(() => {
     const canvas = document.createElement('canvas');
-    canvas.width = 256;
-    canvas.height = status ? 72 : 48;
+    canvas.width = 512;
+    canvas.height = status ? 96 : 64;
     const ctx = canvas.getContext('2d')!;
     ctx.fillStyle = 'rgba(255,252,247,0.96)';
     ctx.strokeStyle = '#e0d8cc';
@@ -28,18 +28,21 @@ export function NameTag({ label, status, accentColor = '#FFD700' }: {
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = accentColor;
-    ctx.font = 'bold 22px Inter,sans-serif';
+    ctx.font = 'bold 28px Inter,sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(label, canvas.width / 2, status ? 28 : 32);
+    ctx.fillText(label, canvas.width / 2, status ? 36 : 40);
     if (status) {
       ctx.fillStyle = '#888888';
-      ctx.font = '18px Inter,sans-serif';
-      ctx.fillText(status, canvas.width / 2, 56);
+      ctx.font = '22px Inter,sans-serif';
+      ctx.fillText(status, canvas.width / 2, 72);
     }
     const tex = new THREE.CanvasTexture(canvas);
     tex.colorSpace = THREE.SRGBColorSpace;
+    tex.minFilter = THREE.LinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    tex.generateMipmaps = false;
     tex.needsUpdate = true;
-    return { map: tex, w: 1.35, h: status ? 0.38 : 0.26 };
+    return { map: tex, w: 1.4, h: status ? 0.42 : 0.28 };
   }, [label, status, accentColor]);
 
   return (

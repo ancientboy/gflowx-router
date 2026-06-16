@@ -8,7 +8,9 @@ export const OfficePath = {
     desk_new: p2(1260,560), desk_mom: p2(1540,560),
     u_ctr: p2(1200,420), scr_ctr: p2(1200,130),
     d_xau: p2(420,980), d_maj: p2(700,980), d_alt: p2(980,980),
-    rest_l_1: p2(420,1265), rest_l_2: p2(560,1278),
+    rest_l_1: p2(420,1265), rest_l_2: p2(820,1278),
+    booth_a1: p2(320,1265), booth_a2: p2(520,1265),
+    booth_b1: p2(720,1278), booth_b2: p2(920,1278),
     recv_ctr: p2(1200,2400),
     door_ts: p2(2390,780), door_tr: p2(1200,1350), door_sc: p2(3600,1350),
     hub_tr: p2(1200,1160),
@@ -32,12 +34,14 @@ export const OfficePath = {
       ['a_w','a_xau'],['a_xau','a_maj'],['a_maj','a_alt'],['a_alt','a_new'],['a_new','a_mom'],['a_mom','a_e'],
       ['a_xau','desk_xau'],['a_maj','desk_maj'],['a_alt','desk_alt'],['a_new','desk_new'],['a_mom','desk_mom'],
       ['a_xau','u_ctr'],['a_maj','u_ctr'],['a_alt','u_ctr'],['u_ctr','scr_ctr'],
-      ['a_xau','d_xau'],['a_maj','d_maj'],['a_alt','d_alt'],['d_xau','rest_l_1'],['d_maj','rest_l_2'],
+      ['a_xau','d_xau'],['a_maj','d_maj'],['a_alt','d_alt'],
+      ['d_xau','booth_a1'],['booth_a1','rest_l_1'],['booth_a1','booth_a2'],
+      ['d_maj','booth_b1'],['booth_b1','rest_l_2'],['booth_b1','booth_b2'],
       ['a_e','door_ts'],['door_ts','spa_c'],['spa_c','spa_d'],['spa_d','bed_1'],['spa_d','bed_2'],['spa_d','bed_3'],
       ['d_maj','hub_tr'],['hub_tr','door_tr'],['door_tr','rest_d'],['rest_d','rest_c'],
       ['rest_c','dine_1'],['rest_c','dine_2'],['rest_c','dine_3'],
       ['door_sc','cas_d'],['cas_d','cas_c'],['cas_c','poker_1'],['cas_c','poker_2'],['cas_c','poker_3'],
-      ['d_xau','recv_ctr'],['d_maj','recv_ctr'],['recv_ctr','a_xau'],
+      ['d_xau','recv_ctr'],['recv_ctr','a_xau'],
     ];
     const adj: Record<string, string[]> = {};
     Object.keys(this.nodes).forEach(k => { adj[k] = []; });

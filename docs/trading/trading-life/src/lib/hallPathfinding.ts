@@ -7,11 +7,13 @@ export const HallPath = {
     desk_new: { x: 3, z: -2 },
     desk_mom: { x: 6, z: -2 },
     scr_ctr: { x: 0, z: -4.5 },
-    aisle_c: { x: 0, z: 0.5 },
-    aisle_l: { x: -4.5, z: 3 },
-    aisle_r: { x: 4.5, z: 3 },
-    rest_l_1: { x: -5.8, z: 5.15 },
-    rest_l_2: { x: 5.8, z: 5.15 },
+    aisle_c: { x: 0, z: 1.2 },
+    aisle_l: { x: -4.5, z: 3.5 },
+    aisle_r: { x: 4.5, z: 3.5 },
+    rest_l_1: { x: -6.5, z: 5.8 },
+    rest_l_2: { x: 6.5, z: 5.8 },
+    booth_a1: { x: -5.2, z: 5.8 },
+    booth_b1: { x: 5.2, z: 5.8 },
     coffee: { x: 9, z: 1 },
   } as Record<string, { x: number; z: number }>,
 
@@ -32,11 +34,11 @@ export const HallPath = {
   _buildEdges() {
     if (this._edges) return this._edges;
     const pairs: [string, string][] = [
-      ['desk_xau', 'desk_maj'], ['desk_maj', 'desk_alt'], ['desk_alt', 'desk_new'], ['desk_new', 'desk_mom'],
       ['desk_xau', 'aisle_l'], ['desk_maj', 'aisle_c'], ['desk_alt', 'aisle_c'], ['desk_new', 'aisle_c'], ['desk_mom', 'aisle_r'],
       ['aisle_c', 'scr_ctr'],
       ['aisle_c', 'aisle_l'], ['aisle_c', 'aisle_r'],
-      ['aisle_l', 'rest_l_1'], ['aisle_r', 'rest_l_2'],
+      ['aisle_l', 'booth_a1'], ['booth_a1', 'rest_l_1'],
+      ['aisle_r', 'booth_b1'], ['booth_b1', 'rest_l_2'],
       ['aisle_r', 'coffee'], ['desk_mom', 'coffee'],
     ];
     const adj: Record<string, string[]> = {};

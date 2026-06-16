@@ -7,6 +7,8 @@ import { AppIcon } from '../icons/AppIcon';
 
 export function CanvasControls() {
   const resetCamera = useGameStore(s => s.resetCamera);
+  const setCameraZoom = useGameStore(s => s.setCameraZoom);
+  const cameraZoom = useGameStore(s => s.cameraZoom);
   const followAgentId = useGameStore(s => s.followAgentId);
   const selectedAgentId = useGameStore(s => s.selectedAgentId);
   const setFollowAgent = useGameStore(s => s.setFollowAgent);
@@ -26,8 +28,8 @@ export function CanvasControls() {
       <IconCtl icon={ArrowPathIcon} title="复位" onClick={resetCamera} />
       <Ctl label="跟随" active={!!followAgentId} onClick={() => setFollowAgent(followAgentId ? null : selectedAgentId)} />
       <span className="ctl-sep" />
-      <IconCtl icon={MagnifyingGlassPlusIcon} title="拉近" onClick={resetCamera} />
-      <IconCtl icon={MagnifyingGlassMinusIcon} title="拉远" onClick={resetCamera} />
+      <IconCtl icon={MagnifyingGlassPlusIcon} title="拉近" onClick={() => setCameraZoom(cameraZoom + 4)} />
+      <IconCtl icon={MagnifyingGlassMinusIcon} title="拉远" onClick={() => setCameraZoom(cameraZoom - 4)} />
       <span className="ctl-sep" />
       <Ctl label="1x" active={simSpeed === 1 && !paused} onClick={() => setSimSpeed(1)} />
       <Ctl label="5x" active={simSpeed === 5 && !paused} onClick={() => setSimSpeed(5)} />

@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import type { AgentData, CameraMode, CharState, QualityTier, TradeRecord } from '../lib/constants';
 import { AGENT_META } from '../lib/constants';
-import { HallPath } from '../lib/hallPathfinding';
-import { HALL_AGENT_START, SIDEBAR_TO_ZONE, ZONE_TO_RIGHT_TAB } from '../lib/zones';
+import { OfficePath } from '../lib/pathfinding';
+import { WORLD_MAP, ZONE_CAMERA } from '../lib/worldMap';
+import { SIDEBAR_TO_ZONE, ZONE_TO_RIGHT_TAB } from '../lib/zones';
 
 export type RightTab = 'hall' | 'object' | 'agent' | 'npc' | 'facility' | 'assets' | 'strategy' | 'messages';
 export type SidebarAction = 'hall' | 'agents' | 'strategy' | 'positions' | 'restaurant' | 'spa' | 'casino' | 'warehouse' | 'social' | 'logs';
@@ -34,6 +35,9 @@ interface GameStore {
   activeZone: ZoneId;
   activeModal: ModalId;
   followAgentId: string | null;
+  cameraLookAt: { x: number; z: number };
+  cameraZoom: number;
+  mapOverview: boolean;
   agents: Record<string, CharState>;
   ticker: Record<string, number>;
   overview: {
@@ -70,6 +74,9 @@ interface GameStore {
   flyToZone: (zone: ZoneId) => void;
   resetCamera: () => void;
   setFollowAgent: (id: string | null) => void;
+  setCameraLookAt: (x: number, z: number, opts?: { zoom?: number; overview?: boolean }) => void;
+  setCameraZoom: (zoom: number) => void;
+  panCamera: (dx: number, dz: number) => void;
   initAgents: () => void;
   updateFromOverview: (data: {
     agents?: AgentData[];
@@ -104,6 +111,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
   activeZone: 'hall',
   activeModal: null,
   followAgentId: null,
+  cameraLookAt: { x: WORLD_MAP.centerX, z: WORLD_MAP.centerZ },
+  cameraZoom: WORLD_MAP.overviewZoom,
+  mapOverview: true,
   agents: {},
   ticker: {},
   overview: {},
@@ -150,6 +160,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const zone = SIDEBAR_TO_ZONE[action];
     if (zone) {
       const isLeisure = zone === 'restaurant' || zone === 'spa' || zone === 'casino';
+      const cam = ZONE_CAMERA[zone];
       set({
         ...expand,
         sidebarActive: action,
@@ -158,6 +169,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
         followAgentId: null,
         selectedNpcId: null,
         selectedFacility: isLeisure ? LEISURE_FACILITY[zone] : null,
+        cameraLookAt: { x: cam.x, z: cam.z },
+        cameraZoom: WORLD_MAP.zoneZoom,
+        mapOverview: false,
       });
       return;
     }
@@ -204,14 +218,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
   openModal: (id) => set({ activeModal: id }),
   closeModal: () => set({ activeModal: null }),
-  flyToZone: (zone) => set({
-    activeZone: zone,
-    sidebarActive: zone === 'hall' ? 'hall' : zone,
-    rightTab: ZONE_TO_RIGHT_TAB[zone],
-    followAgentId: null,
-    activeModal: null,
-    selectedFacility: zone === 'restaurant' ? 'table' : zone === 'spa' ? 'bed' : zone === 'casino' ? 'poker' : null,
-  }),
+  flyToZone: (zone) => {
+    const cam = ZONE_CAMERA[zone];
+    set({
+      activeZone: zone,
+      sidebarActive: zone === 'hall' ? 'hall' : zone,
+      rightTab: ZONE_TO_RIGHT_TAB[zone],
+      followAgentId: null,
+      activeModal: null,
+      selectedFacility: zone === 'restaurant' ? 'table' : zone === 'spa' ? 'bed' : zone === 'casino' ? 'poker' : null,
+      cameraLookAt: { x: cam.x, z: cam.z },
+      cameraZoom: WORLD_MAP.zoneZoom,
+      mapOverview: false,
+    });
+  },
 
   sendAgentToLeisure: (type, agentId) => {
     const s = get();
@@ -219,24 +239,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!id || !s.agents[id]) return;
     const zoneMap = { dine: 'restaurant' as ZoneId, massage: 'spa' as ZoneId, poker: 'casino' as ZoneId };
     const activityMap = { dine: 'dine' as const, massage: 'massage' as const, poker: 'poker' as const };
+    const nodeMap = { dine: OfficePath.dineByAgent, massage: OfficePath.massageByAgent, poker: OfficePath.pokerByAgent };
     const zone = zoneMap[type];
-    const now = performance.now();
-    const char = s.agents[id];
-    const duration = type === 'poker' ? 12000 : type === 'massage' ? 10000 : 9000;
-    const updated: CharState = {
-      ...char,
-      activity: activityMap[type],
-      activityUntil: now + duration + Math.random() * 3000,
-      isWalking: false,
-      pathQueue: [],
-      pathIndex: 0,
-      destNode: null,
-      stress: type === 'massage' ? Math.max(0, char.stress - 50)
-        : type === 'dine' ? Math.max(0, char.stress - 30)
-        : type === 'poker' ? 0 : char.stress,
-    };
+    const cam = ZONE_CAMERA[zone];
+    let char = { ...s.agents[id], travelIntent: activityMap[type], activity: null, activityUntil: 0 };
+    const node = nodeMap[type][id];
+    char = assignPath(char, node);
     set({
-      agents: { ...s.agents, [id]: updated },
+      agents: { ...s.agents, [id]: char },
       selectedAgentId: id,
       followAgentId: id,
       activeZone: zone,
@@ -245,7 +255,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
       selectedFacility: LEISURE_FACILITY[zone],
       rightPanelCollapsed: false,
       activeModal: null,
+      cameraLookAt: { x: cam.x, z: cam.z },
+      cameraZoom: WORLD_MAP.zoneZoom,
+      mapOverview: false,
     });
+    get().addMessage(`${char.data.name} 正前往${cam.label}…`);
   },
   resetCamera: () => set({
     activeZone: 'hall',
@@ -255,16 +269,41 @@ export const useGameStore = create<GameStore>((set, get) => ({
     activeModal: null,
     selectedNpcId: null,
     selectedFacility: null,
+    cameraLookAt: { x: WORLD_MAP.centerX, z: WORLD_MAP.centerZ },
+    cameraZoom: WORLD_MAP.overviewZoom,
+    mapOverview: true,
   }),
   setFollowAgent: (id) => set({ followAgentId: id, selectedAgentId: id, rightPanelCollapsed: false }),
 
+  setCameraLookAt: (x, z, opts) => set(s => ({
+    cameraLookAt: { x, z },
+    cameraZoom: opts?.zoom ?? s.cameraZoom,
+    mapOverview: opts?.overview ?? false,
+  })),
+  setCameraZoom: (zoom) => set({
+    cameraZoom: Math.min(WORLD_MAP.maxZoom, Math.max(WORLD_MAP.minZoom, zoom)),
+    mapOverview: false,
+  }),
+  panCamera: (dx, dz) => set(s => {
+    const b = WORLD_MAP.panBounds;
+    return {
+      cameraLookAt: {
+        x: Math.min(b.maxX, Math.max(b.minX, s.cameraLookAt.x + dx)),
+        z: Math.min(b.maxZ, Math.max(b.minZ, s.cameraLookAt.z + dz)),
+      },
+      mapOverview: false,
+    };
+  }),
+
   initAgents: () => {
     const agents: Record<string, CharState> = {};
-    Object.entries(HALL_AGENT_START).forEach(([id, pos]) => {
+    Object.entries(OfficePath.deskByAgent).forEach(([id, nodeId]) => {
+      const pos = OfficePath.nodes[nodeId];
       agents[id] = {
         agentId: id, x: pos.x, z: pos.z,
         pathQueue: [], pathIndex: 0, isWalking: false, destNode: null,
-        activity: null, activityUntil: 0, state: 'idle', stress: 0,
+        activity: null, activityUntil: 0, travelIntent: null,
+        state: 'idle', stress: 0,
         moveTimer: 0, nextMoveTime: 1500 + Math.random() * 2500,
         data: { ...AGENT_META[id] },
       };
@@ -324,48 +363,80 @@ export const useGameStore = create<GameStore>((set, get) => ({
 }));
 
 export function assignPath(char: CharState, nodeId: string): CharState {
-  const pts = HallPath.pathToNode(char.x, char.z, nodeId);
+  const pts = OfficePath.pathToNode(char.x, char.z, nodeId);
   if (pts.length < 2) return { ...char, destNode: nodeId, isWalking: false, pathQueue: [] };
-  return { ...char, activity: null, activityUntil: 0, destNode: nodeId, pathQueue: pts.slice(1), pathIndex: 0, isWalking: true };
+  return { ...char, destNode: nodeId, pathQueue: pts.slice(1), pathIndex: 0, isWalking: true };
 }
 
 export function pickWanderTarget(char: CharState): string {
-  const desk = HallPath.deskByAgent[char.agentId];
-  const booth = HallPath.boothByAgent[char.agentId];
+  const desk = OfficePath.deskByAgent[char.agentId];
+  const booth = OfficePath.boothByAgent[char.agentId];
   if (char.state === 'panic') return 'scr_ctr';
-  if (char.stress > 60) return Math.random() > 0.35 ? booth : 'scr_ctr';
+  if (char.stress > 65) {
+    const r = Math.random();
+    if (r > 0.55) return OfficePath.massageByAgent[char.agentId];
+    if (r > 0.3) return OfficePath.dineByAgent[char.agentId];
+    if (r > 0.15) return OfficePath.pokerByAgent[char.agentId];
+    return booth;
+  }
   if (char.state === 'trading') {
     const r = Math.random();
-    if (r > 0.65) return booth;
-    if (r > 0.35) return 'scr_ctr';
+    if (r > 0.7) return booth;
+    if (r > 0.4) return 'scr_ctr';
     return desk;
   }
   if (char.state === 'scanning') {
     const r = Math.random();
-    if (r > 0.55) return 'scr_ctr';
-    if (r > 0.3) return booth;
-    return HallPath.hallWander[Math.floor(Math.random() * HallPath.hallWander.length)];
+    if (r > 0.5) return 'scr_ctr';
+    if (r > 0.25) return booth;
+    return desk;
   }
   const r = Math.random();
   if (r > 0.65) return booth;
   if (r > 0.45) return 'scr_ctr';
-  if (r > 0.25) return 'coffee';
   return desk;
 }
 
 export function onPathComplete(char: CharState, now: number): CharState {
   const node = char.destNode;
-  if (node === HallPath.boothByAgent[char.agentId]) return startActivity(char, 'rest', now, 9000);
+  if (char.travelIntent) {
+    const intent = char.travelIntent;
+    return startActivity({ ...char, travelIntent: null }, intent, now,
+      intent === 'poker' ? 12000 : intent === 'massage' ? 10000 : 9000);
+  }
+  if (node === OfficePath.boothByAgent[char.agentId]) return startActivity(char, 'rest', now, 9000);
+  if (node === OfficePath.massageByAgent[char.agentId]) return startActivity(char, 'massage', now, 10000);
+  if (node === OfficePath.dineByAgent[char.agentId]) return startActivity(char, 'dine', now, 9000);
+  if (node === OfficePath.pokerByAgent[char.agentId]) return startActivity(char, 'poker', now, 12000);
   return { ...char, destNode: null, isWalking: false, pathQueue: [] };
 }
 
 function startActivity(char: CharState, activity: CharState['activity'], now: number, dur: number): CharState {
-  const nodeId = activity === 'rest' ? HallPath.boothByAgent[char.agentId] : null;
-  const pos = nodeId ? HallPath.nodes[nodeId] : null;
+  const seatMap: Record<string, Record<string, string>> = {
+    rest: OfficePath.boothByAgent, massage: OfficePath.massageByAgent,
+    dine: OfficePath.dineByAgent, poker: OfficePath.pokerByAgent,
+  };
+  const nodeId = seatMap[activity!]?.[char.agentId];
+  const pos = nodeId ? OfficePath.nodes[nodeId] : null;
   return {
     ...char, activity, activityUntil: now + dur + Math.random() * 5000,
-    isWalking: false, pathQueue: [], destNode: null,
+    travelIntent: null, isWalking: false, pathQueue: [], destNode: null,
     x: pos?.x ?? char.x, z: pos?.z ?? char.z,
-    stress: activity === 'rest' ? Math.max(0, char.stress - 20) : char.stress,
+    stress: activity === 'massage' ? Math.max(0, char.stress - 50)
+      : activity === 'dine' ? Math.max(0, char.stress - 30)
+      : activity === 'poker' ? 0
+      : activity === 'rest' ? Math.max(0, char.stress - 20) : char.stress,
   };
+}
+
+/** 高压力时自动派遣 Agent 步行去休闲区 */
+export function maybeDispatchLeisure(char: CharState): CharState {
+  if (char.isWalking || char.activity || char.travelIntent || char.stress < 72) return char;
+  const r = Math.random();
+  let intent: CharState['travelIntent'] = null;
+  let node = '';
+  if (r > 0.55) { intent = 'massage'; node = OfficePath.massageByAgent[char.agentId]; }
+  else if (r > 0.3) { intent = 'dine'; node = OfficePath.dineByAgent[char.agentId]; }
+  else { intent = 'poker'; node = OfficePath.pokerByAgent[char.agentId]; }
+  return { ...assignPath(char, node), travelIntent: intent };
 }

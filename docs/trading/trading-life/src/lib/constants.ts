@@ -62,6 +62,8 @@ export interface CharState {
   destNode: string | null;
   activity: 'idle' | 'rest' | 'massage' | 'dine' | 'poker' | null;
   activityUntil: number;
+  /** 正在走向休闲目的地，到达后触发 activity */
+  travelIntent?: 'rest' | 'massage' | 'dine' | 'poker' | null;
   state: 'idle' | 'scanning' | 'trading' | 'panic';
   stress: number;
   moveTimer: number;
