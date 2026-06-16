@@ -1,24 +1,45 @@
 import { Suspense, useEffect, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrthographicCamera } from '@react-three/drei';
 import * as THREE from 'three';
 import { useGameStore } from '../../store/useGameStore';
 import { ZONE_META } from '../../lib/zones';
 import { ZoneScene } from './zones/ZoneScenes';
 import { CharacterSim } from './CharacterSim';
 
-/** 固定 2.5D 俯视 — 类似灵犀云办公区，始终对准当前分区中心 */
+/** 固定 2.5D 俯视，始终对准分区中心 */
 const CAM = { x: 0, y: 22, z: 12, zoom: 42 };
 
-function CameraRig() {
-  const { camera } = useThree();
+function createOrthoCamera(size: { width: number; height: number }) {
+  const cam = new THREE.OrthographicCamera(
+    -size.width / 2, size.width / 2,
+    size.height / 2, -size.height / 2,
+    0.1, 300,
+  );
+  cam.position.set(CAM.x, CAM.y, CAM.z);
+  cam.zoom = CAM.zoom;
+  cam.lookAt(0, 0, 0);
+  cam.updateProjectionMatrix();
+  return cam;
+}
 
-  // 必须在 drei OrthographicCamera 更新之后执行
+function FixedCamera() {
+  const { camera, size } = useThree();
+
   useFrame(() => {
-    camera.position.set(CAM.x, CAM.y, CAM.z);
-    camera.lookAt(0, 0, 0);
-    camera.updateMatrixWorld();
-  }, 999);
+    const ortho = camera as THREE.OrthographicCamera;
+    if (!ortho.isOrthographicCamera) return;
+    ortho.position.set(CAM.x, CAM.y, CAM.z);
+    ortho.left = -size.width / 2;
+    ortho.right = size.width / 2;
+    ortho.top = size.height / 2;
+    ortho.bottom = -size.height / 2;
+    ortho.zoom = CAM.zoom;
+    ortho.near = 0.1;
+    ortho.far = 300;
+    ortho.lookAt(0, 0, 0);
+    ortho.updateProjectionMatrix();
+    ortho.updateMatrixWorld(true);
+  });
 
   return null;
 }
@@ -41,16 +62,12 @@ function SceneContent() {
     ? '#1e2838'
     : (dayMode === 'day' ? '#e8e4dc' : '#2a2838');
 
-  const ambIntensity = dayMode === 'day' ? 0.7 : 0.4;
-  const hemiTop = dayMode === 'day' ? '#fff8f0' : '#607090';
-  const hemiBot = dayMode === 'day' ? '#d8d0c8' : '#1a1520';
-
   return (
     <>
-      <CameraRig />
+      <FixedCamera />
       <SceneBackground color={bg} />
-      <ambientLight intensity={ambIntensity} />
-      <hemisphereLight args={[hemiTop, hemiBot, 0.5]} />
+      <ambientLight intensity={dayMode === 'day' ? 0.7 : 0.4} />
+      <hemisphereLight args={[dayMode === 'day' ? '#fff8f0' : '#607090', dayMode === 'day' ? '#d8d0c8' : '#1a1520', 0.5]} />
       <directionalLight position={[8, 16, 6]} intensity={1} castShadow={quality !== 'low'} />
       {effectsOn && <directionalLight position={[-6, 8, -4]} intensity={0.3} />}
       <Suspense fallback={null}>
@@ -81,16 +98,18 @@ export function GameCanvas() {
     <div className={`canvas-wrap${zoneAnim ? ' zone-fade' : ''}`}>
       <div className="zone-title-badge">{ZONE_META[activeZone]?.label ?? '交易大厅'}</div>
       <Canvas
+        frameloop="always"
         shadows={quality !== 'low'}
         dpr={quality === 'low' ? 1 : Math.min(window.devicePixelRatio, 1.5)}
-        gl={{ antialias: quality !== 'low', alpha: false, preserveDrawingBuffer: true }}
-        style={{ width: '100%', height: '100%', background: bgColor }}
-        onCreated={({ scene, gl }) => {
+        gl={{ antialias: quality !== 'low', alpha: false, preserveDrawingBuffer: true, powerPreference: 'high-performance' }}
+        style={{ width: '100%', height: '100%', background: bgColor, display: 'block' }}
+        onCreated={({ set, size, gl, scene }) => {
+          const ortho = createOrthoCamera(size);
+          set({ camera: ortho });
           scene.background = new THREE.Color(bgColor);
           gl.setClearColor(new THREE.Color(bgColor), 1);
         }}
       >
-        <OrthographicCamera makeDefault position={[CAM.x, CAM.y, CAM.z]} zoom={CAM.zoom} near={0.1} far={300} />
         <SceneContent />
       </Canvas>
     </div>

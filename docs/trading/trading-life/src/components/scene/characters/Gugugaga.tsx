@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
+import { NameTag } from '../ui/NameTag';
 
 export interface GugugagaProps {
   accentColor?: string;
@@ -128,18 +128,7 @@ export function Gugugaga({
         <primitive object={toon('#ffc832')} attach="material" />
       </mesh>
       {roleAcc[role]?.extra}
-      {label && (
-        <Html center position={[0, 1.55, 0]} distanceFactor={12} zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
-          <div style={{
-            padding: '3px 8px', borderRadius: 8, fontSize: 11, fontWeight: 600,
-            background: 'rgba(255,252,247,0.95)', border: '1px solid #e0d8cc',
-            color: accentColor, whiteSpace: 'nowrap', textAlign: 'center',
-          }}>
-            {label}
-            {status && <div style={{ fontSize: 10, color: '#888', fontWeight: 500 }}>{status}</div>}
-          </div>
-        </Html>
-      )}
+      {label && <NameTag label={label} status={status} accentColor={accentColor} />}
     </group>
   );
 }
