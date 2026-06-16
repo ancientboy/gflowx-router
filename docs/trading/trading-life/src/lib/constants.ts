@@ -1,0 +1,47 @@
+export const S = 0.01;
+export const WORLD = { W: 56, H: 30, MID_X: 28, MID_Y: 15 };
+
+export const AGENT_META: Record<string, AgentMeta> = {
+  xau: { id: 'xau', name: 'XAU Agent', icon: '🥇', color: '#FFD700', desc: '黄金趋势交易', strategy: '趋势跟踪', market: 'XAUUSDT', interval: '15m/1h', risk: '中' },
+  major: { id: 'major', name: 'Major Agent', icon: '₿', color: '#3B82F6', desc: '主流币趋势', strategy: '趋势+反转', market: 'BTC/ETH', interval: '1h/4h', risk: '中' },
+  altcoin: { id: 'altcoin', name: 'Altcoin Agent', icon: '🪙', color: '#F59E0B', desc: '山寨波段', strategy: '波段动量', market: 'Alt', interval: '15m/1h', risk: '中高' },
+  newcoin: { id: 'newcoin', name: 'Newcoin Agent', icon: '🚀', color: '#A855F7', desc: '新币猎手', strategy: '趋势突破', market: '新币', interval: '5m/15m', risk: '高' },
+  momentum: { id: 'momentum', name: 'Momentum Agent', icon: '⚡', color: '#EF4444', desc: '动量快打', strategy: '动量追踪', market: '高波动', interval: '5m/15m', risk: '高' },
+};
+
+export interface AgentMeta {
+  id: string; name: string; icon: string; color: string;
+  desc: string; strategy: string; market: string; interval: string; risk: string;
+}
+
+export interface AgentData extends AgentMeta {
+  capital?: number; initial_capital?: number; pnl?: number; pnl_pct?: number;
+  trades?: number; wins?: number; win_rate?: number;
+  running?: boolean; is_circuit_break?: boolean;
+  positions?: { symbol: string; direction: string }[];
+}
+
+export interface Personality {
+  risk: number; patience: number; panic: number; greed: number;
+}
+
+export interface CharState {
+  agentId: string;
+  x: number; z: number;
+  pathQueue: { x: number; z: number }[];
+  pathIndex: number;
+  isWalking: boolean;
+  destNode: string | null;
+  activity: 'idle' | 'rest' | 'massage' | 'dine' | 'poker' | null;
+  activityUntil: number;
+  state: 'idle' | 'scanning' | 'trading' | 'panic';
+  stress: number;
+  moveTimer: number;
+  nextMoveTime: number;
+  data: AgentData;
+}
+
+export type CameraMode = 'ortho' | 'perspective';
+export type QualityTier = 'low' | 'medium' | 'high';
+
+export function p2(x: number, y: number) { return { x: x * S, z: y * S }; }
