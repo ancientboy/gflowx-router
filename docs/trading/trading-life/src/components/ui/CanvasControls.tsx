@@ -20,9 +20,6 @@ export function CanvasControls() {
   const setEffectsOn = useGameStore(s => s.setEffectsOn);
   const dayMode = useGameStore(s => s.dayMode);
   const setDayMode = useGameStore(s => s.setDayMode);
-  const cameraMode = useGameStore(s => s.cameraMode);
-  const setCameraMode = useGameStore(s => s.setCameraMode);
-
   return (
     <div className="canvas-controls">
       <IconCtl icon={ArrowPathIcon} title="复位" onClick={resetCamera} />
@@ -38,7 +35,6 @@ export function CanvasControls() {
       <span className="ctl-sep" />
       <IconCtl icon={effectsOn ? EyeIcon : EyeSlashIcon} title="特效" active={effectsOn} onClick={() => setEffectsOn(!effectsOn)} />
       <Ctl label={dayMode === 'day' ? '日' : '夜'} onClick={() => setDayMode(dayMode === 'day' ? 'night' : 'day')} />
-      <Ctl label={cameraMode === 'ortho' ? '2.5D' : '3D'} active onClick={() => setCameraMode(cameraMode === 'ortho' ? 'perspective' : 'ortho')} />
     </div>
   );
 }
