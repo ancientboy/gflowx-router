@@ -15,6 +15,7 @@ body { background: #faf6ef; overflow: hidden; font-family: -apple-system, BlinkM
   display: flex; gap: 12px; align-items: center; z-index: 100;
   background: rgba(250,246,239,0.94); border-bottom: 2px solid #e8dfd0;
   font-size: 13px; color: #4a3f35;
+  pointer-events: auto;
 }
 #ui-overlay .stat { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
 #ui-overlay .stat .label { color: #7a6e62; font-size: 11px; font-weight: 500; }
@@ -876,6 +877,7 @@ class TradingWorld extends Phaser.Scene {
     // Setup input
     this.setupInput();
     this.setupCameraControls();
+    this.watchUiOverlay();
     this.updateDayNight();
     var hint = document.getElementById('cam-hint');
     if (hint) setTimeout(function() { hint.classList.add('hidden'); }, 9000);
@@ -883,14 +885,29 @@ class TradingWorld extends Phaser.Scene {
 
 
   fitCamera() {
+    var overlay = document.getElementById('ui-overlay');
+    var topInset = overlay ? overlay.getBoundingClientRect().height + 4 : 0;
     var vw = this.scale.width;
-    var vh = this.scale.height;
+    var vh = Math.max(240, this.scale.height - topInset);
+    this.uiTopInset = topInset;
+    this.cameras.main.setViewport(0, topInset, vw, vh);
     var zoom = Math.min(vw / this.WORLD_W, vh / this.WORLD_H) * 0.97;
     this.baseZoom = zoom;
     this.minZoom = zoom * 0.55;
     this.maxZoom = zoom * 1.45;
     this.cameras.main.setZoom(zoom);
-    this.cameras.main.centerOn(1200, 720);
+    this.cameras.main.centerOn(1200, 700);
+  }
+
+  watchUiOverlay() {
+    var self = this;
+    var overlay = document.getElementById('ui-overlay');
+    if (!overlay || typeof ResizeObserver === 'undefined') return;
+    if (this._uiOverlayObserver) this._uiOverlayObserver.disconnect();
+    this._uiOverlayObserver = new ResizeObserver(function() {
+      self.fitCamera();
+    });
+    this._uiOverlayObserver.observe(overlay);
   }
 
   setupCameraControls() {
