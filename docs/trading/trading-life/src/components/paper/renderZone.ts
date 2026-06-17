@@ -129,9 +129,24 @@ function drawRestaurantScene(ctx: CanvasRenderingContext2D, cam: PaperCamera, ho
   });
 }
 
-function drawCasinoScene(ctx: CanvasRenderingContext2D, cam: PaperCamera, t: number, hoverId: string | null) {
+function punchCasinoTableHole(ctx: CanvasRenderingContext2D, cam: PaperCamera) {
   const s = pt(cam, CASINO_TABLE.px, CASINO_TABLE.py);
-  drawPokerTable8(ctx, s.x, s.y, cam.scale, t);
+  ctx.save();
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.beginPath();
+  ctx.ellipse(s.x, s.y, ws(cam, CASINO_TABLE.r * 1.05), ws(cam, CASINO_TABLE.r * 0.72), 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawCasinoScene(
+  ctx: CanvasRenderingContext2D, cam: PaperCamera, t: number, hoverId: string | null,
+  pokerGlbReady: boolean,
+) {
+  const s = pt(cam, CASINO_TABLE.px, CASINO_TABLE.py);
+  if (!pokerGlbReady) {
+    drawPokerTable8(ctx, s.x, s.y, cam.scale, t);
+  }
   CASINO_SEATS.forEach(seat => {
     const cs = pt(cam, seat.px, seat.py);
     drawChair(ctx, cs.x, cs.y, cam.scale * 0.85, seat.facing);
@@ -186,11 +201,13 @@ export function renderZone(
     hoverFacilityId: string | null; bob: number; dayMode: 'day' | 'night';
     ticker: Record<string, number>; t: number;
     npcBubble: { npcId: string; text: string; until: number } | null;
+    pokerGlbReady?: boolean;
   },
 ) {
   const layout = ZONE_LAYOUTS[zone];
   ctx.fillStyle = opts.dayMode === 'day' ? layout.floorColor : '#2a2838';
   ctx.fillRect(0, 0, cam.cw, cam.ch);
+  if (zone === 'casino' && opts.pokerGlbReady) punchCasinoTableHole(ctx, cam);
 
   switch (zone) {
     case 'hall':
@@ -205,7 +222,7 @@ export function renderZone(
       drawNpcs(ctx, cam, zone, opts.t, opts.npcBubble);
       break;
     case 'casino':
-      drawCasinoScene(ctx, cam, opts.t, opts.hoverFacilityId);
+      drawCasinoScene(ctx, cam, opts.t, opts.hoverFacilityId, !!opts.pokerGlbReady);
       drawNpcs(ctx, cam, zone, opts.t, opts.npcBubble);
       break;
     case 'reception':

@@ -61,6 +61,7 @@ interface GameStore {
   soulMd: string;
   messages: { text: string; time: string }[];
   npcBubble: { npcId: string; text: string; until: number } | null;
+  pokerGlbReady: boolean;
 
   setCameraMode: (m: CameraMode) => void;
   setQuality: (q: QualityTier) => void;
@@ -102,6 +103,7 @@ interface GameStore {
   patchChar: (id: string, patch: Partial<CharState>) => void;
   addMessage: (text: string) => void;
   setNpcBubble: (npcId: string | null, text: string, until: number) => void;
+  setPokerGlbReady: (v: boolean) => void;
 }
 
 /** 大厅 Agent 使用本地坐标（分区中心为原点） */
@@ -137,6 +139,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   soulMd: '',
   messages: [],
   npcBubble: null,
+  pokerGlbReady: false,
 
   setCameraMode: (m) => set({ cameraMode: m }),
   setQuality: (q) => set({ quality: q }),
@@ -458,6 +461,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   setNpcBubble: (npcId, text, until) => set({
     npcBubble: npcId && text ? { npcId, text, until } : null,
   }),
+  setPokerGlbReady: (v) => set({ pokerGlbReady: v }),
 }));
 
 export function assignPath(char: CharState, nodeId: string): CharState {

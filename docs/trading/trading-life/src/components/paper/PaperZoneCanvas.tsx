@@ -29,6 +29,7 @@ export function PaperZoneCanvas() {
   const paused = useGameStore(s => s.paused);
   const ticker = useGameStore(s => s.ticker);
   const npcBubble = useGameStore(s => s.npcBubble);
+  const pokerGlbReady = useGameStore(s => s.pokerGlbReady);
 
   const flyToZone = useGameStore(s => s.flyToZone);
   const selectAgent = useGameStore(s => s.selectAgent);
@@ -72,6 +73,7 @@ export function PaperZoneCanvas() {
       ticker,
       t,
       npcBubble: performance.now() < (npcBubble?.until ?? 0) ? npcBubble : null,
+      pokerGlbReady,
     });
 
     const transit = Object.values(agents).find(a => a.inTransit);
@@ -84,7 +86,7 @@ export function PaperZoneCanvas() {
         t,
       });
     }
-  }, [activeZone, agents, selectedAgentId, cameraZoom, dayMode, getPan, hoverFacilityId, ticker, npcBubble]);
+  }, [activeZone, agents, selectedAgentId, cameraZoom, dayMode, getPan, hoverFacilityId, ticker, npcBubble, pokerGlbReady]);
 
   useEffect(() => {
     let last = performance.now();
@@ -204,6 +206,9 @@ export function PaperZoneCanvas() {
       style={{
         width: '100%', height: '100%', display: 'block', touchAction: 'none',
         cursor: hoverFacilityId ? 'pointer' : dragRef.current.active ? 'grabbing' : 'grab',
+        position: 'relative',
+        zIndex: 1,
+        background: 'transparent',
       }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
