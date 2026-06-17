@@ -6,7 +6,7 @@ GFlowX Router 是一个基于分类推荐的 AI API 智能中转站。用户无�
 
 ## 🎯 核心理念
 
-**传统方式**：用户面对 200+ 模型列表，不知道选什么
+**传统方式**：用户面对 200+ 模型列表，不知道选什么  
 **GFlowX 方式**：用户选「写代码」「写文章」「看图片」，系统智能路由
 
 ## ✨ 核心特性
@@ -20,28 +20,99 @@ GFlowX Router 是一个基于分类推荐的 AI API 智能中转站。用户无�
 
 ## 🏗️ 技术架构
 
-- **后端**：Go（基于 New-API 二开）
-- **前端**：React + Ant Design / shadcn-ui（全新开发）
-- **数据库**：MySQL / PostgreSQL / SQLite
-- **部署**：Docker 一键部署
+- **后端底座**：`backend/` 为官方 [QuantumNous/new-api](https://github.com/QuantumNous/new-api) 的 **Git 子模块**（Go；二开与场景路由将在此之上演进）
+- **前端**：根目录 **`frontend/`** 为独立 Vite + React + Ant Design 站点（与 new-api 默认管理端脱钩；见 `docs/FRONTEND.md`）
+  - **`/`**：面向终端用户的**营销首页**，自带**独立顶栏**（影棚风深色主区）。
+  - **`/login`**、**`/dashboard`**、**`/keys`**：浅色 **控制台壳**；**`/login` 已对接** `POST /api/user/login`（Cookie 会话）。开发模式下 Vite 将 **`/api` 代理到 `VITE_DEV_PROXY_TARGET`（默认 `http://127.0.0.1:3000`）**，便于与 trycloudflare 隧道同机联调。
+  - 外网临时预览：`./scripts/dev-tunnel-frontend.sh`（需本机 `npm`；自动下载 `cloudflared` 到 `/tmp/cloudflared`）。**隧道只暴露前端时，new-api 须在同一台机器本机端口运行**，代理才能把登录请求转到网关。
+- **数据库（当前官方 compose）**：PostgreSQL + Redis（见 `backend/docker-compose.yml`）
+- **部署**：Docker Compose；根目录编排通过 `include` 引用子模块内官方 compose
 
 ## 📖 文档
 
-- [开发文档](docs/DEVELOPMENT.md) — 完整的开发规范和架构说明
-- [API 文档](docs/API.md) — 接口规范
+- [开发文档](docs/DEVELOPMENT.md) — 架构与二开策略（含「先跑通官方再换 GFlowX 前端」）
+- [后端子模块版本](docs/BACKEND_PIN.md) — 当前锁定的 new-api 提交
+- [API 文档](docs/API.md) — GFlowX 接口规范（产品向）
 - [路由设计](docs/ROUTER.md) — 智能路由引擎设计
 - [前端设计](docs/FRONTEND.md) — UI/UX 设计规范
 
-## 🚀 快速开始
+## 🚀 快速开始（第一阶段：官方 new-api 跑通）
+
+环境要求：**Docker**、**Docker Compose v2.20+**（根目录 `docker-compose.yml` 使用 `include`）。
 
 ```bash
-# Docker 部署
+git clone --recurse-submodules https://github.com/ancientboy/gflowx-router.git
+cd gflowx-router
 docker compose up -d
-
-# 访问
-open http://localhost:3000
 ```
+
+若克隆时未拉取子模块：
+
+```bash
+git submodule update --init --recursive
+docker compose up -d
+```
+
+启动完成后访问：**http://localhost:3000**（与官方 new-api 一致）。
+
+等效命令（任选其一）：
+
+```bash
+./scripts/up-official.sh
+# 或
+cd backend && docker compose up -d
+```
+
+> 默认数据库与 Redis 密码写在 `backend/docker-compose.yml` 中，**仅适用于本地/内网验证**；上生产前请全部更换，并阅读 new-api 官方环境变量说明。
+
+本环境若未安装 Docker，无法在 CI 容器内替你完成拉镜像验证；请在本地或装有 Docker 的机器上执行上述命令。
+
+## 独立前端（`frontend/`）
+
+```bash
+cd frontend
+npm install
+npm run dev
+# 浏览器打开 http://127.0.0.1:5173/  — 用户向首页（独立顶栏）
+# http://127.0.0.1:5173/login  — 控制台壳（浅色顶栏）
+```
+
+Cursor Web Agent 等无法访问本机时，可在仓库根目录执行：
+
+```bash
+./scripts/dev-tunnel-frontend.sh
+```
+
+Cursor Web Agent 等无法访问本机时，可在仓库根目录执行：
+
+```bash
+./scripts/dev-tunnel-frontend.sh
+```
+
+终端会打印 **trycloudflare.com** 的 HTTPS 临时域名（进程结束后失效）。  
+`vite.config.ts` 已设置 **`server.allowedHosts: true`**，避免隧道随机子域被 Vite 默认拦截；更新代码后请**重启** `npm run dev` / 隧道脚本。
+
+在 **new-api 已启动**（默认 `http://localhost:3000`）且允许自助注册时，可一键注册测试用户：
+
+```bash
+chmod +x ./scripts/register-test-user.sh
+./scripts/register-test-user.sh
+# 或指定网关与账号：BASE_URL=http://127.0.0.1:3000 USERNAME=mytest PASSWORD='TestUser88!' ./scripts/register-test-user.sh
+```
+
+若登录/注册接口开启了 **Turnstile**，需传入：`TURNSTILE_TOKEN=... ./scripts/register-test-user.sh`（token 来自浏览器完成人机验证后的值），或在后台关闭校验。
+
+**绕过 HTTP、直接写库（PostgreSQL）**：在官方 `docker-compose`（容器 `postgres`、库 `new-api`）已运行时使用：
+
+```bash
+chmod +x ./scripts/insert-test-user-db.sh
+./scripts/insert-test-user-db.sh
+# 自定义：USERNAME=gflowx_u1 PASSWORD='TestUser88!' ./scripts/insert-test-user-db.sh
+```
+
+密码哈希与 new-api 一致（`bcrypt.DefaultCost`）。若容器名不是 `postgres`，请设置 `PG_CMD='docker exec -i <名> psql -U root -d new-api'`。
 
 ## 📄 License
 
-MIT
+- **`backend/`（子模块 [QuantumNous/new-api](https://github.com/QuantumNous/new-api)）** 适用 **AGPL-3.0**，以子模块内 `LICENSE` 为准；修改与分发须遵守该许可及项目署名要求。
+- 本仓库中 GFlowX 自有文档、脚本等，若与 AGPL 产生覆盖关系，以你方后续在根目录补充的 `LICENSE` 及法务结论为准；**不要**再假定整仓为历史上的「MIT 示例文案」。

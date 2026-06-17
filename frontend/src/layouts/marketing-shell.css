@@ -1,0 +1,71 @@
+/* 面向终端用户的营销站：独立顶栏 + 影棚风主区 */
+.marketing-site {
+  --m-bg0: #050810;
+  --m-bg1: #0a1224;
+  --m-text: #e8f1ff;
+  --m-muted: #8da4c9;
+  --m-accent: #2dd4bf;
+  --m-edge: rgba(125, 211, 252, 0.14);
+  --m-link: #5eead4;
+
+  min-height: 100vh;
+  color: var(--m-text);
+  background: radial-gradient(120% 70% at 85% -5%, rgba(167, 139, 250, 0.14) 0%, transparent 52%),
+    radial-gradient(80% 55% at 0% 15%, rgba(45, 212, 191, 0.12) 0%, transparent 48%),
+    linear-gradient(168deg, var(--m-bg0) 0%, var(--m-bg1) 38%, #060d1c 100%);
+}
+
+.marketing-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px 24px;
+  background: rgba(5, 8, 16, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--m-edge);
+}
+
+.marketing-brand {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+  color: var(--m-text);
+  text-decoration: none;
+}
+
+.marketing-brand:hover {
+  color: var(--m-accent);
+}
+
+.marketing-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-left: auto;
+  align-items: center;
+}
+
+.marketing-nav a {
+  color: #9db5d9;
+  text-decoration: none;
+  font-size: 14px;
+  padding: 6px 4px;
+}
+
+.marketing-nav a:hover {
+  color: var(--m-accent);
+}
+
+.marketing-nav-cta {
+  margin-left: 8px;
+}
+
+.marketing-main {
+  padding-bottom: 48px;
+}
