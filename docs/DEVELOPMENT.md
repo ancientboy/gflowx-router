@@ -33,6 +33,37 @@ GFlowX Router 是一个 **场景化 AI API 智能路由网关**。
 | 前端复杂度 | 高（10+ 管理页面） | **低**（3 个核心页面） |
 | 适合人群 | 技术用户 | **所有人** |
 
+### 1.4 New-API 二开策略（已定）
+
+1. **起点冻结**：接入 new-api 时选定一个稳定的 **tag 或 commit** 作为底座，写入发布说明或变更记录，便于追溯与对比上游。
+2. **主仓与更新**：以 **自有 fork 仓库** 为唯一主开发线；上游 new-api **不强制跟更**，按需阅读 release / 安全公告，**有选择地** cherry-pick 或合并；日常维护由团队自行负责。
+
+   **集成顺序（推荐）**：fork 导入后，**优先**在「与 upstream 尽量一致」的形态下 **端到端跑通**（构建、数据库迁移、Docker、环境变量；**可暂时保留 new-api 官方自带 Web** 作管理与联调），用于确认 **底座与部署无误、二开未破坏核心路径**。**再** 并行开发同仓 `frontend/`（GFlowX UI）及场景路由等差异化能力。新前端 **P0 齐备** 后，将 **对外默认入口** 切至 GFlowX 前端；官方 Web 可下线，或 **仅在开发/内网** 保留作功能对照。这与「最终产品不复用官方 UI」不矛盾：**先同构跑通降低土建风险，再换产品面**。
+
+3. **前端路线——同仓全新前端工程**：在 **同一 monorepo** 内维护独立目录（如 `frontend/`），**不复用、不渐进替换** new-api 自带管理端 UI。视觉（样式、配色、信息架构）与产品流程 **完全按 GFlowX / `docs/FRONTEND.md`** 实现，与官方 new-api 界面 **脱钩**，避免混淆。技术栈以文档为准（如 React + Vite + Ant Design 等）。
+4. **功能对齐与防遗漏**：new-api 管理端功能面较广（用户、渠道、模型、计费、日志、系统设置等）。全新前端须维护 **「路由 / 页面 ↔ 后端 API」对照清单**，按 **P0（可上线最小集）→ P1 → P2** 分阶段验收；开发期可将 **上游 new-api 前端仅作本地对照**（不随产品对外发布），用于查漏，而非代码复用来源。
+
+> **许可证**：衍生作品仍须遵守 new-api 所采用的开源许可证（如 AGPL）及署名要求，与是否「独立主仓」无关。
+
+### 1.5 仓库结构与第一阶段（官方底座跑通）
+
+- **`backend/`**：官方 [QuantumNous/new-api](https://github.com/QuantumNous/new-api) 的 **Git 子模块**，用于版本对齐与可选的 cherry-pick；当前固定提交见 [`docs/BACKEND_PIN.md`](BACKEND_PIN.md)。
+- **首次克隆**（带子模块）：
+  ```bash
+  git clone --recurse-submodules <本仓库 URL>
+  ```
+  若已克隆未带子模块：
+  ```bash
+  git submodule update --init --recursive
+  ```
+- **启动官方栈**（PostgreSQL + Redis + `calciumion/new-api` 镜像）任选其一：
+  - 仓库根目录：`docker compose up -d`（需 Compose **v2.20+**，根目录 `docker-compose.yml` 通过 `include` 引用 `backend/docker-compose.yml`）
+  - 或：`./scripts/up-official.sh`
+  - 或：`cd backend && docker compose up -d`
+- **验证**：浏览器打开 `http://localhost:3000`；健康检查见子模块 compose 中 `new-api` 的 `healthcheck`。
+- **外网 / Cursor Web**：云端 Agent 给出的 `localhost` 无法在你本机浏览器打开；请在可执行 Docker 的环境使用 Quick Tunnel 等，见 [`docs/EXTERNAL_ACCESS.md`](EXTERNAL_ACCESS.md)。
+- **`frontend/`**：后续 GFlowX 全新管理端（当前阶段可不创建）；与官方 Web 并行开发，待 P0 后再切换默认入口。
+
 ---
 
 ## 二、系统架构
@@ -112,7 +143,7 @@ gflowx-router/
 │   ├── middleware/           # 🔧 中间件（复用 + 新增）
 │   └── main.go              # 入口
 │
-├── frontend/                # 前端（全新开发）
+├── frontend/                # 前端（同仓全新工程；样式与 new-api 官方 UI 无关）
 │   ├── src/
 │   │   ├── pages/
 │   │   │   ├── Landing/     #    落地页（选身份 → 推荐套餐）
@@ -120,7 +151,7 @@ gflowx-router/
 │   │   │   └── Keys/        #    Key 管理（创建/额度）
 │   │   ├── components/      #    通用组件
 │   │   ├── store/           #    状态管理
-│   │   └── api/             #    API 调用
+│   │   └── api/             #    对接后端（与 new-api 管理 API 对齐，见功能清单）
 │   └── package.json
 │
 ├── docs/                    # 文档
