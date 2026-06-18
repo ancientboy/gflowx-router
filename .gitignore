@@ -4,6 +4,9 @@ build/
 .env
 *.log
 data/
+# 本地运行 new-api 时可能出现在子模块工作区外的挂载目录（若从根目录挂载）
+backend/data/
+backend/logs/
 .DS_Store
 *.swp
 *.swo

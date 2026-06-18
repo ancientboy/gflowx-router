@@ -1,0 +1,216 @@
+From 49d6662b989644505a869c8b42d9fc11213d2ecb Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursor-agent@local>
+Date: Wed, 13 May 2026 05:06:50 +0000
+Subject: [PATCH] feat(gflowx): scene tag to model resolution before relay
+
+Add gflowxscene package mapping API scene labels to concrete model names
+with env overrides (GFLOWX_SCENE_*), wire into Relay after request parse.
+Includes unit tests; disable via GFLOWX_SCENES_ENABLED=false.
+---
+ controller/relay.go         |   5 ++
+ gflowxscene/resolve.go      | 109 ++++++++++++++++++++++++++++++++++++
+ gflowxscene/resolve_test.go |  53 ++++++++++++++++++
+ 3 files changed, 167 insertions(+)
+ create mode 100644 gflowxscene/resolve.go
+ create mode 100644 gflowxscene/resolve_test.go
+
+diff --git a/controller/relay.go b/controller/relay.go
+index 5e2db44c..d8f09a67 100644
+--- a/controller/relay.go
++++ b/controller/relay.go
+@@ -12,6 +12,7 @@ import (
+ 	"github.com/QuantumNous/new-api/common"
+ 	"github.com/QuantumNous/new-api/constant"
+ 	"github.com/QuantumNous/new-api/dto"
++	"github.com/QuantumNous/new-api/gflowxscene"
+ 	"github.com/QuantumNous/new-api/logger"
+ 	"github.com/QuantumNous/new-api/middleware"
+ 	"github.com/QuantumNous/new-api/model"
+@@ -117,6 +118,10 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
+ 		return
+ 	}
+ 
++	if sceneTag, resolvedModel, changed := gflowxscene.ApplyToRequest(request); changed {
++		logger.LogInfo(c, fmt.Sprintf("gflowx scene routing: %q -> %q", sceneTag, resolvedModel))
++	}
++
+ 	relayInfo, err := relaycommon.GenRelayInfo(c, relayFormat, request, ws)
+ 	if err != nil {
+ 		newAPIError = types.NewError(err, types.ErrorCodeGenRelayInfoFailed)
+diff --git a/gflowxscene/resolve.go b/gflowxscene/resolve.go
+new file mode 100644
+index 00000000..e60eeeeb
+--- /dev/null
++++ b/gflowxscene/resolve.go
+@@ -0,0 +1,109 @@
++// Package gflowxscene maps GFlowX scene tags (docs/API.md) to concrete upstream model names
++// before new-api channel selection and relay.
++package gflowxscene
++
++import (
++	"os"
++	"strings"
++
++	"github.com/QuantumNous/new-api/dto"
++)
++
++const envEnabled = "GFLOWX_SCENES_ENABLED"
++
++// sceneTags are exact `model` values treated as scenes (lowercase).
++var sceneTags = map[string]struct{}{
++	"smart":     {},
++	"fast":      {},
++	"cheap":     {},
++	"code":      {},
++	"write":     {},
++	"creative":  {},
++	"vision":    {},
++	"translate": {},
++}
++
++// builtinDefault is used when no per-tag env override is set.
++func builtinDefault(tag string) string {
++	switch tag {
++	case "smart", "write", "creative", "vision":
++		return "gpt-4o"
++	case "fast", "cheap", "translate":
++		return "gpt-4o-mini"
++	case "code":
++		return "gpt-4o"
++	default:
++		return "gpt-4o-mini"
++	}
++}
++
++func envSceneModel(tag string) string {
++	u := strings.ToUpper(strings.ReplaceAll(tag, "-", "_"))
++	key := "GFLOWX_SCENE_" + u
++	if v := strings.TrimSpace(os.Getenv(key)); v != "" {
++		return v
++	}
++	return ""
++}
++
++// Enabled returns whether scene resolution runs (default true; set GFLOWX_SCENES_ENABLED=false to disable).
++func Enabled() bool {
++	v := strings.TrimSpace(strings.ToLower(os.Getenv(envEnabled)))
++	return v != "false" && v != "0" && v != "off"
++}
++
++// IsSceneTag reports whether the given model string is a known scene label.
++func IsSceneTag(model string) bool {
++	if model == "" {
++		return false
++	}
++	_, ok := sceneTags[strings.ToLower(strings.TrimSpace(model))]
++	return ok
++}
++
++// Resolve maps a scene tag to a concrete model name.
++// ok is false when model is not a scene tag or scene routing is disabled.
++func Resolve(model string) (resolved string, ok bool) {
++	if !Enabled() {
++		return "", false
++	}
++	tag := strings.ToLower(strings.TrimSpace(model))
++	if _, is := sceneTags[tag]; !is {
++		return "", false
++	}
++	if v := envSceneModel(tag); v != "" {
++		return v, true
++	}
++	return builtinDefault(tag), true
++}
++
++// ApplyToRequest mutates supported dto request types in-place when model is a scene tag.
++// Returns the original scene tag, the concrete model name after resolution, and whether a change was made.
++func ApplyToRequest(req dto.Request) (sceneTag string, resolvedModel string, changed bool) {
++	if !Enabled() || req == nil {
++		return "", "", false
++	}
++	switch r := req.(type) {
++	case *dto.GeneralOpenAIRequest:
++		tag := strings.TrimSpace(r.Model)
++		if resolved, ok := Resolve(tag); ok {
++			r.SetModelName(resolved)
++			return tag, resolved, true
++		}
++	case *dto.OpenAIResponsesRequest:
++		tag := strings.TrimSpace(r.Model)
++		if resolved, ok := Resolve(tag); ok {
++			r.SetModelName(resolved)
++			return tag, resolved, true
++		}
++	case *dto.ClaudeRequest:
++		tag := strings.TrimSpace(r.Model)
++		if resolved, ok := Resolve(tag); ok {
++			r.SetModelName(resolved)
++			return tag, resolved, true
++		}
++	default:
++		return "", "", false
++	}
++	return "", "", false
++}
+diff --git a/gflowxscene/resolve_test.go b/gflowxscene/resolve_test.go
+new file mode 100644
+index 00000000..116e0377
+--- /dev/null
++++ b/gflowxscene/resolve_test.go
+@@ -0,0 +1,53 @@
++package gflowxscene
++
++import (
++	"os"
++	"testing"
++
++	"github.com/QuantumNous/new-api/dto"
++)
++
++func TestResolve_Disabled(t *testing.T) {
++	t.Setenv(envEnabled, "false")
++	if _, ok := Resolve("code"); ok {
++		t.Fatal("expected no resolve when disabled")
++	}
++}
++
++func TestResolve_CodeDefault(t *testing.T) {
++	t.Setenv(envEnabled, "true")
++	t.Setenv("GFLOWX_SCENE_CODE", "")
++	got, ok := Resolve("code")
++	if !ok || got != "gpt-4o" {
++		t.Fatalf("code: got %q ok=%v", got, ok)
++	}
++}
++
++func TestResolve_CodeEnvOverride(t *testing.T) {
++	t.Setenv(envEnabled, "true")
++	t.Setenv("GFLOWX_SCENE_CODE", "deepseek-chat")
++	got, ok := Resolve("code")
++	if !ok || got != "deepseek-chat" {
++		t.Fatalf("code override: got %q ok=%v", got, ok)
++	}
++}
++
++func TestApplyToRequest_GeneralOpenAI(t *testing.T) {
++	t.Setenv(envEnabled, "true")
++	_ = os.Unsetenv("GFLOWX_SCENE_FAST")
++	req := &dto.GeneralOpenAIRequest{Model: "fast"}
++	tag, resolved, changed := ApplyToRequest(req)
++	if !changed || tag != "fast" || resolved != "gpt-4o-mini" {
++		t.Fatalf("ApplyToRequest: tag=%q resolved=%q changed=%v model=%q", tag, resolved, changed, req.Model)
++	}
++	if req.Model != "gpt-4o-mini" {
++		t.Fatalf("request not mutated: %q", req.Model)
++	}
++}
++
++func TestResolve_NotAScene(t *testing.T) {
++	t.Setenv(envEnabled, "true")
++	if _, ok := Resolve("gpt-4o-mini"); ok {
++		t.Fatal("concrete model must not be treated as scene")
++	}
++}
+-- 
+2.43.0
+

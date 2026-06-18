@@ -82,4 +82,16 @@ Redis 缓存层：
 
 ---
 
+## 7. 已实现：v0 场景标签 → 单模型（`gflowxscene`）
+
+在 `backend/gflowxscene` 中实现 **一层映射**（通过仓库根目录 `./scripts/apply-gflowx-backend-patch.sh` 将补丁打进子模块后生效）：当请求体中的 `model` 为 `docs/API.md` 所列场景标签之一（`smart` / `fast` / `cheap` / `code` / `write` / `creative` / `vision` / `translate`）时，在 **`GenRelayInfo` 之前** 将 `model` **改写**为具体上游模型名，再走原有渠道选择与 relay。
+
+- **关闭**：环境变量 `GFLOWX_SCENES_ENABLED=false`（默认开启）。  
+- **按标签覆盖默认值**：`GFLOWX_SCENE_CODE`、`GFLOWX_SCENE_SMART` 等（大写标签，`translate` → `GFLOWX_SCENE_TRANSLATE`）。  
+- **内置默认**（无 env 时）：`code` / `smart` / `write` / `creative` / `vision` → `gpt-4o`；`fast` / `cheap` / `translate` → `gpt-4o-mini`。管理员需在 new-api 中为这些模型配置可用渠道，或通过上述 env 改为本环境已有的模型 id。
+
+后续版本可在此包上扩展 **模型池、Tier 降级、健康检查**，与本文第 2～5 节设计对齐。
+
+---
+
 _最后更新：2026-05-12_

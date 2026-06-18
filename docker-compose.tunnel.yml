@@ -1,0 +1,24 @@
+# 可选：通过 Cloudflare Quick Tunnel 暴露 new-api，便于外网访问（含 Cursor Web 等无法打开本机 localhost 的场景）
+#
+# 使用方式（在仓库根目录，需同时指定两个 compose 文件）：
+#   docker compose -f docker-compose.yml -f docker-compose.tunnel.yml --profile tunnel up -d
+# 或：./scripts/up-with-tunnel.sh
+#
+# 获取公网地址（每次启动 URL 会变）：
+#   ./scripts/show-tunnel-url.sh
+# 或：
+#   docker compose -f docker-compose.yml -f docker-compose.tunnel.yml logs cloudflared 2>&1 | grep -E 'trycloudflare\.com|https://'
+#
+# 安全提示：Quick Tunnel 为公网可访问，请勿长期使用默认数据库密码；生产请用正式 Tunnel / 域名 + 鉴权。
+
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    profiles: ["tunnel"]
+    command: tunnel --no-autoupdate --url http://new-api:3000
+    depends_on:
+      new-api:
+        condition: service_started
+    networks:
+      - new-api-network
