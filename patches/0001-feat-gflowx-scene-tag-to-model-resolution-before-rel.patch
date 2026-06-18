@@ -1,0 +1,743 @@
+From e224f05ecc6ab66edb09dde33144c62cd1a84884 Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursor-agent@local>
+Date: Wed, 13 May 2026 05:06:50 +0000
+Subject: [PATCH] =?UTF-8?q?feat(gflowx):=20scene=20routing=20v1=20?=
+ =?UTF-8?q?=E2=80=94=20pools,=20health,=20aliases,=20relay=20fallback?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Scene tags resolve via env override, optional JSON pool file, then builtin
+defaults; skip models recently marked unhealthy. Friendly aliases (claude,
+gpt4, deepseek) map before scenes. Relay syncs original_model after rewrite,
+retries next pool model on channel failure when pools are configured.
+---
+ controller/relay.go         |  25 ++++++-
+ gflowxscene/alias.go        |  93 +++++++++++++++++++++++
+ gflowxscene/apply.go        | 145 ++++++++++++++++++++++++++++++++++++
+ gflowxscene/health.go       |  63 ++++++++++++++++
+ gflowxscene/pool.go         |  65 ++++++++++++++++
+ gflowxscene/resolve.go      | 105 ++++++++++++++++++++++++++
+ gflowxscene/resolve_test.go | 142 +++++++++++++++++++++++++++++++++++
+ 7 files changed, 636 insertions(+), 2 deletions(-)
+ create mode 100644 gflowxscene/alias.go
+ create mode 100644 gflowxscene/apply.go
+ create mode 100644 gflowxscene/health.go
+ create mode 100644 gflowxscene/pool.go
+ create mode 100644 gflowxscene/resolve.go
+ create mode 100644 gflowxscene/resolve_test.go
+
+diff --git a/controller/relay.go b/controller/relay.go
+index 5e2db44c..15c312e8 100644
+--- a/controller/relay.go
++++ b/controller/relay.go
+@@ -12,6 +12,7 @@ import (
+ 	"github.com/QuantumNous/new-api/common"
+ 	"github.com/QuantumNous/new-api/constant"
+ 	"github.com/QuantumNous/new-api/dto"
++	"github.com/QuantumNous/new-api/gflowxscene"
+ 	"github.com/QuantumNous/new-api/logger"
+ 	"github.com/QuantumNous/new-api/middleware"
+ 	"github.com/QuantumNous/new-api/model"
+@@ -117,6 +118,10 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
+ 		return
+ 	}
+ 
++	if userLabel, resolvedModel, changed := gflowxscene.ApplyToRequest(c, request); changed {
++		logger.LogInfo(c, fmt.Sprintf("gflowx model routing: %q -> %q", userLabel, resolvedModel))
++	}
++
+ 	relayInfo, err := relaycommon.GenRelayInfo(c, relayFormat, request, ws)
+ 	if err != nil {
+ 		newAPIError = types.NewError(err, types.ErrorCodeGenRelayInfoFailed)
+@@ -189,10 +194,16 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
+ 
+ 	for ; retryParam.GetRetry() <= common.RetryTimes; retryParam.IncreaseRetry() {
+ 		relayInfo.RetryIndex = retryParam.GetRetry()
++		retryParam.ModelName = relayInfo.OriginModelName
+ 		channel, channelErr := getChannel(c, relayInfo, retryParam)
+ 		if channelErr != nil {
+ 			logger.LogError(c, channelErr.Error())
+ 			newAPIError = channelErr
++			if gflowxscene.TryAdvancePool(c, request, relayInfo) {
++				retryParam.ResetRetryNextTry()
++				newAPIError = nil
++				continue
++			}
+ 			break
+ 		}
+ 
+@@ -230,9 +241,19 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
+ 
+ 		processChannelError(c, *types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey, common.GetContextKeyString(c, constant.ContextKeyChannelKey), channel.GetAutoBan()), newAPIError)
+ 
+-		if !shouldRetry(c, newAPIError, common.RetryTimes-retryParam.GetRetry()) {
+-			break
++		if gflowxscene.HealthTrackingEnabled() && types.IsChannelError(newAPIError) {
++			gflowxscene.MarkModelUnhealthy(relayInfo.OriginModelName)
++		}
++
++		if shouldRetry(c, newAPIError, common.RetryTimes-retryParam.GetRetry()) {
++			continue
++		}
++		if gflowxscene.TryAdvancePool(c, request, relayInfo) {
++			retryParam.ResetRetryNextTry()
++			newAPIError = nil
++			continue
+ 		}
++		break
+ 	}
+ 
+ 	useChannel := c.GetStringSlice("use_channel")
+diff --git a/gflowxscene/alias.go b/gflowxscene/alias.go
+new file mode 100644
+index 00000000..6ec8a4d7
+--- /dev/null
++++ b/gflowxscene/alias.go
+@@ -0,0 +1,93 @@
++package gflowxscene
++
++import (
++	"encoding/json"
++	"os"
++	"strings"
++	"sync"
++	"time"
++)
++
++const envAliasesEnabled = "GFLOWX_ALIASES_ENABLED"
++const envAliasesFile = "GFLOWX_ALIASES_FILE"
++
++// AliasesEnabled is on by default; set GFLOWX_ALIASES_ENABLED=false to disable.
++func AliasesEnabled() bool {
++	v := strings.TrimSpace(strings.ToLower(os.Getenv(envAliasesEnabled)))
++	return v != "false" && v != "0" && v != "off"
++}
++
++// builtinAliases match docs/API.md (friendly id → concrete upstream model name).
++var builtinAliases = map[string]string{
++	"claude":   "claude-sonnet-4-20250514",
++	"gpt4":     "gpt-4o",
++	"deepseek": "deepseek-chat",
++}
++
++type aliasesFile struct {
++	mu    sync.Mutex
++	path  string
++	mtime time.Time
++	data  map[string]string
++}
++
++var aliasesCache aliasesFile
++
++func loadAliasFile() map[string]string {
++	path := strings.TrimSpace(os.Getenv(envAliasesFile))
++	if path == "" {
++		return nil
++	}
++	st, err := os.Stat(path)
++	if err != nil {
++		return nil
++	}
++	aliasesCache.mu.Lock()
++	defer aliasesCache.mu.Unlock()
++	if aliasesCache.path == path && !st.ModTime().After(aliasesCache.mtime) && aliasesCache.data != nil {
++		return aliasesCache.data
++	}
++	raw, err := os.ReadFile(path)
++	if err != nil {
++		return nil
++	}
++	var m map[string]string
++	if err := json.Unmarshal(raw, &m); err != nil {
++		return nil
++	}
++	out := make(map[string]string, len(m))
++	for k, v := range m {
++		ak := strings.ToLower(strings.TrimSpace(k))
++		av := strings.TrimSpace(v)
++		if ak != "" && av != "" {
++			out[ak] = av
++		}
++	}
++	aliasesCache.path = path
++	aliasesCache.mtime = st.ModTime()
++	aliasesCache.data = out
++	return out
++}
++
++// ResolveAlias maps a friendly alias to a concrete model when enabled.
++func ResolveAlias(model string) (resolved string, ok bool) {
++	if !AliasesEnabled() {
++		return "", false
++	}
++	key := strings.ToLower(strings.TrimSpace(model))
++	if key == "" {
++		return "", false
++	}
++	if IsSceneTag(key) {
++		return "", false
++	}
++	if f := loadAliasFile(); f != nil {
++		if v, hit := f[key]; hit {
++			return v, true
++		}
++	}
++	if v, hit := builtinAliases[key]; hit {
++		return v, true
++	}
++	return "", false
++}
+diff --git a/gflowxscene/apply.go b/gflowxscene/apply.go
+new file mode 100644
+index 00000000..24bcbc9f
+--- /dev/null
++++ b/gflowxscene/apply.go
+@@ -0,0 +1,145 @@
++package gflowxscene
++
++import (
++	"strings"
++
++	"github.com/QuantumNous/new-api/common"
++	"github.com/QuantumNous/new-api/constant"
++	"github.com/QuantumNous/new-api/dto"
++	relaycommon "github.com/QuantumNous/new-api/relay/common"
++
++	"github.com/gin-gonic/gin"
++)
++
++const (
++	ctxKeyPoolModels = "gflowx_scene_pool_models"
++	ctxKeyPoolIdx    = "gflowx_scene_pool_index"
++)
++
++func syncOriginalModel(c *gin.Context, resolved string) {
++	if c == nil || resolved == "" {
++		return
++	}
++	common.SetContextKey(c, constant.ContextKeyOriginalModel, resolved)
++}
++
++func clearScenePool(c *gin.Context) {
++	if c == nil {
++		return
++	}
++	c.Set(ctxKeyPoolModels, nil)
++	c.Set(ctxKeyPoolIdx, 0)
++}
++
++func attachScenePool(c *gin.Context, models []string) {
++	if c == nil || len(models) <= 1 {
++		clearScenePool(c)
++		return
++	}
++	dup := append([]string(nil), models...)
++	c.Set(ctxKeyPoolModels, dup)
++	c.Set(ctxKeyPoolIdx, 0)
++}
++
++func getRequestModel(req dto.Request) string {
++	switch r := req.(type) {
++	case *dto.GeneralOpenAIRequest:
++		return r.Model
++	case *dto.OpenAIResponsesRequest:
++		return r.Model
++	case *dto.ClaudeRequest:
++		return r.Model
++	default:
++		return ""
++	}
++}
++
++func setModelOnRequest(req dto.Request, name string) bool {
++	switch r := req.(type) {
++	case *dto.GeneralOpenAIRequest:
++		r.SetModelName(name)
++		return true
++	case *dto.OpenAIResponsesRequest:
++		r.SetModelName(name)
++		return true
++	case *dto.ClaudeRequest:
++		r.SetModelName(name)
++		return true
++	default:
++		return false
++	}
++}
++
++// ApplyToRequest resolves GFlowX aliases (docs/API.md) then scene tags, mutating the request model.
++// When c is non-nil, syncs ContextKeyOriginalModel so downstream InitChannelMeta keeps the resolved id.
++func ApplyToRequest(c *gin.Context, req dto.Request) (userLabel string, resolvedModel string, changed bool) {
++	if req == nil {
++		return "", "", false
++	}
++	raw := getRequestModel(req)
++	if raw == "" {
++		return "", "", false
++	}
++	rawTrim := strings.TrimSpace(raw)
++	if AliasesEnabled() {
++		if to, ok := ResolveAlias(rawTrim); ok {
++			if setModelOnRequest(req, to) {
++				clearScenePool(c)
++				syncOriginalModel(c, to)
++				return rawTrim, to, true
++			}
++		}
++	}
++	if !Enabled() {
++		return "", "", false
++	}
++	tag := strings.ToLower(rawTrim)
++	if _, is := sceneTags[tag]; !is {
++		return "", "", false
++	}
++	models := sceneCandidateModels(tag)
++	resolved := firstHealthyModel(models)
++	if resolved == "" {
++		return "", "", false
++	}
++	if !setModelOnRequest(req, resolved) {
++		return "", "", false
++	}
++	attachScenePool(c, models)
++	syncOriginalModel(c, resolved)
++	return rawTrim, resolved, true
++}
++
++// TryAdvancePool moves to the next model in a scene pool (if any) and updates relay state.
++func TryAdvancePool(c *gin.Context, req dto.Request, relayInfo *relaycommon.RelayInfo) bool {
++	if c == nil || req == nil || relayInfo == nil {
++		return false
++	}
++	v, ok := c.Get(ctxKeyPoolModels)
++	if !ok || v == nil {
++		return false
++	}
++	models, ok := v.([]string)
++	if !ok || len(models) <= 1 {
++		return false
++	}
++	idx := 0
++	if iv, ok2 := c.Get(ctxKeyPoolIdx); ok2 {
++		if n, conv := iv.(int); conv {
++			idx = n
++		}
++	}
++	if idx+1 >= len(models) {
++		return false
++	}
++	idx++
++	c.Set(ctxKeyPoolIdx, idx)
++	next := models[idx]
++	relayInfo.OriginModelName = next
++	syncOriginalModel(c, next)
++	if !setModelOnRequest(req, next) {
++		return false
++	}
++	relayInfo.ChannelMeta = nil
++	return true
++}
+diff --git a/gflowxscene/health.go b/gflowxscene/health.go
+new file mode 100644
+index 00000000..33757135
+--- /dev/null
++++ b/gflowxscene/health.go
+@@ -0,0 +1,63 @@
++package gflowxscene
++
++import (
++	"os"
++	"strconv"
++	"strings"
++	"sync"
++	"time"
++)
++
++const envHealthEnabled = "GFLOWX_SCENE_HEALTH_ENABLED"
++const envHealthTTL = "GFLOWX_SCENE_HEALTH_TTL_SEC"
++
++var unhealthy sync.Map // model name -> unix expiry
++
++// HealthTrackingEnabled is on by default; set GFLOWX_SCENE_HEALTH_ENABLED=false to disable.
++func HealthTrackingEnabled() bool {
++	v := strings.TrimSpace(strings.ToLower(os.Getenv(envHealthEnabled)))
++	return v != "false" && v != "0" && v != "off"
++}
++
++func healthTTL() time.Duration {
++	v := strings.TrimSpace(os.Getenv(envHealthTTL))
++	if n, err := strconv.Atoi(v); err == nil && n > 0 {
++		return time.Duration(n) * time.Second
++	}
++	return 60 * time.Second
++}
++
++// MarkModelUnhealthy records a transient failure for a concrete upstream model id.
++// Subsequent scene pool selection skips it until TTL elapses.
++func MarkModelUnhealthy(model string) {
++	if !HealthTrackingEnabled() {
++		return
++	}
++	model = strings.TrimSpace(model)
++	if model == "" {
++		return
++	}
++	unhealthy.Store(model, time.Now().Add(healthTTL()).UnixNano())
++}
++
++// IsModelHealthy reports whether model is not under a recent failure mark.
++func IsModelHealthy(model string) bool {
++	model = strings.TrimSpace(model)
++	if model == "" {
++		return true
++	}
++	v, ok := unhealthy.Load(model)
++	if !ok {
++		return true
++	}
++	exp, ok := v.(int64)
++	if !ok {
++		unhealthy.Delete(model)
++		return true
++	}
++	if time.Now().UnixNano() < exp {
++		return false
++	}
++	unhealthy.Delete(model)
++	return true
++}
+diff --git a/gflowxscene/pool.go b/gflowxscene/pool.go
+new file mode 100644
+index 00000000..a487782f
+--- /dev/null
++++ b/gflowxscene/pool.go
+@@ -0,0 +1,65 @@
++package gflowxscene
++
++import (
++	"encoding/json"
++	"os"
++	"strings"
++	"sync"
++	"time"
++)
++
++const envPoolsFile = "GFLOWX_SCENE_POOLS_FILE"
++
++type poolsFile struct {
++	mu    sync.Mutex
++	path  string
++	mtime time.Time
++	data  map[string][]string
++}
++
++var poolsCache poolsFile
++
++func loadScenePools() map[string][]string {
++	path := strings.TrimSpace(os.Getenv(envPoolsFile))
++	if path == "" {
++		return nil
++	}
++	st, err := os.Stat(path)
++	if err != nil {
++		return nil
++	}
++	poolsCache.mu.Lock()
++	defer poolsCache.mu.Unlock()
++	if poolsCache.path == path && !st.ModTime().After(poolsCache.mtime) && poolsCache.data != nil {
++		return poolsCache.data
++	}
++	raw, err := os.ReadFile(path)
++	if err != nil {
++		return nil
++	}
++	var m map[string][]string
++	if err := json.Unmarshal(raw, &m); err != nil {
++		return nil
++	}
++	out := make(map[string][]string, len(m))
++	for k, v := range m {
++		tag := strings.ToLower(strings.TrimSpace(k))
++		if tag == "" {
++			continue
++		}
++		var list []string
++		for _, item := range v {
++			s := strings.TrimSpace(item)
++			if s != "" {
++				list = append(list, s)
++			}
++		}
++		if len(list) > 0 {
++			out[tag] = list
++		}
++	}
++	poolsCache.path = path
++	poolsCache.mtime = st.ModTime()
++	poolsCache.data = out
++	return out
++}
+diff --git a/gflowxscene/resolve.go b/gflowxscene/resolve.go
+new file mode 100644
+index 00000000..1b707b8b
+--- /dev/null
++++ b/gflowxscene/resolve.go
+@@ -0,0 +1,105 @@
++// Package gflowxscene maps GFlowX scene tags (docs/API.md) to concrete upstream model names
++// before new-api channel selection and relay.
++package gflowxscene
++
++import (
++	"os"
++	"strings"
++)
++
++const envEnabled = "GFLOWX_SCENES_ENABLED"
++
++// sceneTags are exact `model` values treated as scenes (lowercase).
++var sceneTags = map[string]struct{}{
++	"smart":     {},
++	"fast":      {},
++	"cheap":     {},
++	"code":      {},
++	"write":     {},
++	"creative":  {},
++	"vision":    {},
++	"translate": {},
++}
++
++// builtinDefault is used when no per-tag env override is set.
++func builtinDefault(tag string) string {
++	switch tag {
++	case "smart", "write", "creative", "vision":
++		return "gpt-4o"
++	case "fast", "cheap", "translate":
++		return "gpt-4o-mini"
++	case "code":
++		return "gpt-4o"
++	default:
++		return "gpt-4o-mini"
++	}
++}
++
++func envSceneModel(tag string) string {
++	u := strings.ToUpper(strings.ReplaceAll(tag, "-", "_"))
++	key := "GFLOWX_SCENE_" + u
++	if v := strings.TrimSpace(os.Getenv(key)); v != "" {
++		return v
++	}
++	return ""
++}
++
++// Enabled returns whether scene resolution runs (default true; set GFLOWX_SCENES_ENABLED=false to disable).
++func Enabled() bool {
++	v := strings.TrimSpace(strings.ToLower(os.Getenv(envEnabled)))
++	return v != "false" && v != "0" && v != "off"
++}
++
++// IsSceneTag reports whether the given model string is a known scene label.
++func IsSceneTag(model string) bool {
++	if model == "" {
++		return false
++	}
++	_, ok := sceneTags[strings.ToLower(strings.TrimSpace(model))]
++	return ok
++}
++
++func sceneCandidateModels(tagLower string) []string {
++	if v := envSceneModel(tagLower); v != "" {
++		return []string{v}
++	}
++	if m := loadScenePools(); m != nil {
++		if list, ok := m[tagLower]; ok && len(list) > 0 {
++			return append([]string(nil), list...)
++		}
++	}
++	return []string{builtinDefault(tagLower)}
++}
++
++func firstHealthyModel(models []string) string {
++	if len(models) == 0 {
++		return ""
++	}
++	if !HealthTrackingEnabled() {
++		return models[0]
++	}
++	for _, m := range models {
++		if IsModelHealthy(m) {
++			return m
++		}
++	}
++	return models[0]
++}
++
++// Resolve maps a scene tag to the first concrete model name (env > pool file > builtin), honoring health marks.
++// ok is false when model is not a scene tag or scene routing is disabled.
++func Resolve(model string) (resolved string, ok bool) {
++	if !Enabled() {
++		return "", false
++	}
++	tag := strings.ToLower(strings.TrimSpace(model))
++	if _, is := sceneTags[tag]; !is {
++		return "", false
++	}
++	models := sceneCandidateModels(tag)
++	out := firstHealthyModel(models)
++	if out == "" {
++		return "", false
++	}
++	return out, true
++}
+diff --git a/gflowxscene/resolve_test.go b/gflowxscene/resolve_test.go
+new file mode 100644
+index 00000000..6dc7cc9e
+--- /dev/null
++++ b/gflowxscene/resolve_test.go
+@@ -0,0 +1,142 @@
++package gflowxscene
++
++import (
++	"net/http/httptest"
++	"os"
++	"path/filepath"
++	"testing"
++
++	"github.com/QuantumNous/new-api/dto"
++	relaycommon "github.com/QuantumNous/new-api/relay/common"
++
++	"github.com/gin-gonic/gin"
++)
++
++func TestResolve_Disabled(t *testing.T) {
++	t.Setenv(envEnabled, "false")
++	if _, ok := Resolve("code"); ok {
++		t.Fatal("expected no resolve when disabled")
++	}
++}
++
++func TestResolve_CodeDefault(t *testing.T) {
++	t.Setenv(envEnabled, "true")
++	t.Setenv("GFLOWX_SCENE_CODE", "")
++	_ = os.Unsetenv(envPoolsFile)
++	got, ok := Resolve("code")
++	if !ok || got != "gpt-4o" {
++		t.Fatalf("code: got %q ok=%v", got, ok)
++	}
++}
++
++func TestResolve_CodeEnvOverride(t *testing.T) {
++	t.Setenv(envEnabled, "true")
++	t.Setenv("GFLOWX_SCENE_CODE", "deepseek-chat")
++	_ = os.Unsetenv(envPoolsFile)
++	got, ok := Resolve("code")
++	if !ok || got != "deepseek-chat" {
++		t.Fatalf("code override: got %q ok=%v", got, ok)
++	}
++}
++
++func TestApplyToRequest_GeneralOpenAI(t *testing.T) {
++	t.Setenv(envEnabled, "true")
++	_ = os.Unsetenv("GFLOWX_SCENE_FAST")
++	req := &dto.GeneralOpenAIRequest{Model: "fast"}
++	tag, resolved, changed := ApplyToRequest(nil, req)
++	if !changed || tag != "fast" || resolved != "gpt-4o-mini" {
++		t.Fatalf("ApplyToRequest: tag=%q resolved=%q changed=%v model=%q", tag, resolved, changed, req.Model)
++	}
++	if req.Model != "gpt-4o-mini" {
++		t.Fatalf("request not mutated: %q", req.Model)
++	}
++}
++
++func TestResolve_NotAScene(t *testing.T) {
++	t.Setenv(envEnabled, "true")
++	if _, ok := Resolve("gpt-4o-mini"); ok {
++		t.Fatal("concrete model must not be treated as scene")
++	}
++}
++
++func TestResolveAlias_Builtin(t *testing.T) {
++	t.Setenv(envAliasesEnabled, "true")
++	got, ok := ResolveAlias("claude")
++	if !ok || got != "claude-sonnet-4-20250514" {
++		t.Fatalf("alias claude: got %q ok=%v", got, ok)
++	}
++}
++
++func TestApplyToRequest_AliasBeforeScene(t *testing.T) {
++	t.Setenv(envAliasesEnabled, "true")
++	t.Setenv(envEnabled, "true")
++	w := httptest.NewRecorder()
++	c, _ := gin.CreateTestContext(w)
++	req := &dto.GeneralOpenAIRequest{Model: "claude"}
++	user, resolved, changed := ApplyToRequest(c, req)
++	if !changed || user != "claude" || resolved != "claude-sonnet-4-20250514" {
++		t.Fatalf("alias apply: user=%q resolved=%q changed=%v", user, resolved, changed)
++	}
++	if req.Model != "claude-sonnet-4-20250514" {
++		t.Fatalf("model: %q", req.Model)
++	}
++}
++
++func TestResolve_PoolFileFirst(t *testing.T) {
++	t.Setenv(envEnabled, "true")
++	_ = os.Unsetenv("GFLOWX_SCENE_CODE")
++	dir := t.TempDir()
++	p := filepath.Join(dir, "pools.json")
++	if err := os.WriteFile(p, []byte(`{"code":["alpha-model","beta-model"]}`), 0o600); err != nil {
++		t.Fatal(err)
++	}
++	t.Setenv(envPoolsFile, p)
++	got, ok := Resolve("code")
++	if !ok || got != "alpha-model" {
++		t.Fatalf("pool first: got %q ok=%v", got, ok)
++	}
++}
++
++func TestResolve_PoolSkipsUnhealthy(t *testing.T) {
++	t.Setenv(envEnabled, "true")
++	_ = os.Unsetenv("GFLOWX_SCENE_CODE")
++	t.Setenv(envHealthEnabled, "true")
++	dir := t.TempDir()
++	p := filepath.Join(dir, "pools.json")
++	if err := os.WriteFile(p, []byte(`{"code":["bad-model","good-model"]}`), 0o600); err != nil {
++		t.Fatal(err)
++	}
++	t.Setenv(envPoolsFile, p)
++	MarkModelUnhealthy("bad-model")
++	got, ok := Resolve("code")
++	if !ok || got != "good-model" {
++		t.Fatalf("expected good-model, got %q ok=%v", got, ok)
++	}
++}
++
++func TestTryAdvancePool(t *testing.T) {
++	t.Setenv(envEnabled, "true")
++	_ = os.Unsetenv("GFLOWX_SCENE_CODE")
++	dir := t.TempDir()
++	p := filepath.Join(dir, "pools.json")
++	if err := os.WriteFile(p, []byte(`{"code":["m1","m2"]}`), 0o600); err != nil {
++		t.Fatal(err)
++	}
++	t.Setenv(envPoolsFile, p)
++	w := httptest.NewRecorder()
++	c, _ := gin.CreateTestContext(w)
++	req := &dto.GeneralOpenAIRequest{Model: "code"}
++	if _, _, changed := ApplyToRequest(c, req); !changed || req.Model != "m1" {
++		t.Fatalf("expected first pool model m1, got %q changed=%v", req.Model, changed)
++	}
++	info := &relaycommon.RelayInfo{OriginModelName: req.Model}
++	if !TryAdvancePool(c, req, info) {
++		t.Fatal("TryAdvancePool expected true")
++	}
++	if req.Model != "m2" || info.OriginModelName != "m2" {
++		t.Fatalf("after advance: req=%q origin=%q", req.Model, info.OriginModelName)
++	}
++	if TryAdvancePool(c, req, info) {
++		t.Fatal("expected no third model")
++	}
++}
+-- 
+2.43.0
+

@@ -1,6 +1,6 @@
-# GFlowX Router — 智能路由引擎设计
+# gflowx-router — 智能路由引擎设计
 
-> 这是 GFlowX 的核心差异化模块
+> 这是 gflowx-router 的核心差异化模块
 
 ---
 
@@ -79,6 +79,42 @@ Redis 缓存层：
   ├── quota:{channel_id}     → 额度状态（TTL 10min）
   └── alias:{alias}          → 别名映射（TTL 5min）
 ```
+
+---
+
+## 7. 已实现：v0 场景标签 → 单模型（`gflowxscene`）
+
+在 `backend/gflowxscene` 中实现 **一层映射**（通过仓库根目录 `./scripts/apply-gflowx-backend-patch.sh` 将补丁打进子模块后生效）：当请求体中的 `model` 为 `docs/API.md` 所列场景标签之一（`smart` / `fast` / `cheap` / `code` / `write` / `creative` / `vision` / `translate`）时，在 **`GenRelayInfo` 之前** 将 `model` **改写**为具体上游模型名，再走原有渠道选择与 relay。
+
+- **关闭**：环境变量 `GFLOWX_SCENES_ENABLED=false`（默认开启）。  
+- **按标签覆盖默认值**：`GFLOWX_SCENE_CODE`、`GFLOWX_SCENE_SMART` 等（大写标签，`translate` → `GFLOWX_SCENE_TRANSLATE`）。  
+- **内置默认**（无 env 时）：`code` / `smart` / `write` / `creative` / `vision` → `gpt-4o`；`fast` / `cheap` / `translate` → `gpt-4o-mini`。管理员需在 new-api 中为这些模型配置可用渠道，或通过上述 env 改为本环境已有的模型 id。
+
+后续版本可在此包上扩展 **模型池、Tier 降级、健康检查**，与本文第 2～5 节设计对齐。
+
+## 8. 已实现：v1 模型池、健康跳过、别名（`gflowxscene`）
+
+在 v0 单模型映射之上，补丁内 `gflowxscene` 现支持：
+
+1. **别名（对齐 `docs/API.md`）**  
+   - 内置：`claude` → `claude-sonnet-4-20250514`，`gpt4` → `gpt-4o`，`deepseek` → `deepseek-chat`。  
+   - 关闭：`GFLOWX_ALIASES_ENABLED=false`。  
+   - 可选 JSON 覆盖/扩展：`GFLOWX_ALIASES_FILE` 指向 `{ "别名": "具体模型名" }` 文件（示例见 `config/gflowx_aliases.example.json`）。  
+   - 别名在场景标签之前解析；命中别名后会同步 `original_model` 为解析结果，避免 `InitChannelMeta` 把请求体模型改回标签字符串。
+
+2. **模型池（文件配置）**  
+   - 环境变量 `GFLOWX_SCENE_POOLS_FILE` 指向 JSON：`{ "code": ["gpt-4o","deepseek-chat"], ... }`（示例 `config/gflowx_scene_pools.example.json`）。  
+   - 单标签 **环境变量覆盖**（如 `GFLOWX_SCENE_CODE`）仍为最高优先级；设置后忽略该标签的池文件。  
+   - 池内顺序表示 **优先级**；首个通过「健康检查」的模型作为当前请求模型。
+
+3. **健康标记（进程内，轻量）**  
+   - 默认开启：`GFLOWX_SCENE_HEALTH_ENABLED=false` 可关。  
+   - 当 relay 判定为 **渠道类错误**（`types.IsChannelError`）时，将当前 **已解析的具体模型名** 记入短期不健康表（默认 TTL 60s，可用 `GFLOWX_SCENE_HEALTH_TTL_SEC` 调整）。  
+   - 后续同进程内场景解析会 **跳过** 仍处于 TTL 内的模型，优先使用池内下一个健康项。  
+   - 说明：此为 v1 **单机内存**实现；多实例一致性与 Redis 持久化见后续迭代（对齐本文 §6）。
+
+4. **Relay 池内降级**  
+   - 在 `controller/relay` 重试循环中：若常规重试结束仍失败，且该请求在 `ApplyToRequest` 时挂上了多模型池，则 **推进池索引**、更新 `OriginModelName` 与请求体模型、清空 `ChannelMeta` 以重新选路（不额外消耗 `RetryTimes` 计数，通过 `ResetRetryNextTry`）。
 
 ---
 

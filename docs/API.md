@@ -1,4 +1,4 @@
-# GFlowX Router — API 接口文档
+# gflowx-router — API 接口文档
 
 > 所有接口兼容 OpenAI 格式，现有工具无需改动即可接入
 
@@ -7,8 +7,8 @@
 ## 1. 接入配置
 
 ```
-Base URL: https://api.gflowx.com/v1
-API Key:  sk-gflowx-xxxxxxxxxxxx
+Base URL: https://api.gflowx-router.example/v1
+API Key:  sk-gflowx-router-xxxxxxxxxxxx
 ```
 
 ## 2. 聊天补全

@@ -1,0 +1,55 @@
+.gflow-shell {
+  background: var(--bg-primary);
+}
+
+.gflow-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-inline: 24px;
+  background: var(--bg-secondary) !important;
+  border-bottom: 1px solid var(--border);
+}
+
+[data-theme='dark'] .gflow-header {
+  border-bottom-color: var(--border);
+}
+
+.gflow-brand {
+  color: var(--text-primary) !important;
+  margin-right: 8px;
+  white-space: nowrap;
+}
+
+.gflow-nav {
+  flex: 1;
+  min-width: 0;
+  border-bottom: none !important;
+  background: transparent !important;
+}
+
+.gflow-header-actions {
+  margin-left: auto;
+}
+
+.gflow-header-user {
+  color: var(--text-secondary) !important;
+}
+
+.gflow-content {
+  padding: 24px;
+  background: var(--bg-secondary);
+  min-height: calc(100vh - 64px);
+}
+
+@media (max-width: 768px) {
+  .gflow-content {
+    padding: 16px;
+  }
+
+  .gflow-header {
+    flex-wrap: wrap;
+    height: auto !important;
+    padding-block: 12px;
+  }
+}
