@@ -1,0 +1,35 @@
+{
+  "defaultGroup": "pro",
+  "poolsByGroup": {
+    "free": {
+      "code": ["gpt-4o-mini"],
+      "smart": ["gpt-4o-mini"],
+      "fast": ["gpt-4o-mini"],
+      "cheap": ["gpt-4o-mini"],
+      "write": ["gpt-4o-mini"],
+      "creative": ["gpt-4o-mini"],
+      "vision": ["gpt-4o-mini"],
+      "translate": ["gpt-4o-mini"]
+    },
+    "pro": {
+      "code": ["gpt-4o", "claude-sonnet-4-20250514"],
+      "smart": ["gpt-4o", "o3-mini"],
+      "fast": ["gpt-4o-mini"],
+      "cheap": ["gpt-4o-mini"],
+      "write": ["gpt-4o"],
+      "creative": ["gpt-4o"],
+      "vision": ["gpt-4o"],
+      "translate": ["gpt-4o-mini"]
+    },
+    "team": {
+      "code": ["gpt-4o", "claude-sonnet-4-20250514", "deepseek-chat"],
+      "smart": ["gpt-4o", "o3-mini"],
+      "fast": ["gpt-4o-mini"],
+      "cheap": ["gpt-4o-mini"],
+      "write": ["gpt-4o"],
+      "creative": ["gpt-4o"],
+      "vision": ["gpt-4o"],
+      "translate": ["gpt-4o-mini"]
+    }
+  }
+}
